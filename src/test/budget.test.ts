@@ -90,3 +90,44 @@ describe('§10 bundle budgets', () => {
     }
   })
 })
+
+/* ------------------------------------------------------------------ *
+ * The deployable unit is dist/ PLUS the documents it is configured to
+ * read. A correct `docPath` that 404s (or, worse, hits the SPA fallback)
+ * is a deployment bug, not a runtime one.
+ * ------------------------------------------------------------------ */
+
+describe('the build ships what it is configured to read', () => {
+  it('dist/ contains the config the app fetches', () => {
+    expect(existsSync(join(repoRoot, 'dist', 'unfold.config.json'))).toBe(true)
+  })
+
+  it('the configured docPath exists inside dist/', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    expect(typeof config.docPath).toBe('string')
+    const shipped = join(repoRoot, 'dist', (config.docPath as string).replace(/^\.\//u, ''))
+    expect(existsSync(shipped), `${config.docPath} is missing from dist/`).toBe(true)
+  })
+
+  it('every fixture named by the config is actually in dist/', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    const dir = (config.docPath as string).replace(/^\.\//u, '').split('/')[0] as string
+    const shipped = readdirSync(join(repoRoot, 'dist', dir)).filter((name) => name.endsWith('.md'))
+    const source = readdirSync(join(repoRoot, dir)).filter((name) => name.endsWith('.md'))
+    expect(shipped.sort()).toEqual(source.sort())
+  })
+
+  it('the shipped document is byte-identical to the source of truth', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    const relative = (config.docPath as string).replace(/^\.\//u, '')
+    expect(readFileSync(join(repoRoot, 'dist', relative), 'utf8')).toBe(
+      readFileSync(join(repoRoot, relative), 'utf8'),
+    )
+  })
+})
