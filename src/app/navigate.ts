@@ -7,8 +7,11 @@
 export function navigate(slug: string, onNavigate?: (slug: string) => void): void {
   if (typeof window !== 'undefined') {
     const next = `#${slug}`
-    if (window.location.hash !== next) window.location.hash = next
-    else window.dispatchEvent(new HashChangeEvent('hashchange'))
+    if (window.location.hash !== next) {
+      window.location.hash = next
+      // jsdom and some embedded engines do not synthesise the event.
+      if (typeof window.dispatchEvent === 'function') window.dispatchEvent(new Event('hashchange'))
+    }
   }
   onNavigate?.(slug)
 }
@@ -16,7 +19,12 @@ export function navigate(slug: string, onNavigate?: (slug: string) => void): voi
 export function scrollToSlug(slug: string): void {
   if (typeof document === 'undefined') return
   const target = document.getElementById(`section-${slug}`)
-  target?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  if (target === null) return
+  // `scrollIntoView` is absent in some environments (jsdom, very old browsers).
+  // Navigation is a convenience, never a crash path.
+  if (typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  }
 }
 
 export function prefersReducedMotion(): boolean {

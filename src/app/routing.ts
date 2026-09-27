@@ -11,14 +11,26 @@ export type Route =
 
 export const READER_HASH = '#/'
 
+/** Decode a hash fragment without ever throwing on a malformed escape. */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 /** Read a location hash into a route. Unknown or empty hashes are the reader. */
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#+/u, '')
   if (raw === '' || raw === '/') return { name: 'reader' }
   if (raw === '/graph') return { name: 'graph' }
   if (raw === '/stepper') return { name: 'stepper' }
-  return { name: 'reader', slug: decodeURIComponent(raw) }
+  // An unknown `/view` is still a reader route; the leading slash is not part
+  // of a slug, and a document that happens to have one is handled by lookup.
+  return { name: 'reader', slug: safeDecode(raw.replace(/^\/+/u, '')) }
 }
+
 
 /** The hash a route should be written to. */
 export function hashFor(route: Route): string {

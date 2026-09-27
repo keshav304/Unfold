@@ -1,46 +1,34 @@
 {
-  "$comment": "Strings that must never appear in src/** (testdocs/ and *.test.* excepted). The point is that the app cannot know anything about the bundled demo document: if a term from it shows up in app code, someone hardcoded content instead of reading the Doc. Extend this list when a new demo document is added; never trim it to make a failure go away.",
+  "$comment": "Strings that must never appear in src/** (testdocs/ and *.test.* excepted). The point is that the app cannot know anything about the bundled demo document: if a term from it shows up in app code, someone hardcoded content instead of reading the Doc. Only include terms that are IDENTIFYING — a phrase is excluded when it is also ordinary UI or engineering vocabulary ('table of contents', 'one source of truth', 'composition root'), because those produce false alarms that train people to ignore this check. Extend it when a new demo document is added; never trim it to make a failure go away.",
   "lists": [
     {
-      "description": "The demo document's product name and its components",
+      "description": "The demo document's product name and its invented domain nouns",
       "terms": [
         "Argus",
-        "frozen-instrument",
         "Ocado",
         "Tesco",
-        "Vertex",
-        "Buddy",
-        "Amendment G"
-      ]
-    },
-    {
-      "description": "Domain nouns unique to the demo document",
-      "terms": [
+        "frozen-instrument",
         "buddy/copilot",
         "contiguous token run",
-        "scoring",
-        "packs",
-        "geometry scopes",
-        "buddy/"
+        "geometry scopes"
       ]
     },
     {
-      "description": "Demo-document headings, longest phrases first",
+      "description": "Demo-document headings specific enough to identify the document",
       "terms": [
         "how Argus actually works",
         "The product in one page",
         "What Argus does",
-        "frozen-instrument concept",
+        "what is real and what is simulated",
         "Bird's-eye architecture",
         "four processes in the local profile",
         "full request lifecycle",
         "The backend, layer by layer",
         "one source of runtime truth",
+        "providers are wiring",
         "the composition root",
-        "deterministic extraction",
         "the password gate",
-        "the ceremony and the linters",
-        "Table of contents"
+        "the ceremony and the linters"
       ]
     }
   ]

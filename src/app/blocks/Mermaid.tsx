@@ -62,18 +62,14 @@ export function Mermaid({ code }: MermaidProps): JSX.Element {
     }
   }, [code])
 
-  if (svg !== null) {
-    return (
-      <figure className="mermaid" data-theme="dark">
-        {/* Mermaid generates this SVG from the fenced source and escapes text. */}
-        <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} />
-      </figure>
-    )
-  }
-
   return (
-    <figure className="mermaid mermaid--pending" data-state={failed ? 'failed' : 'loading'}>
-      {failed ? (
+    // `data-theme="dark"` in every state — pending, rendered, or degraded to
+    // source — so the dark theme is a property of the block, not of a branch.
+    <figure className="mermaid" data-theme="dark" data-state={failed ? 'failed' : svg === null ? 'pending' : 'ready'}>
+      {svg !== null ? (
+        /* Mermaid generates this SVG from the fenced source and escapes text. */
+        <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+      ) : failed ? (
         <pre className="mermaid-fallback">
           <code>{code}</code>
         </pre>
