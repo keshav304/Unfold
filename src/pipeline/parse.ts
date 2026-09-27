@@ -8,7 +8,7 @@
  */
 
 import type { Root, RootContent } from 'mdast'
-import matter from 'gray-matter'
+import { splitFrontmatter } from './frontmatter'
 import remarkGfm from 'remark-gfm'
 import remarkParse from 'remark-parse'
 import { unified } from 'unified'
@@ -96,18 +96,12 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
   const config = options.config ?? DEFAULT_CONFIG
   const fileName = options.fileName ?? ''
 
-  let body = source
-  let frontmatter: Record<string, unknown> = {}
-  try {
-    const parsed = matter(source)
-    body = parsed.content
-    frontmatter =
-      typeof parsed.data === 'object' && parsed.data !== null
-        ? (parsed.data as Record<string, unknown>)
-        : {}
-  } catch (error) {
+  const split_ = splitFrontmatter(source)
+  const body = split_.body
+  const frontmatter = split_.data
+  if (split_.malformed === true) {
     // A broken frontmatter block must not cost us the document body.
-    warn('frontmatter', 'frontmatter could not be parsed; continuing with the raw source', String(error))
+    warn('frontmatter', 'frontmatter is not a YAML mapping; the block was skipped')
   }
 
   let root: Root
