@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -17,8 +17,7 @@ function serveRootConfig(): Plugin {
       server.middlewares.use((req, res, next) => {
         if (req.url === `/${CONFIG_FILE}` && existsSync(CONFIG_FILE)) {
           res.setHeader('content-type', 'application/json')
-          copyFileSync(CONFIG_FILE, res)
-          res.end()
+          res.end(readFileSync(CONFIG_FILE))
           return
         }
         next()
