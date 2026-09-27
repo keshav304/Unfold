@@ -273,13 +273,67 @@ describe('glossary term matching is word-bounded (§6.5)', () => {
 })
 
 describe('proseRunsOf splits prose from inline code (§6.5, A2)', () => {
-  it('table cells reach both run sets', () => {
-    const source = ['# T', '', '| File |', '| --- |', '| src/a.ts |'].join('\n')
+  it('a table cell is scanned according to how it is actually written (A3)', () => {
+    const source = ['# T', '', '## S', '', '| File |', '| --- |', '| src/a.ts | `src/b.ts` |'].join('\n')
     const { doc } = parseMarkdown(source)
-    expect(doc.intro[0]?.kind).toBe('table')
-    const runs = proseRunsOf(doc.intro)
+    const section = doc.sections[0]
+    expect(section?.blocks[0]?.kind).toBe('table')
+    const runs = proseRunsOf(section?.blocks ?? [])
+    // A bare cell is prose; a backticked cell is an inline span. Before A3 every
+    // cell was pushed into both sets, which made the split a lie the renderer
+    // then had to undo.
     expect(runs.prose).toContain('src/a.ts')
-    expect(runs.inline).toContain('src/a.ts')
+    expect(runs.inline).toContain('src/b.ts')
+  })
+
+  it('the file family still reads both, so both cells are extracted', () => {
+    const source = ['# T', '', '## S', '', '| File |', '| --- |', '| src/a.ts | `src/b.ts` |'].join('\n')
+    const { doc } = parseMarkdown(source)
+    const paths = doc.sections[0]?.files.map((file) => file.path) ?? []
+    expect(paths).toContain('src/a.ts')
+    expect(paths).toContain('src/b.ts')
+  })
+
+  it('a `path::symbol` and a test id inside a cell are both extracted', () => {
+    const source = [
+      '# T',
+      '',
+      '## S',
+      '',
+      '| Ref |',
+      '| --- |',
+      '| `src/a.ts::run` |',
+      '| `src/a.test.ts::test_thing` |',
+    ].join('\n')
+    const { doc } = parseMarkdown(source)
+    const section = doc.sections[0]
+    expect(section?.files.map((file) => `${file.path}::${file.symbol}`)).toContain('src/a.ts::run')
+    expect(section?.tests.map((test) => test.id)).toContain('src/a.test.ts::test_thing')
+  })
+
+  it('a glossary term in a bare cell matches; one in backticks does not (A2 still holds)', () => {
+    const source = [
+      '# T',
+      '',
+      '## Glossary',
+      '',
+      '### Adapter',
+      '',
+      'A thin wrapper.',
+      '',
+      '## S',
+      '',
+      '| A |',
+      '| --- |',
+      '| An Adapter here |',
+      '| `Adapter` quoted |',
+    ].join('\n')
+    const { doc } = parseMarkdown(source)
+    const glossary = (doc.glossary ?? []).map((entry) => ({ term: entry.term, aliases: entry.aliases }))
+    const section = doc.sections.find((entry) => entry.slug === 's')
+    const hits = extractEntities(proseRunsOf(section?.blocks ?? []), { glossary })
+    // Word-bounded, and exactly one hit — the quoted occurrence is a literal.
+    expect(hits.glossaryHits).toEqual([{ text: 'Adapter', term: 'Adapter', isAlias: false }])
   })
 
   it('inline code reaches the inline set but never the prose set', () => {

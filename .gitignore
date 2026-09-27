@@ -5,3 +5,6 @@ dist-budget
 *.local
 .vite
 *.tsbuildinfo
+
+# Lighthouse HTML reports are artifacts, not sources.
+lighthouse*.html

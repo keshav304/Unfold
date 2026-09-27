@@ -172,9 +172,10 @@ describe('block renderers', () => {
     expect(table).not.toBeNull()
     expect(table?.querySelectorAll('th').length).toBeGreaterThan(0)
     expect(table?.querySelectorAll('tbody tr').length).toBeGreaterThan(0)
-    // §6.3 models a cell as a plain string, so `npm ci` arrives as "npm ci"
-    // with no markup to preserve. The text must be right.
+    // A3: a cell carries inline runs, so a backticked cell still reads as its
+    // own text — now with a real `<code>` element, not a pre-flattened string.
     expect(table?.textContent).toContain('npm ci')
+    expect(table?.querySelector('td code')?.textContent).toBe('npm ci')
   })
 
   it('renders the untagged ASCII diagram as a terminal window', async () => {

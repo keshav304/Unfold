@@ -18,6 +18,7 @@ exports[`§11.1 golden snapshots > crosslinked 1`] = `
   },
   "sections": [
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -32,6 +33,7 @@ exports[`§11.1 golden snapshots > crosslinked 1`] = `
       "title": "Ingest",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -46,6 +48,7 @@ exports[`§11.1 golden snapshots > crosslinked 1`] = `
       "title": "Storage",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -90,6 +93,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
   },
   "sections": [
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -102,6 +106,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Duplicate headings",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -116,6 +121,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Duplicate headings",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -130,8 +136,10 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Self reference",
     },
     {
+      "cells": [],
       "children": [
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -144,6 +152,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
           "title": "中文标题",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -156,6 +165,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
           "title": "Пример",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -177,6 +187,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Unicode headings",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -190,6 +201,9 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Raw HTML in markdown",
     },
     {
+      "cells": [
+        "h:Column | Meaning",
+      ],
       "children": [],
       "files": [],
       "kinds": {
@@ -203,6 +217,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Empty table",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -215,6 +230,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Nested code fences",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -228,6 +244,7 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
       "title": "Malformed blocks",
     },
     {
+      "cells": [],
       "children": [],
       "files": [
         "src/pipeline/slug.ts",
@@ -278,8 +295,15 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
   },
   "sections": [
     {
+      "cells": [],
       "children": [
         {
+          "cells": [
+            "h:Tool | Purpose | Notes",
+            "r:Node | runtime | LTS only",
+            "r:npm ci | install | frozen lockfile",
+            "r:make check | verify | runs tests",
+          ],
           "children": [],
           "files": [
             "docs/spec.md",
@@ -297,6 +321,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
           "title": "Environment",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -320,8 +345,10 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
       "title": "Getting started",
     },
     {
+      "cells": [],
       "children": [
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -334,6 +361,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
           "title": "Component graph",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -360,6 +388,11 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
       "title": "Runtime shape",
     },
     {
+      "cells": [
+        "h:Signal | Meaning | Action",
+        "r:p95 | tail latency | investigate",
+        "r:errors | failed docs | check frontmatter",
+      ],
       "children": [],
       "files": [
         "tools/build.sh",
@@ -378,6 +411,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
       "title": "Operational notes",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -390,8 +424,10 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
       "title": "Notes",
     },
     {
+      "cells": [],
       "children": [
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -404,6 +440,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
           "title": "Measurement Run",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -416,6 +453,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
           "title": "Adapter",
         },
         {
+          "cells": [],
           "children": [],
           "files": [],
           "kinds": {
@@ -439,6 +477,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
       "title": "Glossary",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -481,6 +520,7 @@ exports[`§11.1 golden snapshots > minimal 1`] = `
   },
   "sections": [
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {
@@ -493,6 +533,7 @@ exports[`§11.1 golden snapshots > minimal 1`] = `
       "title": "Purpose",
     },
     {
+      "cells": [],
       "children": [],
       "files": [],
       "kinds": {

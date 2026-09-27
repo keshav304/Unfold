@@ -6,15 +6,15 @@
  * a blank space in the reader.
  */
 
-import type { Content, Paragraph, RootContent, Table, TableCell } from 'mdast'
+import type { Content, Paragraph, PhrasingContent, RootContent, Table, TableCell } from 'mdast'
 import { DSL_LANGUAGES } from './constants'
 import { parseGraph } from './dsl/graph'
 import { parseLoop } from './dsl/loop'
 import { parseSteps } from './dsl/steps'
 import { DslParseError } from './dsl/types'
-import { walk } from './mdast-text'
+import { toPlainText, walk } from './mdast-text'
 import { isAsciiDiagram } from './terminal'
-import type { Align, Block } from './types'
+import type { Align, Block, InlineNode, InlineRow, InlineRun } from './types'
 import { warn } from './warn'
 
 export type ClassifyResult = {
@@ -48,20 +48,17 @@ export function internalLinksOf(node: unknown): string[] {
   return urls
 }
 
-function cellText(cell: TableCell): string {
-  return cell.children
-    .map((child) => ('value' in child && typeof child.value === 'string' ? child.value : ''))
-    .join('')
-    .trim()
+function cellNodes(cell: TableCell): InlineRun {
+  return cell.children.filter((child): child is PhrasingContent => child.type !== 'html')
 }
 
 function classifyTable(node: Table): Block {
-  const header: string[] = []
-  const rows: string[][] = []
+  const header: InlineRow = []
+  const rows: InlineRow[] = []
   const align: Align[] = []
 
   for (const row of node.children) {
-    const cells = row.children.map((cell) => cellText(cell))
+    const cells = row.children.map((cell) => cellNodes(cell))
     if (cells.length === 0) continue
     // The first row of a GFM table is the header. An empty table is a table.
     if (header.length === 0) header.push(...cells)
@@ -72,6 +69,11 @@ function classifyTable(node: Table): Block {
   while (align.length < header.length) align.push(null)
 
   return { kind: 'table', header, rows, align: align.slice(0, header.length) }
+}
+
+/** Plain text of a table cell, for search records and word counts (A3). */
+export function tableCellText(cell: readonly InlineNode[]): string {
+  return toPlainText({ type: 'paragraph', children: [...cell] })
 }
 
 /** Normalise a fence info string: `Graph`, `graph {a}`, `  graph ` → `graph`. */

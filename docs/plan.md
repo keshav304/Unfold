@@ -129,6 +129,9 @@ Lighthouse ≥ 90/95.
 
 **Goal:** REFERENCE speed (§7.4–7.5). Indexes exist since M0.9 — this is UI.
 
+- [x] M2.0 A3 amendment: a table cell is a list of inline runs (`InlineRun`), not a
+      string, so cells render through the shared inline pipeline — entity chips
+      included. Pipeline + snapshots + fixture expectations.
 - [ ] M2.1 cmdk palette: Level-3 elevation, spring-in (signature motion #1),
       focus trap/restore.
 - [ ] M2.2 Result groups: Sections / Files / Glossary — groups render only

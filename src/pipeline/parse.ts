@@ -14,6 +14,7 @@ import remarkParse from 'remark-parse'
 import { unified } from 'unified'
 
 import { detectCapabilities } from './capabilities'
+import { tableCellText } from './blocks'
 import { DEFAULT_CONFIG, type UnfoldConfig } from './config'
 import { deriveGraph, type CrossLink } from './derive-graph'
 import { extractEntities, proseRunsOf } from './entities'
@@ -74,7 +75,7 @@ export function blockToProseText(block: Block): string {
     case 'html':
       return ''
     case 'table':
-      return [...block.header, ...block.rows.flat()].join(' ')
+      return [...block.header, ...block.rows.flat()].map(tableCellText).join(' ')
     case 'loop':
       return block.labels.join(' ')
     case 'list':

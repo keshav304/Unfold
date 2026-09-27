@@ -247,14 +247,17 @@ function blockRuns(block: Block, out: { prose: string[]; inline: string[] }): vo
     case 'list':
       nodes.push(...block.items)
       break
-    case 'table':
-      // Cells are their own little prose islands; a path in a cell counts.
-      // A backticked path inside a cell is still an inline span.
+    case 'table': {
+      // Cells are prose islands (A3): a path in a cell counts, and a backticked
+      // path inside a cell is still an inline span. Walking the inline nodes
+      // keeps that split structural rather than a string side-channel.
       for (const cell of [...block.header, ...block.rows.flat()]) {
-        out.prose.push(cell)
-        out.inline.push(cell)
+        const node = { type: 'paragraph', children: cell }
+        collectProseRuns(node, out.prose)
+        collectInlineRuns(node, out.inline)
       }
       return
+    }
     case 'loop':
       out.prose.push(...block.labels)
       return

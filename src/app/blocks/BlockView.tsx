@@ -8,7 +8,7 @@
 
 import type { ReactNode } from 'react'
 import type { Paragraph } from 'mdast'
-import type { Block } from '../../pipeline/types'
+import type { Block, InlineNode } from '../../pipeline/types'
 import { renderInline, type InlineContext } from './Inline'
 import { CodeBlock } from './CodeBlock'
 import { Terminal } from './Terminal'
@@ -19,6 +19,11 @@ export type BlockProps = { block: Block; context: InlineContext }
 
 function inline(node: Paragraph, context: InlineContext, key: string): ReactNode {
   return <span key={key}>{node.children.map((child, index) => renderInline(child, index, context))}</span>
+}
+
+/** A table cell's inline runs, through the same pipeline as prose (A3). */
+function inlineNodes(cell: readonly InlineNode[], context: InlineContext): ReactNode {
+  return cell.map((child, index) => renderInline(child, index, context))
 }
 
 function listItems(items: readonly unknown[], context: InlineContext, ordered: boolean): ReactNode {
@@ -82,7 +87,7 @@ export function BlockView({ block, context }: BlockProps): ReactNode {
               <tr>
                 {block.header.map((cell, index) => (
                   <th key={index} scope="col" style={alignOf(block.align[index])}>
-                    {cell}
+                    <span className="reader-cell">{inlineNodes(cell, context)}</span>
                   </th>
                 ))}
               </tr>
@@ -92,7 +97,7 @@ export function BlockView({ block, context }: BlockProps): ReactNode {
                 <tr key={rowIndex}>
                   {row.map((cell, cellIndex) => (
                     <td key={cellIndex} style={alignOf(block.align[cellIndex])}>
-                      {cell}
+                      <span className="reader-cell">{inlineNodes(cell, context)}</span>
                     </td>
                   ))}
                 </tr>

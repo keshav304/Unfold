@@ -760,6 +760,11 @@
     font-size: var(--text-code-sm-size);
   }
 
+  /* A cell is prose (A3): it holds inline runs, so a chip in a cell is a chip. */
+  .reader-cell {
+    display: inline;
+  }
+
   /* ---------- drop screen (§6.1) ---------- */
   .drop-screen {
     display: grid;

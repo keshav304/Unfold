@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url'
 import type { UnfoldConfig } from '../pipeline/config'
 import { parseDocument } from '../pipeline/parse'
 import { clearWarnings, getWarnings, setWarningEcho, setWarningSink, type Warning } from '../pipeline/warn'
-import type { Block, Doc, Section } from '../pipeline/types'
+import type { Block, Doc, InlineRow, Section } from '../pipeline/types'
+import { tableCellText } from '../pipeline/blocks'
 
 const here = dirname(fileURLToPath(import.meta.url))
 export const TESTDOCS_DIR = resolve(here, '../../testdocs')
@@ -83,6 +84,27 @@ export function kindCounts(blocks: readonly Block[]): Record<string, number> {
   return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)))
 }
 
+/**
+ * Table cell text for the golden snapshots (A3): the header row, then every body
+ * row. Before A3 a cell was a flat string, so the snapshot could not tell a
+ * backticked cell from a bare one -- which is exactly the difference that decides
+ * whether the cell renders a chip.
+ */
+function tableCells(blocks: readonly Block[]): string[] {
+  const out: string[] = []
+  for (const block of blocks) {
+    if (block.kind !== 'table') continue
+    out.push(`h:${rowCells(block.header)}`)
+    for (const row of block.rows) out.push(`r:${rowCells(row)}`)
+  }
+  return out
+}
+
+/** One row's cell text, cells joined by a separator no cell text can contain. */
+function rowCells(row: InlineRow): string {
+  return row.map((cell) => tableCellText(cell)).join(' | ')
+}
+
 /** Depth-first section tree with slugs, levels and block-kind histograms. */
 export function sectionTree(sections: readonly Section[]): unknown[] {
   return sections.map((section) => ({
@@ -90,6 +112,7 @@ export function sectionTree(sections: readonly Section[]): unknown[] {
     slug: section.slug,
     title: section.title,
     kinds: kindCounts(section.blocks),
+    cells: tableCells(section.blocks),
     files: section.files.map((file) => (file.symbol === undefined ? file.path : `${file.path}::${file.symbol}`)),
     tests: section.tests.map((test) => test.id),
     linksTo: section.linksTo,

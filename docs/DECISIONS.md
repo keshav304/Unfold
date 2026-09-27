@@ -253,3 +253,44 @@ corpus that the app is supposed to treat as arbitrary input.
 **The duration check walks declarations, not raw text** / PostCSS `walkDecls` /
 A regex over the stylesheet matched the "H2s" in a comment as a 2-second
 duration. The rule is about CSS values; prose in comments is not a value.
+
+---
+
+## M2 — search, palette, entities
+
+**A3: a table cell is a list of inline runs, not a string** / `header: InlineRow`,
+`rows: InlineRow[]`, where an `InlineRun` is `InlineNode[]` — the same
+`PhrasingContent` the prose renderer walks / The spec's §6.3 `rows: string[][]`
+made a cell unrenderable as prose: a backticked path in a cell and a bare path in
+a cell were indistinguishable, so §6.5's inline-code rule (A2) could not reach a
+cell at all, and §7.5's chips had nothing to attach to. One cell type fixes
+prose, chips and extraction at once. `html` children are dropped from a cell
+because `PhrasingContent` has no slot for them and raw HTML is rendered as source
+anyway (§4).
+
+**Entity extraction walks a cell's runs instead of pushing its text into both run
+sets** / `collectProseRuns` / `collectInlineRuns` per cell / The old code pushed
+every cell's flat text into *both* the prose and the inline set, which asserted
+"this text is simultaneously a plain-prose mention and a backticked one" — a lie
+the renderer then had to undo. The file family still reads both sets, so no
+entity is lost; only the fiction is. `entities.test.ts` asserts the real split.
+
+**The golden snapshots now record table cell text** / `sectionTree` gained a
+`cells` field / Without it A3 was invisible to §11.1: the snapshots recorded
+block *counts* only, so a cell silently losing its content, or a backticked cell
+degenerating to a bare one, would have left every snapshot green.
+
+**A3's cell type is nested two deep, deliberately** / `InlineRow = InlineRun[]` /
+A row holds cells and a cell holds runs, so `header` is one `InlineRow` and
+`rows` is `InlineRow[]`. A flat `InlineNode[][]` reads as "rows of runs" and
+silently drops a dimension, which is what the first attempt did.
+
+---
+
+## M2.PW — the Playwright verification layer
+
+**Playwright is pinned to 1.61.1, the newest release that still supports Node 18**
+/ 1.61.1, not 1.62+ / `@playwright/test@1.62.0` declares `engines.node >= 20` and
+this project's Node is 18.20.8. The brief says not to upgrade Node unilaterally,
+so the newest *compatible* version is the correct answer rather than a reason to
+stop. Revisit at the Node bump, not before.

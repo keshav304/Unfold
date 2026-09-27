@@ -4,11 +4,27 @@
  * happens to say.
  */
 
-import type { Content, Paragraph, Root } from 'mdast'
+import type { Content, Paragraph, PhrasingContent, Root } from 'mdast'
 import type { GraphSpec, StepSpec } from './dsl/types'
 
 /** Table column alignment, `null` when the source declares none. */
 export type Align = 'left' | 'right' | 'center' | null
+
+/**
+ * One inline node, the same type the prose renderer walks (amendment A3,
+ * spec §6.3). A table cell is prose, so a cell carries inline runs and renders
+ * through the same pipeline — entity chips included.
+ */
+export type InlineNode = PhrasingContent
+
+/**
+ * One cell's inline runs. `header` is a single row of cells; `rows` is a list
+ * of such rows.
+ */
+export type InlineRun = InlineNode[]
+
+/** One table row: the cells across it. */
+export type InlineRow = InlineRun[]
 
 export type BlockKind =
   | 'prose'
@@ -27,7 +43,7 @@ export type BlockKind =
 export type Block =
   | { kind: 'prose'; node: Paragraph }
   | { kind: 'code'; lang: string; code: string }
-  | { kind: 'table'; header: string[]; rows: string[][]; align: Align[] }
+  | { kind: 'table'; header: InlineRow; rows: InlineRow[]; align: Align[] }
   | { kind: 'terminal'; code: string }
   | { kind: 'mermaid'; code: string }
   | { kind: 'loop'; labels: string[] }
