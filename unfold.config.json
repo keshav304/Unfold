@@ -1,0 +1,8 @@
+{
+  "$comment": "Dev default so `npm run dev` opens a real document. M1.1. Every field is optional — zero-config works and falls back to ./document.md (§1.4).",
+  "docPath": "./testdocs/kitchen-sink.md",
+  "features": {
+    "graph": "auto",
+    "stepper": "auto"
+  }
+}

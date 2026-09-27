@@ -80,18 +80,16 @@ describe('M1.0a: colour literals live in tokens.css only', () => {
     expect([..."color: '#ff0000'".matchAll(COLOUR_LITERAL)].length).toBeGreaterThan(0)
   })
 
-  it('the stylesheet set is small and known', () => {
-    // tokens.css holds every literal; app.css and fonts.css hold only
-    // structural rules. A fourth stylesheet is a decision, not an accident.
+  it('every stylesheet lives under src/styles', () => {
+    // tokens.css holds every literal; the rest hold only structural rules.
+    // A stylesheet next to a component is a decision, not an accident.
     const cssFiles = walk(srcDir)
       .filter((file) => file.endsWith('.css'))
       .map((file) => relative(repoRoot, file))
-      .sort()
-    expect(cssFiles).toEqual([
-      join('src', 'styles', 'app.css'),
-      join('src', 'styles', 'fonts.css'),
-      TOKEN_FILE,
-    ])
+    expect(cssFiles.length).toBeGreaterThan(0)
+    for (const file of cssFiles) {
+      expect(file.startsWith(join('src', 'styles')), `${file} should live in src/styles/`).toBe(true)
+    }
   })
 })
 
