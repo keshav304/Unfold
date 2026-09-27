@@ -150,9 +150,12 @@ describe('§11.9 mermaid renders in the dark theme', () => {
     // Dark in every state: pending, rendered, or degraded to source.
     expect(figure?.getAttribute('data-theme')).toBe('dark')
 
-    // The library is lazy, so the block starts pending. It must settle on
-    // either a rendered diagram or the source — never a permanent blank.
-    // Mermaid is a ~1MB dynamic import; give it room on a loaded machine.
+    // Mermaid is a ~1MB dynamic import, so the block starts pending. It must
+    // settle on either a rendered diagram or the source — never a permanent
+    // blank. The 30s belongs on the *test*, not only on `waitFor`: the 20s on
+    // `waitFor` alone still left the test itself on vitest's 5s default, so a
+    // loaded machine (the budget test builds in parallel) failed it while the
+    // assertion was still polling.
     await waitFor(
       () => {
         const state = container.querySelector('.mermaid')?.getAttribute('data-state')
@@ -162,7 +165,7 @@ describe('§11.9 mermaid renders in the dark theme', () => {
     )
     const settled = container.querySelector('.mermaid')
     expect(settled?.querySelector('svg, pre')).not.toBeNull()
-  })
+  }, 30_000)
 })
 
 describe('block renderers', () => {

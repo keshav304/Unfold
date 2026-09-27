@@ -132,17 +132,28 @@ Lighthouse ≥ 90/95.
 - [x] M2.0 A3 amendment: a table cell is a list of inline runs (`InlineRun`), not a
       string, so cells render through the shared inline pipeline — entity chips
       included. Pipeline + snapshots + fixture expectations.
-- [ ] M2.1 cmdk palette: Level-3 elevation, spring-in (signature motion #1),
-      focus trap/restore.
-- [ ] M2.2 Result groups: Sections / Files / Glossary — groups render only
-      when capable; snippets from M0.9 windows; keyboard-complete.
-- [ ] M2.3 Palette static actions (view switch — capable only; reading mode).
-- [ ] M2.4 Entity chips in the prose renderer (inline code pill styling for
-      paths; dotted underline for glossary terms).
-- [ ] M2.5 Popovers (§7.5): Level-2 glass card, backlinks list, navigate +
-      flash; descriptions map empty-by-default.
-- [ ] M2.6 Tests: alias hit, "minimal shows no entity UI", palette keyboard
-      pass, popover Esc/focus.
+- [x] M2.1 ui-smoke promoted into `npm run ci`; the stranger subset stays behind
+      `ui-smoke:stranger`. The unused `stubLayout` helper is gone.
+- [x] M2.2 cmdk palette: Level-3 elevation, spring-in (signature motion #1,
+      `--ease-spring` + a `--motion-*` duration), focus trap and focus restore to
+      the trigger. ⌘K / Ctrl+K and `/`, with `/` inert in a text field.
+- [x] M2.3 Result groups: Sections / Files / Glossary — a group renders only when
+      its data exists; ±45-char snippets; the match marked in a `<mark>`.
+      Keyboard-complete. (A4: results + navigation only, no static actions.)
+- [x] M2.4 Entity chips in the shared inline renderer: file / `path::symbol` /
+      test-id chips in prose and inside inline code spans; per-section dedupe;
+      real `<button>`s so keyboard users get the popover for free.
+- [x] M2.5 Glossary chips: word-bounded, case-insensitive, aliases included,
+      prose-only per A2.
+- [x] M2.6 Popovers (§7.5): Level-2 glass card portalled to `<body>` and
+      positioned `fixed` (the table-cell clipping trap), backlinks list, navigate
+      + flash, descriptions map empty by default.
+- [x] M2.7 Tests: alias hit lands on its parent term, `minimal` shows no entity
+      UI and a Sections-only palette, palette triggers/arrows/Enter/Esc and the
+      `/`-in-input guard, chip inside backticks (A2), chip inside a table cell
+      (A3), popover focus-open/Esc/portal target.
+- [x] M2.8 Budget: entry 131.9KB gz (§10 limit 200KB); cmdk is bundled into the
+      entry chunk, not a lazy one.
 
 **Gate G3:** search smoke §11.8 green on every fixture; `/` and ⌘K both work;
 popovers open via keyboard focus; `minimal.md` renders zero chips.

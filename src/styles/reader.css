@@ -58,6 +58,32 @@
     gap: var(--space-xs);
   }
 
+  /* The palette trigger (spec §7.4). Present on every document: search is
+   * Tier 0 (§1.1), so unlike the view switcher it is never hidden. */
+  .app-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-base);
+    padding: var(--space-2xs) var(--space-sm);
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+  }
+  .app-search:hover {
+    color: var(--text-high);
+    border-color: var(--border-focus);
+  }
+
+  .app-search__kbd {
+    color: var(--text-subtle);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-2xs);
+  }
+
   .view-switcher__item {
     padding: var(--space-xs) var(--space-sm);
     background: transparent;
@@ -763,6 +789,240 @@
   /* A cell is prose (A3): it holds inline runs, so a chip in a cell is a chip. */
   .reader-cell {
     display: inline;
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Palette (spec §7.4) — Level 3, spring-in, the app's signature
+   * motion. Every duration comes from --motion-*, so the reduced-motion
+   * override in tokens.css zeroes the spring along with everything else.
+   * The spring curve overshoots; the *duration* is still a token, so no
+   * literal timing ever appears here.
+   * ---------------------------------------------------------------- */
+
+  .palette-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--margin);
+  }
+
+  .palette {
+    width: 100%;
+    max-width: 640px;
+    margin-top: 6vh;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: palette-spring var(--motion-slow) var(--ease-spring);
+  }
+
+  @keyframes palette-spring {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .palette-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--border-muted);
+    background: var(--surface-2);
+  }
+
+  .palette-header__icon {
+    color: var(--primary);
+    font-size: var(--text-headline-md-size);
+    line-height: 1;
+  }
+
+  .palette-input {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    color: var(--text-high);
+    font-family: var(--font-body);
+    font-size: var(--text-body-lg-size);
+    outline: none;
+  }
+  .palette-input::placeholder {
+    color: var(--text-subtle);
+  }
+
+  .palette-header__esc {
+    color: var(--text-muted);
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-sm);
+  }
+
+  .palette-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: var(--space-md);
+  }
+
+  .palette-group + .palette-group {
+    margin-top: var(--space-md);
+  }
+
+  .palette-group [cmdk-group-heading] {
+    font-family: var(--font-mono);
+    font-size: var(--text-label-caps-size);
+    letter-spacing: var(--text-label-caps-tracking);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .palette-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+  .palette-item[data-selected='true'] {
+    background: var(--accent-wash);
+    color: var(--text-high);
+  }
+
+  .palette-item__title {
+    color: var(--text-high);
+  }
+  .palette-item__snippet {
+    color: var(--text-muted);
+  }
+
+  .palette-empty {
+    padding: var(--space-lg);
+    color: var(--text-muted);
+  }
+
+  /* The matched substring: an accent wash, never a literal colour (§5.2). */
+  .search-hit {
+    background: var(--accent-wash);
+    color: var(--primary);
+    border-radius: var(--radius-sm);
+    padding: 0 2px;
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Entity chips (spec §6.5, §7.5)
+   * ---------------------------------------------------------------- */
+
+  .chip-anchor {
+    display: inline;
+  }
+
+  /*
+   * A file chip is the inline-code pill, promoted: `--surface-1`, a 1px
+   * `--border-muted` hairline, `code-sm`, `--text-muted`, and a
+   * `--border-focus` hairline on hover (§7.1, M2.4).
+   */
+  .entity-chip {
+    font-family: var(--font-mono);
+    font-size: var(--text-code-sm-size);
+    line-height: var(--text-code-sm-line);
+    letter-spacing: var(--text-code-sm-tracking);
+    background: var(--surface-1);
+    color: var(--text-muted);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-base);
+    padding: 0 2px;
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+  }
+  .entity-chip:hover {
+    border-color: var(--border-focus);
+    color: var(--text-high);
+  }
+  /* A chip inside a code span keeps the span's own look. */
+  .inline-code .entity-chip {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+
+  /*
+   * A glossary term is a word in a sentence, so it gets a dotted underline
+   * rather than a pill — boxing it would rewrite the prose (§6.5).
+   */
+  .glossary-chip {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: help;
+    text-decoration: underline dotted var(--border-focus);
+    text-underline-offset: 3px;
+  }
+  .glossary-chip:hover {
+    color: var(--text-high);
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Popover (spec §7.5) — Level 2, glass, portalled to <body> and
+   * positioned fixed, because a chip in a table cell sits inside an
+   * overflow-x: auto wrapper that would clip an absolute card.
+   * ---------------------------------------------------------------- */
+
+  .popover {
+    z-index: 70;
+    max-width: 320px;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    pointer-events: auto;
+  }
+
+  .popover__description,
+  .popover__definition {
+    color: var(--text-secondary);
+    margin: 0 0 var(--space-sm);
+  }
+
+  .popover__empty {
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .popover__label {
+    color: var(--text-muted);
+    margin: 0 0 var(--space-xs);
+  }
+
+  .popover__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+  }
+
+  .popover__link {
+    font: inherit;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--primary);
+    cursor: pointer;
+  }
+  .popover__link:hover {
+    text-decoration: underline;
   }
 
   /* ---------- drop screen (§6.1) ---------- */

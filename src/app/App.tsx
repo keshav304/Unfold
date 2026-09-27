@@ -7,12 +7,13 @@
  * capabilities there is no switcher at all, not a disabled one.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { UnfoldConfig } from '../pipeline/config'
 import { flattenSections } from '../pipeline/indexes'
 import { DropScreen, ErrorCard } from './components/DropScreen'
 import { Hero } from './components/Hero'
 import { Toc } from './components/Toc'
+import { Palette, isPaletteShortcut, isTypingTarget } from './palette/Palette'
 import { Reader } from './views/Reader'
 import { hashFor, parseHash, resolveRoute, type Route, type ViewName } from './routing'
 import { scrollToSlug } from './navigate'
@@ -38,8 +39,51 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
     parseHash(typeof window === 'undefined' ? '' : window.location.hash),
   )
   const [tocOpen, setTocOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [flash, setFlash] = useState<string | null>(null)
   const { progress, past } = useScrollProgress()
+
+  /* ---------------- palette triggers and focus restore (M2.2) ------------- */
+
+  /**
+   * §9: focus is restored on close. The element focused when the palette opened
+   * is remembered, so a click on the header button returns focus to that button
+   * and a `⌘K` from the middle of the page returns focus to wherever the reader
+   * actually was. Restoring to `body` unconditionally would silently break the
+   * second case, which is the common one.
+   */
+  const restoreFocusTo = useRef<HTMLElement | null>(null)
+  const wasOpen = useRef(false)
+
+  const openPalette = useCallback(() => {
+    restoreFocusTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setPaletteOpen(true)
+  }, [])
+
+  const closePalette = useCallback(() => setPaletteOpen(false), [])
+
+  // Restoring after the commit that unmounts the palette, rather than inside
+  // the close handler: the trigger must be focusable by then.
+  useEffect(() => {
+    if (wasOpen.current && !paletteOpen) {
+      restoreFocusTo.current?.focus()
+      restoreFocusTo.current = null
+    }
+    wasOpen.current = paletteOpen
+  }, [paletteOpen])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      // §7.4: ⌘K / Ctrl+K, and `/`. The `/` is inert inside a text field — a
+      // reader typing a path into a box must get a slash, not a palette.
+      const slash = event.key === '/' && !isTypingTarget(event.target)
+      if (!isPaletteShortcut(event) && !slash) return
+      event.preventDefault()
+      openPalette()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [openPalette])
 
   /* ---------------- hash routing (M1.1) ---------------- */
   useEffect(() => {
@@ -125,6 +169,25 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
 
         <div className="app-header__spacer" />
 
+        {/*
+          The palette trigger (spec §7.4). It is the *primary* way in, so it is
+          focusable and labelled — and it is the element focus returns to when
+          the palette closes (see `restoreFocusTo`).
+        */}
+        <button
+          type="button"
+          className="app-search t-code-sm"
+          onClick={openPalette}
+          aria-haspopup="dialog"
+          aria-expanded={paletteOpen}
+        >
+          <span aria-hidden="true">⌕</span>
+          <span className="app-search__label">Search</span>
+          <kbd className="app-search__kbd t-code-sm" aria-hidden="true">
+            ⌘K
+          </kbd>
+        </button>
+
         {/* Capability-gated (§1.1). Absent, not disabled. */}
         {views.length > 1 ? (
           <nav className="view-switcher" aria-label="View">
@@ -164,7 +227,14 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
                 Skip to content
               </a>
               <Hero doc={doc} onNavigate={onNavigate} />
-              <Reader doc={doc} slugs={slugs} onNavigate={onNavigate} flash={flash} />
+              <Reader
+                doc={doc}
+                slugs={slugs}
+                onNavigate={onNavigate}
+                flash={flash}
+                descriptions={config.descriptions}
+                fileExtensions={config.fileExtensions}
+              />
             </>
           ) : (
             // M3 owns these views. Until then the route is real and the view is
@@ -188,6 +258,15 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         >
           ↑ Top
         </button>
+      ) : null}
+
+      {/*
+        The palette renders last so its overlay sits above the reader, and only
+        while open — an always-mounted palette would put a hidden combobox in the
+        tab order and in every accessibility scan.
+      */}
+      {paletteOpen ? (
+        <Palette doc={doc} open onOpenChange={closePalette} onNavigate={onNavigate} />
       ) : null}
     </div>
   )

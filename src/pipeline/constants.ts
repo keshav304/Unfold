@@ -65,6 +65,16 @@ export const ALIAS_LINE_PREFIXES: readonly string[] = ['aliases:', 'alias:']
  * Indexes (spec §6.6)
  * ------------------------------------------------------------------ */
 
+/**
+ * The slug of the document introduction.
+ *
+ * §6.3 gives the introduction no heading, so it has no slug of its own. It is
+ * still searchable content, and a hit on it has to navigate *somewhere*, so it
+ * is given this one. The reader renders it as a real anchor, which makes
+ * `#intro` a working deep link rather than a special case.
+ */
+export const INTRO_SLUG = 'intro'
+
 /** Characters of context kept on each side of a search hit. */
 export const SNIPPET_WINDOW = 45
 

@@ -127,6 +127,13 @@
   --motion-slow: 250ms; /* everything non-signature */
   --motion-reveal: 560ms; /* scroll reveals, fire once */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /*
+   * The spring curve, for the palette's signature moment (spec §8, M2.2).
+   * It overshoots past 1 before settling — that is what reads as "spring" —
+   * but the *duration* still comes from --motion-*, so the reduced-motion
+   * override below zeroes the spring along with every other transition.
+   */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ---------- Layout ---------- */
   --nav-rail-width: 260px;

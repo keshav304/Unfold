@@ -18,6 +18,7 @@ import { tableCellText } from './blocks'
 import { DEFAULT_CONFIG, type UnfoldConfig } from './config'
 import { deriveGraph, type CrossLink } from './derive-graph'
 import { extractEntities, proseRunsOf } from './entities'
+import { INTRO_SLUG } from './constants'
 import { buildGlossary } from './glossary'
 import { buildBacklinks, buildSearchRecords, flattenSections } from './indexes'
 import { blocksToPlainText, countWords, toPlainText } from './mdast-text'
@@ -264,6 +265,9 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
   /* ---------------- indexes (spec §6.6) ---------------------------------- */
   const sectionText: Record<string, string> = {}
   for (const section of flat) sectionText[section.slug] = section.text
+  // The introduction is indexed with a real slug (INTRO_SLUG), so its text must
+  // be in `sectionText` too or a hit on it has no snippet to show.
+  if (introText !== '') sectionText[INTRO_SLUG] = introText
 
   const doc: Doc = {
     title,
@@ -281,6 +285,7 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
       records: buildSearchRecords({
         sections,
         intro: split.intro.map((block) => ({ text: blockToProseText(block) })),
+        introTitle: title,
         filesBySection,
         testsBySection,
         glossary,

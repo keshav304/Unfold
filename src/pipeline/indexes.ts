@@ -10,7 +10,7 @@
  */
 
 import MiniSearch from 'minisearch'
-import { SNIPPET_WINDOW } from './constants'
+import { INTRO_SLUG, SNIPPET_WINDOW } from './constants'
 import type { FileRef, SearchRecord, Section, TestRef } from './types'
 
 /** Collect every section, depth-first, in document order. */
@@ -27,6 +27,8 @@ export function flattenSections(sections: readonly Section[]): Section[] {
 export function buildSearchRecords(input: {
   sections: readonly Section[]
   intro: readonly { text: string }[]
+  /** Shown as the row title for an introduction hit; the doc title by default. */
+  introTitle?: string
   filesBySection: ReadonlyMap<string, FileRef[]>
   testsBySection?: ReadonlyMap<string, TestRef[]>
   glossary: readonly { term: string; aliases: string[]; definition: string }[]
@@ -81,7 +83,17 @@ export function buildSearchRecords(input: {
   }
 
   if (introText !== '') {
-    records.push({ id: String(id++), kind: 'body', title: '', slug: '', text: introText, keywords: [] })
+    // The introduction is real, findable content, so it gets a real slug
+    // rather than the empty string it had when nothing could navigate to it.
+    // A body hit on it scrolls to the top of the document.
+    records.push({
+      id: String(id++),
+      kind: 'body',
+      title: input.introTitle ?? '',
+      slug: INTRO_SLUG,
+      text: introText,
+      keywords: [],
+    })
   }
 
   for (const entry of input.glossary) {

@@ -285,6 +285,58 @@ A row holds cells and a cell holds runs, so `header` is one `InlineRow` and
 `rows` is `InlineRow[]`. A flat `InlineNode[][]` reads as "rows of runs" and
 silently drops a dimension, which is what the first attempt did.
 
+**The renderer reuses `extractEntities` for chip matching instead of its own
+regexes** / Patterns recovered as offsets / §6.5's definition of "a file path"
+must have exactly one owner. The renderer asks the pipeline which spans match
+and only recovers their offsets, so a chip can never appear on a string the
+extractor never recorded — the "fictional entity" failure §1.1 exists to prevent.
+The first implementation carried its own patterns and the two would have drifted.
+
+**`InlineContext.fileExtensions` is required, not optional** / No default /
+`extractEntities` treats an empty extension list as "nothing is a file", so an
+optional field that defaulted to `[]` produced a page with glossary chips and
+*zero* file chips — a failure that looks like "this document has no entities"
+rather than a bug. The field is required so the compiler catches the omission;
+the test suite caught it here.
+
+**A `body` search record is a hit, not a place, so it joins the section group**
+/ `groupOf` maps `body` to `section`, deduped by slug / §6.6 indexes one `body`
+record per section so prose is findable at all. Rendering those as their own
+rows showed the same place twice; dropping them made body text unsearchable
+altogether. They collapse onto the section's row, and whichever record MiniSearch
+ranked first supplies the snippet.
+
+**The introduction is indexed under the slug `intro`** / `INTRO_SLUG`, with a
+real `#intro` anchor in the reader / Its `body` record previously carried an
+empty slug, so a hit on the introduction resolved to nowhere. §6.3 gives the
+introduction no heading and therefore no slug of its own, but it is real content
+with a real place on the page, and `#intro` is a better answer than dropping the
+record.
+
+**A palette result navigates through `navigate()`, not the raw `onNavigate`
+callback** / The callback only flashes and scrolls / The hash is what makes a
+result linkable and what the back button reads. Calling the callback directly
+produced a palette that scrolled correctly and never touched the URL — invisible
+in jsdom until a test asserted on `location.hash`.
+
+**cmdk renders with `shouldFilter={false}`** / The rows are already filtered by
+MiniSearch / cmdk's own `command-score` pass would re-filter a ranked list and
+silently drop rows the index deliberately put there, including fuzzy and prefix
+matches. The app's index is the single authority for what matches.
+
+**A popover is portalled to `<body>` and positioned `fixed`** / One code path for
+prose, lists and table cells / A chip in a table cell sits inside the reader's
+`overflow-x: auto` wrapper, which clips an absolutely positioned descendant. A
+portalled fixed element is positioned against the viewport and clipped by nothing,
+so the popover does not break in exactly the place a technical document puts
+most of its paths.
+
+**An empty popover says "Not mentioned anywhere else"** / Rather than rendering
+an empty card / With the descriptions map empty by default (§7.5), a file
+mentioned once would otherwise open a blank box over the reader's text. An empty
+card is the clearest possible claim that the document contains nothing more to
+say, and it is false.
+
 ---
 
 ## M2.PW — the Playwright verification layer

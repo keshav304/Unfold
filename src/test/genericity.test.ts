@@ -180,6 +180,8 @@ const ALLOWED_DEV_DEPS: Record<string, string> = {
   '@testing-library/react': '§4 Testing',
   '@testing-library/dom': '§4 Testing',
   '@testing-library/jest-dom': '§4 Testing matchers',
+  '@playwright/test': '§11 CI — a real engine for the defect classes jsdom cannot see: focus traps, focus restore, layout geometry, served artifacts',
+  '@axe-core/playwright': '§9 a11y — axe-core driven through the page a real user loads, not a jsdom approximation of one',
   '@types/react': '§4 TypeScript strict',
   '@types/react-dom': '§4 TypeScript strict',
   '@types/mdast': '§4 mdast types',
