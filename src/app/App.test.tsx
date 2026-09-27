@@ -385,3 +385,46 @@ describe('A5: an HTML response shows the drop screen, never a rendered document'
     expect(container.querySelector('input[type="file"]')).not.toBeNull()
   })
 })
+
+/* ------------------------------------------------------------------ *
+ * M1.9d — the layout must not reserve a rail column that is not there
+ * ------------------------------------------------------------------ */
+
+describe('M1.9d: the workbench grid collapses when the rail is absent', () => {
+  it('a document WITH sections declares a rail', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    const body = container.querySelector('.app-body')
+    expect(body?.getAttribute('data-rail')).toBe('true')
+    expect(container.querySelector('.toc')).not.toBeNull()
+  })
+
+  it('a 0-section document declares no rail', async () => {
+    const { container } = await renderFixture('no-structure')
+    const body = container.querySelector('.app-body')
+    expect(body?.getAttribute('data-rail')).toBe('false')
+    expect(container.querySelector('.toc')).toBeNull()
+  })
+
+  it('with no rail, the main column is the only child — nothing is pushed aside', async () => {
+    const { container } = await renderFixture('no-structure')
+    const body = container.querySelector('.app-body')
+    expect(body?.children).toHaveLength(1)
+    // The content really is the direct child, so it gets the full width.
+    expect(body?.firstElementChild?.className).toBe('app-main')
+  })
+
+  it('the content is present, not collapsed into a narrow column', async () => {
+    const { container } = await renderFixture('no-structure')
+    // A regression here is the reported defect: hero + code squeezed into the
+    // rail column with an empty main area. The content must be there.
+    expect(container.querySelector('.hero')).not.toBeNull()
+    expect(container.querySelector('.app-main')).not.toBeNull()
+    const main = container.querySelector('.app-main') as HTMLElement
+    expect(main.textContent?.trim().length ?? 0).toBeGreaterThan(100)
+  })
+
+  it('a document with sections still has exactly two children', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    expect(container.querySelector('.app-body')?.children).toHaveLength(2)
+  })
+})

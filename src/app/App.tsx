@@ -143,7 +143,12 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         ) : null}
       </header>
 
-      <div className="app-body">
+      {/*
+        The rail is absent whenever the document has no H2s (§7.3). The grid
+        must collapse with it, or the content falls into the 260px rail column
+        and the main area stays empty.
+      */}
+      <div className="app-body" data-rail={doc.sections.length > 0 ? 'true' : 'false'}>
         <Toc
           doc={doc}
           active={activeSlug}

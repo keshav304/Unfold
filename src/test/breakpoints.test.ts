@@ -111,10 +111,54 @@ describe('reduced motion (§8)', () => {
     expect(tokens).toContain('--motion-slow: 0ms')
   })
 
-  it('the reader stylesheet hardcodes no millisecond duration', () => {
+  it('the reader stylesheet hardcodes no duration', () => {
     // Every duration must come from --motion-*, or reduced motion cannot
-    // neutralise it. Colors and sizes are allowed to be literal-free too.
-    const durations = [...css.matchAll(/(\d*\.?\d+)m?s\b/gu)].map((match) => match[0])
-    expect(durations).toEqual([])
+    // neutralise it. Scanned over declarations only: a regex over the raw file
+    // also matches prose in comments (a heading called "H2s" is not a 2s
+    // duration).
+    const offenders: string[] = []
+    ast.walkDecls((decl) => {
+      for (const prop of ['transition-duration', 'animation-duration', 'transition', 'animation'] as const) {
+        if (decl.prop !== prop) continue
+        // A shorthand may legitimately reference the tokens.
+        if (/var\(--motion-/u.test(decl.value)) continue
+        if (/\d+\s*m?s\b/u.test(decl.value)) {
+          offenders.push(`${prop}: ${decl.value}`)
+        }
+      }
+    })
+    expect(offenders).toEqual([])
+  })
+
+  it('every transition in the reader resolves to a motion token', () => {
+    const transitions: string[] = []
+    ast.walkDecls('transition', (decl) => {
+      if (decl.value.trim() !== '' && !/var\(--motion-/u.test(decl.value)) {
+        transitions.push(decl.value)
+      }
+    })
+    // `transition: none` is fine; a bare duration is not.
+    expect(transitions.filter((value) => value !== 'none')).toEqual([])
+  })
+})
+
+describe('M1.9d: the grid collapses with the rail', () => {
+  it('the no-rail state is a single-column template', () => {
+    const value = decl(undefined, ".app-body[data-rail='false']", 'grid-template-columns')
+    expect(value).toBe('minmax(0, 1fr)')
+    // Crucially not the two-column template, which is what squeezed the
+    // content into the 260px rail column.
+    expect(value).not.toContain('--nav-rail-width')
+  })
+
+  it('the with-rail state is still two columns', () => {
+    expect(decl(undefined, '.app-body', 'grid-template-columns')).toContain('--nav-rail-width')
+  })
+
+  it('the collapsed rule wins at every breakpoint', () => {
+    // The mobile queries set a single column anyway, so the collapse must be
+    // declared at the top level, not inside a media query.
+    const rule = ruleIn(undefined, ".app-body[data-rail='false']")
+    expect(rule?.parent?.type).toBe('root')
   })
 })

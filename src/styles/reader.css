@@ -81,6 +81,12 @@
     grid-template-columns: var(--nav-rail-width) minmax(0, 1fr);
   }
 
+  /* No rail (a document with no H2s, §7.3): the content takes the full width
+     instead of falling into the 260px rail column with an empty main area. */
+  .app-body[data-rail='false'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app-main {
     min-width: 0;
     padding: var(--margin);
