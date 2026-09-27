@@ -118,6 +118,8 @@ swatch page correctly; CI green.
 - [x] M1.7 Progress bar, back-to-top, loader/drop screen with drag-drop
       (§6.1, §7.10).
 - [x] M1.8 Component tests §11.9 subset + budgets check on `kitchen-sink`.
+- [x] M1.9 Preview-mode review fixes: A5 HTML rejection, ship `testdocs/`
+      in the build, HTTP `ui-smoke`, rail-less grid collapse.
 
 **Gate G2:** all five fixtures + stranger README render cleanly; view switcher
 absent on `minimal`; breakpoints behave per §5.3 (spot-check 1280/768/375);

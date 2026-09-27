@@ -209,3 +209,47 @@ branch means the pending and failed states cannot drift.
 **A denylist term must be *identifying*** / "Table of contents" was removed from
 `genericity-denylist.json` / It is ordinary UI vocabulary, and a guard that
 fires on ordinary words trains people to ignore it. The JSON file now says so.
+
+---
+
+## M1.9 — preview-mode defects
+
+**A 200 response whose body is HTML is treated as not-found (A5)** / Rejected in
+the loader, before parsing / A static host answers a missing file with the app
+shell and status 200, so a wrong `docPath` produced a confident, entirely
+fictional zero-section reader titled from the filename — a failure that looks
+like success. Either signal suffices: a `text/html` content type, or a body
+beginning `<!doctype html`/`<html` within 256 bytes. The header wins even when
+the body is real markdown, which means a host that serves `.md` as `text/html`
+is refused: a false negative, which §1.1 prefers over a fictional document.
+
+**The build copies `testdocs/` into `dist/` when the configured `docPath` points
+there** / A `closeBundle` step, conditional on the config / The committed config
+references `./testdocs/kitchen-sink.md`, which did not exist in `dist/`, so even
+the *correct* path hit the SPA fallback. The deployable unit is `dist/` plus the
+documents it is configured to read; `budget.test.ts` now asserts the configured
+path exists in `dist/` and is byte-identical to the source of truth.
+
+**`ui-smoke` fetches over HTTP from a real static server** / An in-process
+`node:http` server with SPA fallback, a path-traversal guard and a second mount
+for documents outside `dist/` / It previously booted `dist/` in jsdom but handed
+the document over through a `fetch` stub, which is exactly why A5 escaped 545
+tests: a stub cannot reproduce a static host answering a miss with the app
+shell. It now includes a deliberately missing `docPath`, and asserts the shell
+is refused rather than rendered. Verified by disabling A5: the smoke test
+reproduces the original defect (`title: Nope`, 0 sections) and fails.
+
+**The rail is absent, so the grid must be** / `.app-body[data-rail='false']` /
+When a document has no H2s the TOC renders nothing, but the two-column grid
+still reserved the 260px rail column — the content fell into it and the main
+area stayed empty. Declared at the top level rather than inside a media query
+so the collapse holds at every breakpoint.
+
+**The project README is `docs/README.md`** / The root `README.md` is a read-only
+demo document, the same class of data as `ARCHITECTURE.md` / Overwriting it with
+project documentation would destroy demo data and put words in the reader's
+corpus that the app is supposed to treat as arbitrary input.
+
+**The duration check walks declarations, not raw text** / PostCSS `walkDecls` /
+A regex over the stylesheet matched the "H2s" in a comment as a 2-second
+duration. The rule is about CSS values; prose in comments is not a value.
