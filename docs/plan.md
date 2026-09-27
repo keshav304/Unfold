@@ -240,12 +240,42 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
     controls now carry an explicit `aria-label`, guarded as a property.
   - [x] Three 375px-only axe findings recorded for M4.3 rather than asserted
     around — see `DECISIONS.md`.
-- [ ] M4.2 Mobile pass: all views at 375px; tabs; drawer; touch targets.
-      - [ ] **Header title collapses to a 1px stub at 375px** (found at G3, in
+- [x] M4.2 Mobile pass: all views at 375px; tabs; drawer; touch targets.
+      - [x] **Header title collapses to a 1px stub at 375px** (found at G3, in
             `artifacts/e2e/02-kitchen-sink-mobile.png`): the search button and
             the view switcher consume the row. Fix it *here*, not in M3 — M3 adds
             the segmented tabs to this same header region, and batching the two
             is one layout change instead of two.
+        - [x] **Fixed, and the collapse order is recorded in the stylesheet and
+          in `DECISIONS.md`**: the header is two rows at <768px — identity and
+          search above, the pane switch on its own full-width row below. The
+          title gets `flex: 1 1 auto; min-width: 0` and reads in full
+          ("Kitchen Sink Fixture", was "Kitche…"). `--code-header-height` is
+          restated for the two-row height so `scroll-margin-top` stays honest,
+          and a Tier 0 document still gets a one-row header.
+      - [x] **Parity found broken**: the M3 segmented control offered Docs and
+        Visual Graph only, so the **stepper was unreachable at 375px**. Both
+        controls now render the same capability-gated `views` array, which makes
+        disagreement impossible rather than merely unlikely. Still no Metrics
+        tab, per §5.3.
+      - [x] Touch targets: a new `--touch-target: 44px` token applied to
+        thirteen controls below 768px and **nothing above it** — a 44px target
+        for a mouse to hunt for on a 1440px display would be the same rule
+        applied to the wrong input device. Inline chips excluded under WCAG
+        2.5.8's inline exception, and the list is asserted one-by-one so a
+        control added later is visibly *not* covered.
+      - [x] Drawer: full width at 375px, and **Esc closes it**. The full-width
+        change made the scrim untappable, and shipping a full-screen overlay
+        with no keyboard exit is a trap this task created; the focus *trap* and
+        focus *restore* remain M4.3's.
+      - [x] The graph was being fitted into an unreadable smear at 375px (zoom
+        ≈0.35, 3.5px node labels). `fitView` now clamps at 0.6 and the reader
+        pans — a graph wider than the screen and readable beats one that fits
+        and cannot be read. The clamp is inert at every other width.
+      - [x] `tests/e2e/mobile.spec.ts`: 11 scenarios covering **every** view at
+        375px — title width, touch-target bounding boxes, pane parity, the
+        drawer's three exits, palette rows, graph legibility, the inspector
+        sheet, and a Tier 0 document. The existing overflow assertions stand.
 - [ ] M4.3 A11y audit: §9 checklist, `:focus-visible` rings, AA on chips +
       muted text (the usual failures).
       - [x] **Apply the `--text-subtle` contract decided at G3** (see

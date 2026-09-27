@@ -36,6 +36,36 @@ const VIEW_LABEL: Record<ViewName, string> = {
   stepper: 'Stepper',
 }
 
+/**
+ * The <768px segmented control's labels (M4.2).
+ *
+ * They are not the switcher's labels because the control has a different job:
+ * the switcher names a *view*, this one names a *pane of the workbench*, and
+ * "Visual Graph" is the phrase the document's own capability is described in
+ * (§6.7's chip reads "Auto-generated map" beside a "Document map" heading). On a
+ * phone, where this is the only navigation, the longer phrase is the one that
+ * says what tapping it will show.
+ */
+const PANE_LABEL: Record<ViewName, string> = {
+  reader: 'Docs',
+  graph: 'Visual Graph',
+  stepper: 'Stepper',
+}
+
+/**
+ * The segmented control's own name, and deliberately *not* "View".
+ *
+ * Both controls are in the DOM at every width — one is `display: none` — so
+ * giving them the same accessible name puts two identically-named landmarks in
+ * the document, which is `landmark-unique` the moment either is unhidden, and
+ * leaves a screen-reader user with no way to say which one they are in. §5.3
+ * calls this layout "a single pane, switched by the segmented control", and that
+ * is both the spec's word and the accurate one: above 768px the workbench shows
+ * the canvas and the panel together and this control does not exist, so what it
+ * switches is the pane.
+ */
+const PANE_GROUP_LABEL = 'Workbench pane'
+
 export type AppProps = {
   config: UnfoldConfig
   /** Injected in tests; defaults to the real `fetch`. */
@@ -231,10 +261,7 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         <div className="app-header__spacer" />
 
         {/*
-          M3.5: the <768px segmented tabs — **Docs / Visual Graph, and no Metrics
-          tab**. The old DESIGN.md mention of a Metrics pane was explicitly
-          dropped (§5.3): there is no metrics view in v1, and a tab that leads
-          nowhere is dead UI.
+          The <768px segmented control (M3.5, brought to parity in M4.2).
 
           These are *pane switches, not tabs*, and deliberately not a `tablist`.
           A real tab must own a `tabpanel`, and the element it switches is
@@ -244,34 +271,38 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           exactly what is true: two ways to show one region, neither of which
           navigates.
 
-          Only the graph control is capability-gated, and a document that cannot
-          render a graph gets Docs alone — the same rule the header switcher
-          follows. The group is hidden by CSS above 768px, where the workbench
-          shows both zones at once: a narrow-screen affordance, not a second
-          navigation model.
-
           Each button navigates rather than flipping local state, because each
           one *is* a different view. That is what makes the back button and the
           address bar agree with what is on screen.
+
+          **M4.2 — parity with the desktop switcher.** This control listed Docs
+          and Visual Graph and nothing else, so on a phone the stepper was
+          *unreachable* in a document that had one: a view the header switcher
+          offers at 1440px, absent at 375px, with no other route to it. It is now
+          built from the same `views` array the switcher uses and the same
+          capability gate, which makes the two impossible to disagree — a
+          capability added in the pipeline appears in both, and one removed
+          disappears from both. The rule the M3 comment recorded still holds: the
+          Metrics pane DESIGN.md once mentioned stays out, because there is no
+          metrics view in v1 and a tab that leads nowhere is dead UI.
+
+          The group is hidden by CSS above 768px, where the workbench shows both
+          zones at once: a narrow-screen affordance, not a second navigation
+          model.
         */}
-        {doc.capabilities.graph ? (
-          <div className="workbench-tabs" role="group" aria-label="Workbench pane">
-            <button
-              type="button"
-              className="workbench-tab t-label-caps"
-              aria-pressed={!graphVisible}
-              onClick={() => goTo('reader')}
-            >
-              Docs
-            </button>
-            <button
-              type="button"
-              className="workbench-tab t-label-caps"
-              aria-pressed={graphVisible}
-              onClick={() => goTo('graph')}
-            >
-              Visual Graph
-            </button>
+        {views.length > 1 ? (
+          <div className="workbench-tabs" role="group" aria-label={PANE_GROUP_LABEL}>
+            {views.map((view) => (
+              <button
+                key={view}
+                type="button"
+                className="workbench-tab t-label-caps"
+                aria-pressed={active.name === view}
+                onClick={() => goTo(view)}
+              >
+                {PANE_LABEL[view]}
+              </button>
+            ))}
           </div>
         ) : null}
 

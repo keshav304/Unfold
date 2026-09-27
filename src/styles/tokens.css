@@ -168,6 +168,19 @@
   --code-header-height: 32px;
   --line-number-width: 32px;
   --reading-column: 70ch;
+  /*
+   * The minimum size of anything a finger has to hit (M4.2).
+   *
+   * 44px is the iOS HIG figure and close to Android's 48dp; WCAG 2.5.8 (AA)
+   * only asks for 24×24, so this is deliberately stricter than the standard
+   * rather than a floor the standard already meets. The design system is dense
+   * — 32px header, 4px radii, 10px labels — and that density is right on a
+   * pointer and wrong on a thumb, so the value is overridden per breakpoint in
+   * `reader.css` and applied only below 768px. Above it nothing changes: a
+   * 44px target on a 1440px display would be a 44px target a mouse has to hunt
+   * for.
+   */
+  --touch-target: 44px;
 }
 
 /* `[data-theme]` hook retained for the v2 light theme (spec §7.9, §15). */

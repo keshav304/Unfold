@@ -129,16 +129,17 @@
     background: var(--accent-wash);
   }
 
-  /* ---------- <768: the header sheds weight, in a recorded order ----------
-     M4.2 owns the full mobile pass; this is the one rule M4.1 needs, because
-     adding the reading-mode toggle to a header that was already exactly full is
-     what pushed the row past 375px. See `docs/DECISIONS.md` for the order and
-     the reasoning — the short version is that the search trigger is the right
-     thing to shrink, because it is the only control in the row whose function
-     is duplicated elsewhere on the page (⌘K, `/`, and the palette itself). */
+  /* ---------- <768: the header sheds weight ----------
+     M4.1 needed one rule here to keep the 375px overflow assertion green, and
+     M4.2 then documented the whole collapse order. This block stays because it
+     is step 3 of that order and reads next to the trigger it changes; the
+     ordering *argument* lives with the rest of it at the foot of this file, in
+     the M4.2 section, so there is one place to read why. */
   @media (max-width: 767px) {
     /* The trigger keeps its glyph and its accessible name; the word "Search"
-       and the ⌘K hint are both noise on a device with no ⌘K key. */
+       and the ⌘K hint are both noise on a device with no ⌘K key. The name
+       itself lives on the button in `App.tsx`, because `display: none` takes
+       this span out of the accessibility tree with it. */
     .app-search__label,
     .app-search__kbd {
       display: none;
@@ -1798,10 +1799,6 @@
     padding: var(--space-xl) 0;
   }
 
-  .toc {
-    width: min(var(--nav-rail-width), 100vw);
-  }
-
   .back-to-top {
     right: var(--margin-mobile);
     bottom: var(--margin-mobile);
@@ -1962,5 +1959,146 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   M4.2 — the 375px pass.
+
+   The header blemish found at G3 is here, and so is the fix's reasoning.
+
+   THE COLLAPSE ORDER, decided once and applied in this order:
+
+     1. The view switcher goes entirely (M3.5). Above 768px the workbench shows
+        both zones at once, so the segmented control below is not a second
+        navigation model — it is the only one at this width.
+     2. The segmented control moves to its own row. This is the decision, and
+        everything else follows from it. At 375px the four things in the row —
+        menu, title, pane switch, search — cannot coexist at any legible size:
+        the M3 screenshot showed the title collapsed to the six characters
+        "Kitche…", and M4.1's toggle made the row overflow by 5px. Shrinking
+        any one of them further only moves the damage. So the pane switch — the
+        widest thing in the row and the only one that is a *second* navigation
+        model above this width — takes a full-width row of its own, and the
+        title gets the rest.
+     3. The search trigger loses its word and its `⌘K` hint (M4.1). It is the
+        only control in the row whose function is duplicated elsewhere on the
+        page — `⌘K`, `/`, the palette — and the hint describes a key a phone
+        does not have.
+     4. The menu button and the title never shrink below legibility. The title
+        truncates with an ellipsis, which is honest; a stub is not.
+
+   The result is a two-row app bar: identity and search above, navigation below.
+   `--code-header-height` is restated for the two-row height because the
+   scroll-margin and the workbench's minimum both measure the real header, and a
+   sticky header that overlaps the heading you just navigated to is the defect
+   this whole section exists to prevent.
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  :root {
+    --code-header-height: 88px;
+  }
+
+  /* The row wraps; the pane switch claims a full line of its own. */
+  .app-header {
+    height: auto;
+    min-height: var(--touch-target);
+    flex-wrap: wrap;
+    row-gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-md);
+  }
+
+  .app-title {
+    /* Grows into what is left after the fixed controls, and truncates with an
+       ellipsis rather than being squeezed to a stub. `min-width: 0` is what
+       actually permits the shrink; without it a flex item refuses to go below
+       its content width and the row overflows instead. */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* The spacer is redundant once the title grows: it existed to push the
+     controls right in a row the title did not fill. */
+  .app-header__spacer {
+    display: none;
+  }
+
+  /* Full width, and each pane an equal share: three panes in 375px is 125px
+     each, which fits "Visual Graph" on one line. */
+  .workbench-tabs {
+    flex: 1 0 100%;
+    order: 10;
+  }
+
+  .workbench-tab {
+    flex: 1;
+    min-height: var(--touch-target);
+    display: inline-grid;
+    place-items: center;
+    white-space: nowrap;
+  }
+
+  /* The search trigger is a square next to a 95px word. Left as it was it read
+     as a sliver of chrome at the screen edge rather than as a control, so it
+     becomes a square button of the same size as the menu on the other side of
+     the title — a shape the thumb already knows. */
+  .app-search {
+    width: var(--touch-target);
+    height: var(--touch-target);
+    padding: 0;
+    justify-content: center;
+    font-size: var(--text-body-lg-size);
+  }
+
+  /* --- touch targets (§9 / iOS HIG) -----------------------------------
+     Every control a thumb has to hit, including the ones that only exist in a
+     view: the stepper's Previous/Next, the inspector's "Open section", the code
+     block's copy. Not applied to inline chips inside a sentence: WCAG 2.5.8
+     exempts a target whose size is constrained by the line it sits in, and
+     padding a mid-sentence chip out to 44px would break the paragraph it
+     belongs to. */
+  .app-menu,
+  .app-search,
+  .mode-toggle,
+  .toc-link,
+  .toc-child,
+  .toc-close,
+  .back-to-top,
+  .section-expand,
+  .palette-item,
+  .stepper-button,
+  .inspector-action,
+  .code-copy,
+  .popover__link {
+    min-height: var(--touch-target);
+  }
+
+  .app-menu {
+    width: var(--touch-target);
+  }
+
+  /* The palette and the drawer are full-height surfaces on a phone; their rows
+     are the primary navigation inside them. */
+  .palette-item {
+    min-height: var(--touch-target);
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+  }
+
+  .toc-link,
+  .toc-child {
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+  }
+
+  /* --- the drawer (§7.3) ---------------------------------------------
+     It was `min(var(--nav-rail-width), 100vw)`, which at 375px is 260px: 70% of
+     the screen, with the reader still visible beside it and no way to tell
+     which of the two has focus. A drawer that does not cover the page it dims
+     is a panel. Full width, and a scrim the reader cannot see past. */
+  .toc {
+    width: 100vw;
+    border-right: 0;
   }
 }

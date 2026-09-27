@@ -810,3 +810,73 @@ them deliberately does not assert them: adding a scan here would either fail CI
 on another task's findings or buy a green run by scoping the scan to exclude
 them, and both are worse than recording them. The overlay one is the M2 scan's
 scope — see the palette entry above.
+
+**The 375px header becomes two rows, and the pane switch takes the second one** /
+Identity and search above, navigation below; the title is no longer a stub /
+This is the decision the G3 blemish needed, and the reason is arithmetic rather
+than taste. At 375px the row held four things — menu, title, pane switch, search
+— and M4.1's toggle tipped it over. Shrinking any *one* of them just moves the
+damage: the M3 screenshot already showed the title squeezed to "Kitche…" while
+everything else stayed full size. So the widest thing in the row, and the only
+one that is a *second* navigation model above this width, takes a full-width row
+of its own. The title then gets `flex: 1 1 auto; min-width: 0` — and `min-width:
+0` is the load-bearing half, because a flex item's automatic minimum size is its
+content width, so without it the title still refuses to shrink and the row
+overflows into a horizontal scrollbar instead.
+
+The header height token is restated inside the mobile query, which is not
+cosmetic: `.reader-section` uses it for `scroll-margin-top` and the workbench for
+`min-height`, and a two-row bar measured as 32px puts the heading you just
+navigated to behind the bar. A Tier 0 document still gets a one-row header,
+because the second row only exists when there is a pane switch to put in it.
+
+**The pane switch is built from the same array as the desktop switcher** /
+Parity by construction, not by a second list / M3.5 listed Docs and Visual Graph
+and hard-coded the graph capability, so on a phone **the stepper was
+unreachable** — a view the header switcher offered at 1440px, absent at 375px,
+with no other route to it. Both controls now render the same capability-gated
+`views` array, which makes disagreement impossible rather than merely unlikely: a
+capability the pipeline adds appears in both and one it removes disappears from
+both. The M3 rule still holds and is still asserted: no Metrics tab, because
+there is no metrics view in v1.
+
+**Touch targets are 44px below 768px and unchanged above it** / A new
+`--touch-target` token, applied to thirteen controls / 44px is the iOS HIG
+figure; WCAG 2.5.8 (AA) only asks for 24×24, so this is deliberately stricter
+than the standard rather than a floor the standard already meets. The design
+system is dense — 32px header, 4px radii, 10px labels — and that density is
+right on a pointer and wrong on a thumb, so the whole rule lives in one media
+query. The test asserts the *absence* at ≥1280 as well as the presence below
+768: a `min-height` at the top level would be the same rule applied to the wrong
+input device, making a mouse hunt for 44px targets on a 1440px display.
+
+Inline chips are excluded, and that is a judgement rather than an oversight:
+WCAG 2.5.8 exempts a target whose size is constrained by the line it sits in,
+and padding a mid-sentence chip out to 44px would break the paragraph it
+belongs to. The list is asserted one-by-one in `breakpoints.test.ts` so a
+control added later is visibly *not* covered rather than silently uncovered.
+
+**The drawer covers the page it dims, and Esc closes it** / Full width at 375px,
+plus the key §9 has asked for since M2 / It was `min(260px, 100vw)` — 70% of a
+375px screen, with the reader still legible beside it and a scrim over content
+the reader could still read. Full width is the honest drawer.
+
+That has one consequence worth recording, because it is the kind of thing a
+layout change causes silently: **the scrim stopped being tappable**, and with it
+the drawer's only touch exit. Esc was added in the same commit rather than
+deferred to M4.3, because a full-screen overlay with no keyboard exit is a trap
+this task created and M4.3's note is about focus *restore*. The listener is on
+`document`, not on the `<nav>`, because focus is still on the menu button that
+opened the drawer — a handler bound to the nav would never see the key. It sits
+above the `sections.length === 0` early return, because a hook after a
+conditional return is a hook that sometimes does not run.
+
+**The graph is not fitted into an unreadable smear on a phone** / `minZoom: 0.6`
+on `fitView`, and the reader pans / A four-column metro map is ~970 canvas units
+wide; fitting that into 375px needs zoom ≈0.35, at which a 10px node label is
+3.5px tall and the M4.2 screenshot showed four nodes collapsed into a band. The
+clamp is inert at every other width, where `fitView` computes a zoom well above
+it, so this is a one-line change that only bites where fitting is the wrong
+answer. The trade is deliberate and is the one every map on a phone makes: a
+graph wider than the screen and readable, rather than a graph that fits and
+cannot be read. Panning is already bound and the zoom controls are on screen.

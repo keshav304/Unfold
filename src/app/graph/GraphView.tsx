@@ -49,6 +49,26 @@ import { sectionsBySlug, targetForNode, unresolvedNodeIds } from './graph-target
 
 const nodeTypes = { metro: MetroNodeMemo }
 
+/**
+ * The narrowest zoom `fitView` is allowed to choose (M4.2).
+ *
+ * A four-column metro map laid out at 176px nodes and an 88px column gap is
+ * ~970 canvas units wide. Fitting that into a 375px phone viewport means a zoom
+ * of about 0.35, at which a node's 10px label renders at 3.5px and four nodes
+ * collapse into an unreadable smear — the M4.2 screenshot showed exactly that.
+ *
+ * `fitView` at every other width computes a zoom well above this, so the clamp
+ * is inert on a desktop and only bites where fitting is the wrong answer. Above
+ * it, the graph is wider than the screen and the reader pans — which is what
+ * every map on a phone does, and the only alternative to a graph nobody can
+ * read. Panning is already bound (React Flow's `panOnDrag` defaults to true) and
+ * the zoom controls are on screen.
+ */
+const MIN_FIT_ZOOM = 0.6
+
+/** The one fit-view configuration, so the three call sites cannot disagree. */
+const FIT = { padding: 0.2, minZoom: MIN_FIT_ZOOM, duration: 0 } as const
+
 export type GraphViewProps = {
   doc: Doc
   slugs: ReadonlySet<string>
@@ -264,7 +284,7 @@ function GraphWorkbench({
       // A pane that is still zero-sized here is not ready; the ResizeObserver
       // below fires when it gets a real box.
       if (box.clientWidth === 0 || box.clientHeight === 0) return
-      fitView({ padding: 0.2, duration: 0 })
+      fitView({ ...FIT })
     })
     return () => cancelAnimationFrame(frame)
   }, [visible, fitView, spec])
@@ -282,7 +302,7 @@ function GraphWorkbench({
         return
       }
       if (box.clientWidth === 0 || box.clientHeight === 0) return
-      fitView({ padding: 0.2, duration: 0 })
+      fitView({ ...FIT })
     })
     observer.observe(box)
     return () => observer.disconnect()
@@ -449,7 +469,7 @@ function GraphWorkbench({
             onNodeClick={onNodeClick}
             onPaneClick={close}
             fitView
-            fitViewOptions={{ padding: 0.2 }}
+            fitViewOptions={FIT}
             nodesFocusable
             edgesFocusable={false}
             elementsSelectable

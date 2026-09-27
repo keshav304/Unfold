@@ -81,6 +81,39 @@ function declInAny(containers: readonly AtRule[], selector: string, prop: string
   return value
 }
 
+/**
+ * The last declaration of `prop` for `selector` across every matching block,
+ * where `selector` may be **one entry of a selector list**.
+ *
+ * `ruleIn` matches a rule's selector *string*, which is the right default: it
+ * is what makes "no rule at all" and "a rule with a different selector" the
+ * same answer. But writing `.a, .b, .c { min-height: … }` is ordinary CSS and
+ * M4.2's touch-target rule is exactly that, so a helper that cannot see inside a
+ * list reports a control as untouched when it was in fact resized. Loosening
+ * `ruleIn` itself would weaken every assertion above it, so this is a separate
+ * reader rather than a change to that one.
+ */
+function declMatching(containers: readonly AtRule[], selector: string, prop: string): string | undefined {
+  let value: string | undefined
+  const walk = (nodes: AtRule['nodes'] | undefined): void => {
+    for (const node of nodes ?? []) {
+      if (node.type !== 'rule') continue
+      const rule = node as Rule
+      // Direct children only. A nested rule inside this media query is still a
+      // direct child of the query, and a rule inside *that* is a different thing
+      // entirely — the same restriction `ruleIn` already applies at the top.
+      if (!rule.selector.split(',').map((part) => part.trim()).includes(selector)) continue
+      rule.walkDecls(prop, (decl) => {
+        value = decl.value
+      })
+    }
+  }
+  // An empty list means "the top level", matching `declInAny`.
+  if (containers.length === 0) walk(ast.nodes as AtRule['nodes'])
+  else for (const container of containers) walk(container.nodes)
+  return value
+}
+
 /** Shorthand for a single container, kept for the top-level reads. */
 function decl(container: AtRule | undefined, selector: string, prop: string): string | undefined {
   return declInAny(container === undefined ? [] : [container], selector, prop)
@@ -309,6 +342,103 @@ describe('M3.5c: <768 one pane, switched by the segmented control', () => {
 
   it('the stepper runs vertically on mobile (§7.7)', () => {
     expect(declInAny(query, '.stepper-dots', 'flex-direction')).toBe('column')
+  })
+})
+
+describe('M4.2 the 375px header: the title is not a stub', () => {
+  const query = mediaAll('max-width:767px')
+  // The G3 blemish, named in the plan: "search + switcher eat the row", leaving
+  // the title as "Kitche…". These assert the *mechanism*, because the symptom
+  // is a pixel measurement jsdom cannot make and Playwright would only catch
+  // for one document.
+  it('the row wraps, so the pane switch can take a line of its own', () => {
+    expect(declInAny(query, '.app-header', 'flex-wrap')).toBe('wrap')
+    // `height: auto` is the other half: with a fixed 32px height and two rows of
+    // content, the second row would render *over* the document.
+    expect(declInAny(query, '.app-header', 'height')).toBe('auto')
+  })
+
+  it('the title grows into the space left over, and is allowed to shrink', () => {
+    expect(declInAny(query, '.app-title', 'flex')).toBe('1 1 auto')
+    // `min-width: 0` is the load-bearing declaration. A flex item's automatic
+    // minimum size is its content width, so without this the title refuses to
+    // shrink, the row overflows, and the "fix" is a horizontal scrollbar.
+    expect(declInAny(query, '.app-title', 'min-width')).toBe('0')
+  })
+
+  it('the spacer is gone, because the title now does its job', () => {
+    expect(declInAny(query, '.app-header__spacer', 'display')).toBe('none')
+    // …and it is visible above 768px, so this is a mobile rule and not a deletion.
+    expect(declInAny([], '.app-header__spacer', 'display')).toBeUndefined()
+  })
+
+  it('the pane switch claims the full width and splits it evenly', () => {
+    expect(declInAny(query, '.workbench-tabs', 'flex')).toBe('1 0 100%')
+    expect(declInAny(query, '.workbench-tab', 'flex')).toBe('1')
+    // Three capable views at 375px is 125px each; without `nowrap` "Visual
+    // Graph" wraps to two lines and the header grows a third row.
+    expect(declInAny(query, '.workbench-tab', 'white-space')).toBe('nowrap')
+  })
+
+  it('the header height token is restated, so the sticky bar is measured honestly', () => {
+    // `.reader-section` uses it for `scroll-margin-top` and the workbench for
+    // `min-height`. A two-row header measured as 32px puts both wrong, and the
+    // symptom — a heading hidden behind the bar you just navigated to — appears
+    // only on a phone.
+    const height = declMatching(query, ':root', '--code-header-height')
+    expect(height).toMatch(/^\d+px$/)
+    expect(Number.parseInt(height as string, 10)).toBeGreaterThan(44)
+  })
+})
+
+describe('M4.2 touch targets (§9)', () => {
+  const query = mediaAll('max-width:767px')
+  const TOUCHED = [
+    '.app-menu',
+    '.app-search',
+    '.mode-toggle',
+    '.toc-link',
+    '.toc-child',
+    '.toc-close',
+    '.back-to-top',
+    '.section-expand',
+    '.palette-item',
+    '.stepper-button',
+    '.inspector-action',
+    '.code-copy',
+    '.popover__link',
+  ]
+
+  it.each(TOUCHED)('%s is at least the touch target at 375px', (selector) => {
+    expect(declMatching(query, selector, 'min-height')).toBe('var(--touch-target)')
+  })
+
+  it('the token is 44px, and stricter than WCAG 2.5.8 on purpose', () => {
+    const tokens = readFileSync(resolve(here, '../styles/tokens.css'), 'utf8')
+    expect(tokens).toContain('--touch-target: 44px')
+    // 24px is the AA floor. 44 is the iOS HIG figure, and the design system is
+    // dense enough that the AA floor would be met by controls that are still
+    // hard to hit.
+    expect(44).toBeGreaterThan(24)
+  })
+
+  it('nothing is resized above 768px — a mouse should not have to hunt', () => {
+    // The density is a deliberate part of the design system; this pass changes
+    // it for fingers only. A `min-height` at the top level would be the same
+    // rule applied to the wrong input device.
+    for (const selector of TOUCHED) {
+      expect(declMatching([], selector, 'min-height'), `${selector} at ≥1280`).toBeUndefined()
+    }
+  })
+})
+
+describe('M4.2 the drawer covers the page it dims', () => {
+  const query = mediaAll('max-width:767px')
+  it('it is full width below 768px', () => {
+    // It was `min(var(--nav-rail-width), 100vw)` = 260px at 375px: 70% of the
+    // screen, with the reader still legible beside it and a scrim that does not
+    // hide what it is meant to be hiding.
+    expect(declInAny(query, '.toc', 'width')).toBe('100vw')
   })
 })
 

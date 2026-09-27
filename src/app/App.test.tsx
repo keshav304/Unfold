@@ -307,9 +307,18 @@ describe('capability config overrides (§1.4)', () => {
     await waitFor(() => {
       expect(container.querySelector('.app')).not.toBeNull()
     })
-    expect(screen.queryByRole('button', { name: 'Graph' })).toBeNull()
+    // Scoped to the header switcher, because M4.2 gave the <768px segmented
+    // control the same capability-gated view list — so "Stepper" is now a
+    // button in two places, and a page-wide query would be asserting against
+    // whichever the DOM happened to yield first.
+    const switcher = within(screen.getByRole('navigation', { name: 'View' }))
+    expect(switcher.queryByRole('button', { name: 'Graph' })).toBeNull()
     // The document is still capable; the deployer turned it off.
-    expect(screen.getByRole('button', { name: 'Stepper' })).toBeInTheDocument()
+    expect(switcher.getByRole('button', { name: 'Stepper' })).toBeInTheDocument()
+    // …and the mobile control agrees, because both render the same array.
+    const panes = within(screen.getByRole('group', { name: 'Workbench pane' }))
+    expect(panes.queryByRole('button', { name: 'Visual Graph' })).toBeNull()
+    expect(panes.getByRole('button', { name: 'Stepper' })).toBeInTheDocument()
   })
 })
 
