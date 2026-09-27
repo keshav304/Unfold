@@ -146,6 +146,40 @@ test.describe('the palette in a real browser', () => {
     console_.assertQuiet()
   })
 
+  test('every action row actually runs when it is clicked', async ({ page }) => {
+    const console_ = watchConsole(page)
+    // A regression test for a defect four milestones old. The overlay closed the
+    // palette on `onMouseDown`, so the press unmounted the row before the
+    // `click` that would have selected it: in a real browser every static row —
+    // the graph, the stepper, and now the reading mode — closed the palette and
+    // did nothing. jsdom could not see it, because `fireEvent.click` sends no
+    // mousedown; the M2/M3 suites only ever *located* these rows.
+    await openPaletteWithKeyboard(page)
+    await expect(page.locator('[data-action="graph"]')).toBeVisible()
+    await page.locator('[data-action="graph"]').click()
+
+    // Both halves: the palette closed *and* the view changed. Asserting only the
+    // first is what let this through the first time.
+    await expect(page.locator('.palette')).toHaveCount(0)
+    await expect(page.locator('.app')).toHaveAttribute('data-view', 'graph')
+    expect(page.url()).toContain('#/graph')
+    console_.assertQuiet()
+  })
+
+  test('a press on the scrim still dismisses, and so does Esc', async ({ page }) => {
+    const console_ = watchConsole(page)
+    // The other half of the fix above: the scrim must still be a scrim.
+    await openPaletteWithKeyboard(page)
+    // The overlay's own padding is the backdrop; the centre is the dialog.
+    await page.locator('.palette-overlay').click({ position: { x: 5, y: 5 } })
+    await expect(page.locator('.palette')).toHaveCount(0)
+
+    await openPaletteWithKeyboard(page)
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.palette')).toHaveCount(0)
+    console_.assertQuiet()
+  })
+
   test('the open palette is clean under axe-core', async ({ page }) => {
     const console_ = watchConsole(page)
     await openPaletteWithKeyboard(page)

@@ -27,6 +27,10 @@ afterEach(cleanup)
  */
 beforeEach(() => {
   window.location.hash = ''
+  // §7.8 persists the reading mode, so a test that switches it would otherwise
+  // decide the starting mode of every test after it — the same leak as the hash
+  // above, one storage key further out.
+  window.localStorage.clear()
 })
 
 /** Open the palette the way a user would, optionally typing a query. */
@@ -192,15 +196,17 @@ describe('§7.4 a result navigates and closes', () => {
     expect(container.querySelector('[data-flash="true"]')?.getAttribute('data-slug')).toBe('operational-notes')
   })
 
-  it('an empty query lists sections and the switch-view rows, so the palette is never empty', async () => {
+  it('an empty query lists sections, the view rows and the mode row, so the palette is never empty', async () => {
     const { container } = await renderFixture('kitchen-sink')
     await openPalette(container)
     const rows = await waitForRows(container)
     expect(rows.length).toBeGreaterThan(0)
-    // Both halves of the default state: where you can go (views), and where you
-    // are (sections). A palette that opened onto one list would be a palette
-    // whose arrow keys do something different every time you press them.
-    expect(headings(container)).toEqual(['Views', 'Sections'])
+    // Every half of the default state: where you can go (views), how you read
+    // (mode), and where you are (sections). A palette that opened onto one list
+    // would be a palette whose arrow keys do something different every time you
+    // press them. "Reading mode" is its own group rather than a third row under
+    // "Views" because it is not a view and does not navigate (M4.1).
+    expect(headings(container)).toEqual(['Views', 'Reading mode', 'Sections'])
   })
 
   it('a query that matches nothing says so instead of showing an empty box', async () => {
@@ -305,14 +311,31 @@ describe('M3.0b §7.4 the palette offers a switch-view row per capable view', ()
   })
 })
 
-describe('A4 the palette still ships no dead UI', () => {
-  it('there is still no reading-mode row, because M4.1 has not built the mode', async () => {
+describe('A4 the palette ships no dead UI', () => {
+  it('the reading-mode row now exists, and names the mode it switches to', async () => {
+    // This test used to assert the *absence* of a reading-mode row, and named
+    // M4.1 as the milestone that would build the thing it would toggle. That
+    // placeholder is now the real contract, inverted: the row is present…
     const { container } = await renderFixture('kitchen-sink')
     await openPalette(container)
-    const palette = container.querySelector('.palette') as HTMLElement
-    // M4.1 builds the toggle. A row for it now would be the dead control the M2
-    // review rejected, and the rejection is narrowed rather than lifted.
-    expect(palette.textContent).not.toMatch(/reading mode|executive|reference mode/i)
+    await waitForRows(container)
+    const row = container.querySelector('[data-action="mode:executive"]')
+    expect(row).not.toBeNull()
+    expect(row?.textContent).toBe('Switch to executive mode')
+    expect(row?.getAttribute('data-kind')).toBe('mode')
+  })
+
+  it('…and it is never the mode already on, so it is never a row that does nothing', async () => {
+    // The other half of A4, and the reason the row is written the way it is: a
+    // "Switch to executive mode" row sitting in the palette while executive mode
+    // is on would render and do nothing. The behaviour of the row is proved in
+    // `reading-mode-ui.test.tsx`; what matters here is the absence.
+    const { container } = await renderFixture('kitchen-sink')
+    fireEvent.click(screen.getByRole('button', { name: 'Executive mode' }))
+    await openPalette(container)
+    await waitForRows(container)
+    expect(container.querySelector('[data-action="mode:executive"]')).toBeNull()
+    expect(container.querySelector('[data-action="mode:reference"]')).not.toBeNull()
   })
 
   it('every row it does offer opens something real', async () => {
@@ -322,8 +345,10 @@ describe('A4 the palette still ships no dead UI', () => {
     const rows = Array.from(container.querySelectorAll('.palette-item')) as HTMLElement[]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      // A row is either a search result (it navigates to a slug) or a view action
-      // (it names a view this document can render). Nothing else is allowed in.
+      // A row is either a search result (it navigates to a slug) or an action
+      // (it names a view this document can render, or a mode). Nothing else is
+      // allowed in — and the mode row carries `data-kind` precisely so this
+      // check can tell an action from a result.
       const isAction = row.hasAttribute('data-action')
       expect(isAction || (row.textContent ?? '') !== '').toBe(true)
     }

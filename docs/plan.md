@@ -214,8 +214,32 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
 
 **Goal:** the last 20% that makes it feel finished (§7.8–7.10, §8–§10).
 
-- [ ] M4.1 Executive/Reference mode (§7.8): per-section rule, "show all"
+- [x] M4.1 Executive/Reference mode (§7.8): per-section rule, "show all"
       override, transition, localStorage persist.
+  - [x] The heuristic is an **allowlist** — §7.8's positive statement
+    ("first prose block + all tables + blockquotes"), not the denylist it also
+    states, so `loop`/`graph`/`steps`/`hr`/`html` are hidden too. The
+    introduction is never reduced (it is not an H2), which is what makes
+    `no-structure` render identically in both modes.
+  - [x] `src/test/reading-mode.test.ts` prints the §7.8 report for
+    `kitchen-sink` and `crosslinked` on every run: **23→12 blocks, 91% of
+    words**; `crosslinked` reports 100% because each of its H2s is a single
+    paragraph, and the test asserts that *reason* rather than a fixed ratio.
+  - [x] Header toggle (`aria-pressed`, `aria-label="Executive mode"`) and a
+    palette row under its own "Reading mode" group — A4 lifts, and the row
+    never offers the mode already on.
+  - [x] Transition is `--motion-slow` (250ms) ease-out, zeroed by the
+    reduced-motion token — **not** a fourth signature moment.
+  - [x] **Found and fixed a four-milestone-old defect**: the palette overlay's
+    `onMouseDown` unmounted a row before its `click` could select it, so every
+    static action row (graph, stepper, mode) was dead in a real browser while
+    passing every jsdom test. First e2e to actually *click* one.
+  - [x] Lighthouse caught the follow-on: the <768px header collapse hid the
+    search trigger's label with `display: none`, which removed it from the
+    accessibility tree and left the button nameless at 375px. Both header
+    controls now carry an explicit `aria-label`, guarded as a property.
+  - [x] Three 375px-only axe findings recorded for M4.3 rather than asserted
+    around — see `DECISIONS.md`.
 - [ ] M4.2 Mobile pass: all views at 375px; tabs; drawer; touch targets.
       - [ ] **Header title collapses to a 1px stub at 375px** (found at G3, in
             `artifacts/e2e/02-kitchen-sink-mobile.png`): the search button and

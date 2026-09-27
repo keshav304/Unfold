@@ -12,6 +12,7 @@ import { createSearchIndex, snippetAround, type Snippet } from '../../pipeline/i
 import { SNIPPET_WINDOW } from '../../pipeline/constants'
 import type { Doc, SearchRecord, Section } from '../../pipeline/types'
 import type { ViewName } from '../routing'
+import type { ReadingMode } from '../modes/reading-mode'
 
 /** One palette result, already resolved to something navigable. */
 export type SearchHit = {
@@ -190,18 +191,26 @@ export const GROUP_LABEL: Record<SearchHit['group'], string> = {
 export const GROUP_ORDER: SearchHit['group'][] = ['section', 'file', 'glossary']
 
 /* ------------------------------------------------------------------ *
- * §7.4 static actions — the palette's switch-view rows
+ * §7.4 static actions — the palette's switch-view and reading-mode rows
  * ------------------------------------------------------------------ */
 
 /** One static row. These are not search hits: they are commands. */
 export type PaletteAction = {
-  /** Stable key, and the hash the row navigates to. */
+  /** Stable key for React, and the `data-action` value the tests read. */
   id: string
   label: string
-  /** The view this row opens. Never the one already open. */
-  view: ViewName
+  /**
+   * What the row does. A `view` row is capability-gated above; a `mode` row is
+   * not, because the reading mode is Tier 0 — §7.8 gives it to every document,
+   * including one with no sections at all.
+   */
+  kind: 'view' | 'mode'
+  /** The view this row opens, for a `view` row. Never the one already open. */
+  view?: ViewName
+  /** The mode this row switches to, for a `mode` row. Never the current one. */
+  mode?: ReadingMode
   /** The heading the rows sit under. */
-  group: 'Views'
+  group: 'Views' | 'Reading mode'
 }
 
 const ACTION_LABEL: Record<ViewName, string> = {
@@ -233,7 +242,37 @@ export function paletteActions(doc: Doc, current: ViewName): PaletteAction[] {
   return VIEW_ORDER.filter((view) => capable.includes(view) && view !== current).map((view) => ({
     id: `view:${view}`,
     label: ACTION_LABEL[view],
+    kind: 'view' as const,
     view,
     group: 'Views' as const,
   }))
 }
+
+/**
+ * The reading-mode row (§7.4: "static actions: … toggle reading mode").
+ *
+ * M2 shipped the palette with no static rows at all, on the A4 rule that a row
+ * for a view that does not exist is a control that does nothing. M4.1 is the
+ * milestone that builds the mode, so that is where the rule stops applying.
+ *
+ * It offers the mode the reader is *not* in, for the same reason the view rows
+ * omit the current view: a "Switch to executive mode" row sitting in the palette
+ * while executive mode is already on is a row that does nothing. Unlike the view
+ * rows this one is not capability-gated — the reading mode is not a view, and
+ * §7.8 gives it to every document including one with no sections.
+ */
+export function paletteModeAction(current: ReadingMode): PaletteAction[] {
+  const next: ReadingMode = current === 'executive' ? 'reference' : 'executive'
+  return [
+    {
+      id: `mode:${next}`,
+      label: next === 'executive' ? 'Switch to executive mode' : 'Switch to reference mode',
+      kind: 'mode' as const,
+      mode: next,
+      group: 'Reading mode' as const,
+    },
+  ]
+}
+
+/** The order the action groups sit in: where you can go, then how you read. */
+export const ACTION_GROUP_ORDER: PaletteAction['group'][] = ['Views', 'Reading mode']

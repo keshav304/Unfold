@@ -23,10 +23,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command } from 'cmdk'
 import type { Doc } from '../../pipeline/types'
 import {
+  ACTION_GROUP_ORDER,
   GROUP_LABEL,
   GROUP_ORDER,
   paletteActions,
   paletteGroups,
+  paletteModeAction,
   useSearchIndex,
   type PaletteAction,
   type SearchHit,
@@ -34,6 +36,7 @@ import {
 import { HighlightedText } from '../components/HighlightedText'
 import { navigate } from '../navigate'
 import { hashFor, type ViewName } from '../routing'
+import type { ReadingMode } from '../modes/reading-mode'
 
 export type PaletteProps = {
   doc: Doc
@@ -45,6 +48,10 @@ export type PaletteProps = {
   activeView: ViewName
   /** Switch views. The shell owns the hash and the route state. */
   onGoToView: (view: ViewName) => void
+  /** The current reading mode (§7.8), so the row can offer the other one. */
+  readingMode: ReadingMode
+  /** Switch reading mode. The shell owns it, because the shell persists it. */
+  onSetReadingMode: (mode: ReadingMode) => void
 }
 
 const INPUT_LABEL = 'Search this document'
@@ -118,7 +125,11 @@ function PaletteActionRow({
       className="palette-item palette-item--action"
       value={action.id}
       onSelect={() => onRun(action)}
-      data-action={action.view}
+      // The value the existing tests read. A view row keys on the view it
+      // opens; a mode row keys on the mode it selects, and says so in the
+      // attribute name so the two are never confused for one another.
+      data-action={action.kind === 'view' ? action.view : `mode:${action.mode}`}
+      data-kind={action.kind}
     >
       <span className="palette-item__title t-code-md">{action.label}</span>
     </Command.Item>
@@ -132,6 +143,8 @@ export function Palette({
   onNavigate,
   activeView,
   onGoToView,
+  readingMode,
+  onSetReadingMode,
 }: PaletteProps): JSX.Element | null {
   const index = useSearchIndex(doc)
   const groups = useMemo(() => paletteGroups(doc), [doc])
@@ -141,20 +154,21 @@ export function Palette({
   const hits = useMemo(() => index.search(query), [index, query])
 
   /**
-   * §7.4 static actions: "switch view (capable views only)".
+   * §7.4 static actions: "switch view (capable views only), toggle reading mode".
    *
    * M2's A4 rule — no dead UI — lifted in M3 for exactly the rows whose targets
    * now exist. The gate is the same one the header switcher uses: a view the
    * document cannot render is not offered, because clicking it would land on the
-   * reader anyway (`resolveRoute`). The reading-mode row stays absent until M4.1
-   * builds the thing it would toggle.
+   * reader anyway (`resolveRoute`). M4.1 builds the thing the reading-mode row
+   * toggles, so that row exists now too.
    *
-   * The *current* view is omitted too: "Open the view you are already in" is not
-   * a switch, and a row that appears to do nothing is the dead UI A4 named.
+   * The *current* view and the *current* mode are both omitted: "Open the view
+   * you are already in" and "Switch to the mode you are already in" are not
+   * switches, and a row that appears to do nothing is the dead UI A4 named.
    */
   const actions = useMemo(
-    () => paletteActions(doc, activeView).filter((action) => action.view !== activeView),
-    [doc, activeView],
+    () => [...paletteActions(doc, activeView), ...paletteModeAction(readingMode)],
+    [doc, activeView, readingMode],
   )
 
   /*
@@ -239,22 +253,36 @@ export function Palette({
   )
 
   /**
-   * A static action switches view and closes.
+   * A static action runs, then the palette closes.
    *
-   * The hash is written here as well as through `onGoToView`, for the reason the
-   * M2 review recorded: a palette result that scrolls but never touches the URL
-   * is not linkable and the back button cannot read it. `onGoToView` owns the
-   * route state; this owns the address bar, and both write the same value.
+   * A **view** row writes the hash as well as going through `onGoToView`, for
+   * the reason the M2 review recorded: a palette result that scrolls but never
+   * touches the URL is not linkable and the back button cannot read it.
+   * `onGoToView` owns the route state; this owns the address bar, and both write
+   * the same value.
+   *
+   * A **mode** row writes no hash at all, and that is deliberate rather than an
+   * oversight: the reading mode is persisted in localStorage (§7.8), not in the
+   * URL. Putting it in the hash would also mean `#/graph` and a mode change
+   * fighting over the one piece of state this app has agreed to keep in the
+   * address bar, and §7.1 gives the hash exactly one job — which view and which
+   * section.
    */
   const run = useCallback(
     (action: PaletteAction) => {
       onOpenChange(false)
-      if (typeof window !== 'undefined' && window.location.hash !== hashFor({ name: action.view })) {
-        window.location.hash = hashFor({ name: action.view })
+      if (action.kind === 'mode') {
+        if (action.mode !== undefined) onSetReadingMode(action.mode)
+        return
       }
-      onGoToView(action.view)
+      const view = action.view
+      if (view === undefined) return
+      if (typeof window !== 'undefined' && window.location.hash !== hashFor({ name: view })) {
+        window.location.hash = hashFor({ name: view })
+      }
+      onGoToView(view)
     },
-    [onGoToView, onOpenChange],
+    [onGoToView, onOpenChange, onSetReadingMode],
   )
 
   // Esc closes. cmdk owns Enter and the arrows; the trap is enforced on the
@@ -274,7 +302,27 @@ export function Palette({
   if (!open) return null
 
   return (
-    <div className="palette-overlay glass" onMouseDown={() => onOpenChange(false)}>
+    /*
+     * The scrim closes the palette, and it must close on a press that *starts*
+     * on the scrim — not on one that starts on a row and merely bubbles up.
+     *
+     * `onMouseDown` on the wrapper, unguarded, unmounts the palette on the
+     * press: React tears the list down, the `click` that would have followed
+     * arrives with no target, and the row's `onSelect` never runs. Every action
+     * row was therefore dead in a real browser while passing every jsdom test,
+     * because `fireEvent.click` sends no mousedown at all. The reader still
+     * worked, so the search *results* hid it: cmdk selects those on its own
+     * input handling, and only the static rows went through this path.
+     *
+     * `event.target === event.currentTarget` is the whole fix: a press on the
+     * backdrop is a dismiss, a press on a row is the beginning of a choice.
+     */
+    <div
+      className="palette-overlay glass"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onOpenChange(false)
+      }}
+    >
       {/*
         `shouldFilter={false}`: the rows are already filtered by MiniSearch
         with the title boost, so cmdk's own substring pass would only drop
@@ -313,13 +361,27 @@ export function Palette({
 
         <Command.List className="palette-list" ref={listRef} aria-label={LIST_LABEL}>
           <Command.Empty className="palette-empty t-body-md">No matches in this document.</Command.Empty>
-          {showActions && actions.length > 0 ? (
-            <Command.Group className="palette-group" heading="Views" aria-label="Views">
-              {actions.map((action) => (
-                <PaletteActionRow key={action.id} action={action} onRun={run} />
-              ))}
-            </Command.Group>
-          ) : null}
+          {/*
+            One `Command.Group` per action kind, each named. M4.1 added the
+            reading-mode row, and lumping it under "Views" would have been a lie
+            the screen reader repeats: it is not a view, and it does not navigate.
+            Each group is skipped entirely when it has no rows — a document with
+            no graph has no Views group at all, which is the same rule the search
+            groups follow.
+          */}
+          {showActions
+            ? ACTION_GROUP_ORDER.map((group) => {
+                const rows = actions.filter((action) => action.group === group)
+                if (rows.length === 0) return null
+                return (
+                  <Command.Group key={group} className="palette-group" heading={group} aria-label={group}>
+                    {rows.map((action) => (
+                      <PaletteActionRow key={action.id} action={action} onRun={run} />
+                    ))}
+                  </Command.Group>
+                )
+              })
+            : null}
           {groupHits(hits, groups).map(([group, rows]) => (
             <Command.Group
               key={group}

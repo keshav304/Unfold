@@ -102,6 +102,52 @@
     color: var(--text-high);
   }
 
+  /* ---------- the reading-mode toggle (§7.1 header, §7.8 behaviour) ----------
+     Styled to read as a sibling of the view switcher's items, because it is
+     one: two controls that change how the same view is presented, side by side.
+     `aria-pressed` does the work, so the "on" state is a colour *and* a border
+     change — never colour alone (§9). */
+  .mode-toggle {
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-base);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      color var(--motion-fast) var(--ease-out),
+      background var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out);
+  }
+  .mode-toggle:hover {
+    color: var(--text-high);
+  }
+  .mode-toggle[aria-pressed='true'] {
+    color: var(--primary);
+    border-color: var(--border-focus);
+    background: var(--accent-wash);
+  }
+
+  /* ---------- <768: the header sheds weight, in a recorded order ----------
+     M4.2 owns the full mobile pass; this is the one rule M4.1 needs, because
+     adding the reading-mode toggle to a header that was already exactly full is
+     what pushed the row past 375px. See `docs/DECISIONS.md` for the order and
+     the reasoning — the short version is that the search trigger is the right
+     thing to shrink, because it is the only control in the row whose function
+     is duplicated elsewhere on the page (⌘K, `/`, and the palette itself). */
+  @media (max-width: 767px) {
+    /* The trigger keeps its glyph and its accessible name; the word "Search"
+       and the ⌘K hint are both noise on a device with no ⌘K key. */
+    .app-search__label,
+    .app-search__kbd {
+      display: none;
+    }
+    .app-search {
+      padding: var(--space-2xs) var(--space-sm);
+    }
+  }
+
   .app-body {
     display: grid;
     grid-template-columns: var(--nav-rail-width) minmax(0, 1fr);
@@ -389,6 +435,75 @@
   /* The flash after an in-app navigation (§7.1, §6.4). */
   .reader-section[data-flash='true'] {
     animation: section-flash var(--motion-reveal) var(--ease-out);
+  }
+
+  /* ---------------------------------------------------------------- *
+   * §7.8 the reading-mode transition.
+   *
+   * Spec §8 allows three signature moments and this is not one of them: a mode
+   * change is a change of *density*, not of structure, and the job of the motion
+   * is only to make the document visibly re-flow rather than blink. So it is
+   * `--motion-slow` (250ms, the §8 ceiling for everything non-signature) and
+   * `ease-out`, and the two keyframes are byte-identical apart from their names.
+   *
+   * The duplication is not an oversight. The animation is attached to the
+   * *whole* reader on mode change, and a section that did not change should not
+   * appear to have. Re-triggering one animation needs a different
+   * `animation-name`, so the reader is handed an alternating pair — and
+   * alternating is also what stops the second change from looking like a replay
+   * of the first.
+   *
+   * `prefers-reduced-motion` zeroes `--motion-slow` in `tokens.css`, so this is
+   * instant under reduced motion without a single rule of its own (M4.4).
+   * ---------------------------------------------------------------- */
+  .reader[data-mode-flip='to-executive'] {
+    animation-name: mode-flip-a;
+  }
+  .reader[data-mode-flip='to-reference'] {
+    animation-name: mode-flip-b;
+  }
+  .reader[data-mode-flip] {
+    animation-duration: var(--motion-slow);
+    animation-timing-function: var(--ease-out);
+  }
+
+  @keyframes mode-flip-a {
+    from {
+      opacity: 0.55;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes mode-flip-b {
+    from {
+      opacity: 0.55;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* §7.8's per-section "show all" override. */
+  .section-expand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin-top: var(--space-md);
+    padding: var(--space-2xs) var(--space-sm);
+    background: transparent;
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-base);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      color var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out);
+  }
+  .section-expand:hover {
+    color: var(--primary);
+    border-color: var(--border-focus);
   }
 
   @keyframes section-flash {

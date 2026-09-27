@@ -647,3 +647,166 @@ existed, which is precisely when an allowlist is most likely to be widened to
 absorb a new audit. It was fixed instead — the step title is the view's `h1`,
 because the reader's H1 lives in the reader and a view that has no top-level
 heading announces its structure from the wrong starting point.
+
+---
+
+## M4 — modes, mobile, a11y, motion, delight, perf, release
+
+**§7.8's rule is an allowlist, not the denylist it also states** / Positive
+statement implemented; `loop`, `graph`, `steps`, `hr` and `html` follow /
+§7.8 describes executive mode twice: once positively ("per H2 → title + first
+prose block + all tables + blockquotes; H3s → title + first paragraph") and once
+as a denylist ("code/terminal/mermaid/lists hidden"). The two agree on the kinds
+the denylist names and are silent about five more, so the choice decides what
+happens to a `loop` diagram, a `graph`/`steps` DSL block, a thematic break and a
+raw-HTML block. The positive statement is the one that is *implementable* — a
+denylist needs a decision for every kind nobody thought of, and the next one
+added would be visible by default. So `filterBlocksForMode` keeps the listed
+kinds and drops the rest, and the denylist falls out of it as a corollary rather
+than as a second rule to keep in sync. On the merits the allowlist is also
+right: `html` is raw markup rendered as source and `graph`/`steps` render as
+code blocks in the reader (the M3 note in `BlockView.tsx` says so), so all three
+are exactly what an executive reader does not want, and a `loop` is a diagram
+whose caption is the paragraph above it.
+
+**"First prose block", not "first block"** / The lead paragraph is found by
+kind / §7.8's wording is precise and the difference is not academic: a section
+that opens with a table would lose its lead paragraph under `blocks[0]`, and
+the lead paragraph is the one thing §7.8 exists to guarantee a skimming reader
+sees. No fixture would have caught it — `kitchen-sink`'s sections all open with
+prose — so the case is asserted on a purpose-built document in
+`reading-mode.test.ts` instead.
+
+**H3s do not inherit the H2 table/blockquote allowance** / Title + first
+paragraph, full stop / The spec states the H2 rule and the H3 rule separately
+and the H3 rule is the shorter one. Extending "all tables + blockquotes" down to
+H3s would have been a reasonable reading of the intent and is not what the text
+says; the cost of guessing here is a document whose glossary terms lose the
+definitions formatted as tables, which is the opposite of a summary.
+
+**The introduction is never reduced** / §7.8's rule is stated per H2, and the
+introduction has no H2 / This is the decision that makes `no-structure.md`
+render identically in both modes, which the M4 brief requires — but it is not
+required *because* the intro is exempt, it falls out of it. The intro is the
+prose before the first H2; a rule that acts on sections has nothing to act on in
+a document that has none. Filtering it would have made "a document with no
+headings" the one document the mode visibly changes, which is exactly backwards.
+It is also the right product call independently: the introduction is what the
+document is and why it exists, and it is short by construction.
+
+**A document with one paragraph per section is not reduced, and that is not a
+bug** / `crosslinked` reports 100% in the §7.8 word-count table / The report
+prints a `reducible` column beside the percentage for exactly this reason. The
+first draft of the test asserted a strict reduction on both fixtures named in
+the brief and failed on `crosslinked`, which has three H2s of one paragraph
+each. The heuristic was right and the assertion was wrong: a filter that
+removed a section's only paragraph would be losing content, not summarising it.
+The test now asserts the invariant that holds for every document (executive can
+never show *more*) plus a strict reduction wherever the document itself has
+something to reduce — derived from the fixture, not from a magic ratio, which is
+what §7.8's "verify on fixtures, not a fixed ratio" asks for.
+
+**The report counts blocks as well as words** / `23→12` on kitchen-sink, next to
+a word ratio that reads 91% / Words badly understate the mode. A 40-line code
+block is one block and a lot of tokens, but an executive reader stops at its
+title: it is *one* unit of reading, not forty. The word ratio is kept because
+§7.8 asks for word counts and because it is the number that would move if the
+rule changed; the block ratio is added because it is the number that describes
+what a reader actually stops doing. A table showing only 91% would read as a
+broken feature.
+
+**The mode is read from storage in a state initialiser, not in an effect** /
+The first paint is already in the remembered mode / An effect renders reference
+mode, commits it, and then re-renders as executive — a second pass over the
+section tree and a visible flash of the full document for the reader who
+specifically asked not to see it. §7.8 says the mode *persists*, and persisting
+means the document arrives in the right shape.
+
+**The per-section overrides are not persisted** / They are indices into a
+reduced document, and they are cleared when the mode is left / Two reasons. A
+returning reader cannot tell which sections they expanded last time, so a page of
+silent overrides makes executive mode progressively less executive with no way
+back; and in reference mode every section already shows everything, so an
+override left switched on is a control that reveals nothing — the dead UI A4
+rejects. The mode is the preference; the override is a decision about one
+section in one sitting.
+
+**The mode is a toggle button, not a segmented control, and it is not in the
+hash** / One control in a 32px row that is already exactly full at 375px /
+`localStorage` rather than the URL, because §7.1 gives the hash exactly one job
+— which view, which section — and a mode change is not navigation. A segmented
+pair ("Executive | Reference") was the other candidate and was rejected on the
+header: the M3 screenshot already showed one control too many in that row, and
+two buttons cost twice what one does. The visible text is the *thing*
+("Executive") with `aria-pressed` for the state, never the action ("Switch to
+reference mode"), because a label that changes with the state cannot be read as
+a toggle by a screen reader at all. The full sentence lives in the palette row,
+which is the discoverable place for it.
+
+**The reading-mode palette row gets its own group, not a third row under
+"Views"** / `ACTION_GROUP_ORDER` in `useSearch.ts` / It is not a view and it
+does not navigate, and a group heading is read out before its rows — filing it
+under "Views" would have been a lie the screen reader repeats. Each action
+group is skipped entirely when it has no rows, which is the same rule the search
+groups already follow and is what keeps `minimal.md` from growing an empty
+"Views" heading.
+
+**Every static palette row was dead in a real browser, since M2** / The overlay's
+`onMouseDown` unmounted the row before its `click` could select it; fixed with
+`event.target === event.currentTarget` / Found by M4.1's Playwright scenario,
+which is the first time any e2e has *clicked* an action row — the M2 and M3
+suites located them and asserted their text. The overlay closed the palette on
+press, React tore the list down, and the click that would have fired `onSelect`
+arrived with no target. Search *results* were unaffected, which is why it
+survived four milestones: cmdk drives those from its own input handling, and only
+the static rows went through this path. jsdom could not see it because
+`fireEvent.click` sends no mousedown at all. The regression test asserts both
+halves — the palette closed *and* the view changed — because asserting only the
+first is exactly what let it through.
+
+**The palette overlay is not inside a landmark, and M2's scan scope is why
+nobody saw it** / Left for M4.3 rather than fixed under M4.1 / axe's `region`
+rule ("all page content should be contained by landmarks") fires on the open
+palette's overlay, the label cmdk renders around its input, and its listbox. The
+M2 audit scopes its open-palette scan to `.palette`, so the overlay has never
+been scanned. M4.1's scan is scoped the same way and says so in a comment, rather
+than quietly widening a gate to make a new test pass on the strength of a
+pre-existing defect. M4.3 owns the sweep, and the fix belongs with the rest of
+the §9 landmark work.
+
+**The 375px header sheds the search label before anything else** / One rule,
+landed with M4.1 because the mode toggle is what made the row overflow /
+Adding a control to a header that was already exactly full cost 5px of
+horizontal overflow at 375px, which the M4.2 pass would have had to find anyway.
+The order is: the search trigger's `⌘K` hint and the word "Search" go first,
+because it is the only control in the row whose function is duplicated elsewhere
+on the page — `⌘K`, `/`, and the palette itself — and the hint is a keyboard
+affordance on a device that may have no such key. The title and the menu button
+never go; they are the only things in the row that are *about this document*.
+M4.2 revisits this with the rest of the mobile pass.
+
+**A button must not borrow its accessible name from a child a media query can
+hide** / `aria-label` on the search trigger and the mode toggle; Lighthouse a11y
+100 → 95, `button-name` / Found by the Lighthouse gate, which audits at a mobile
+viewport by default — the one width where the collapse above is active. Hiding
+`.app-search__label` with `display: none` took it out of the accessibility tree,
+and since the button's whole name *was* that span, the control became nameless
+at 375px and at no other width. Two lessons, and the second is the one that
+generalises: a media query can change the accessibility tree, so any responsive
+collapse that hides a label has to move the name onto the control itself; and
+the unit suite cannot catch this class at all, because it renders at no viewport
+and a media query is invisible to it. The guard is therefore a *property* — every
+header control carries an explicit `aria-label` — plus one Playwright assertion
+at 375px, rather than a snapshot of the current markup. "Executive mode" also
+satisfies WCAG 2.5.3, since the visible word "Executive" is contained in it.
+
+**Three 375px-only axe findings, recorded for M4.3 rather than fixed under
+M4.1** / `scrollable-region-focusable`, `link-in-text-block`, and the palette
+overlay's `region` / Found by scanning a 375px page and an open palette —
+scans nothing in CI has ever done / No test ran axe at 375px or over the open
+overlay, so all three have been invisible for four milestones. They are listed
+here so M4.3 inherits a list rather than a surprise, and the M4.1 test that found
+them deliberately does not assert them: adding a scan here would either fail CI
+on another task's findings or buy a green run by scoping the scan to exclude
+them, and both are worse than recording them. The overlay one is the M2 scan's
+scope — see the palette entry above.

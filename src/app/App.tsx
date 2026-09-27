@@ -21,6 +21,7 @@ import { scrollToSlug } from './navigate'
 import { useDocument } from './useDocument'
 import { useScrollProgress } from './useScrollProgress'
 import { useScrollSpy } from './useScrollSpy'
+import { useReadingMode } from './modes/useReadingMode'
 
 /**
  * The graph view is a lazy chunk and nothing else may import it statically
@@ -50,6 +51,13 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [flash, setFlash] = useState<string | null>(null)
   const { progress, past } = useScrollProgress()
+  /**
+   * §7.8. Owned by the shell rather than by the reader, because three things
+   * need it and two of them are not the reader: the header toggle, the palette
+   * row, and the reader itself. One owner means the persisted value and the
+   * rendered mode can never disagree.
+   */
+  const reading = useReadingMode()
 
   /* ---------------- palette triggers and focus restore (M2.2) ------------- */
 
@@ -268,6 +276,41 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         ) : null}
 
         {/*
+          The reading-mode toggle (spec §7.1 lists it in the header, §7.8 defines
+          it). It is a **toggle button, not a segmented control**, and the reason
+          is the header row it has to fit in: at 375px the title, the search
+          trigger and the pane switch already share one 32px-tall row, and the
+          M3 screenshot showed what a third control does to that row.
+
+          `aria-pressed` is the whole state, and the visible text is deliberately
+          the *thing* rather than the *action* — "Executive" with a pressed
+          state, not "Switch to reference mode". A label that changes with the
+          state cannot be read by a screen-reader user as a toggle at all, and
+          this is the control most likely to be operated by someone who cannot
+          see its colour. The three palette rows below it, which are the
+          discoverable place, carry the full sentence.
+        */}
+        <button
+          type="button"
+          className="mode-toggle t-label-caps"
+          aria-pressed={reading.mode === 'executive'}
+          // Stated explicitly rather than borrowed from the text inside, for the
+          // same reason the search trigger names itself: a name that lives in a
+          // child is a name a stylesheet can take away. "Executive mode" also
+          // satisfies WCAG 2.5.3 — the visible word "Executive" is contained in
+          // it, so a voice-control user saying what they can see still matches.
+          aria-label="Executive mode"
+          onClick={reading.toggle}
+          title={
+            reading.mode === 'executive'
+              ? 'Executive mode: each section shows its summary. Switch to the full reference view.'
+              : 'Reference mode: the whole document. Switch to the executive summary.'
+          }
+        >
+          Executive
+        </button>
+
+        {/*
           The palette trigger (spec §7.4). It is the *primary* way in, so it is
           focusable and labelled — and it is the element focus returns to when
           the palette closes (see `restoreFocusTo`).
@@ -278,6 +321,16 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           onClick={openPalette}
           aria-haspopup="dialog"
           aria-expanded={paletteOpen}
+          // The name is on the button, not only in it. At <768px the word
+          // "Search" and the `⌘K` hint are `display: none` so the header row
+          // fits (M4.2's collapse order), and `display: none` removes content
+          // from the accessibility tree — so a label that lived only in a child
+          // span disappeared with it and the button became nameless. Lighthouse
+          // caught this because it audits at a mobile viewport by default, which
+          // is the one place the bug exists. The glyph beside the label is
+          // `aria-hidden`, so this is the whole name, and it matches the visible
+          // word on every width where that word is shown.
+          aria-label="Search"
         >
           <span aria-hidden="true">⌕</span>
           <span className="app-search__label">Search</span>
@@ -346,6 +399,9 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
                 flash={flash}
                 descriptions={config.descriptions}
                 fileExtensions={config.fileExtensions}
+                mode={reading.mode}
+                isExpanded={reading.isExpanded}
+                onToggleSection={reading.toggleSection}
               />
             </>
           ) : null}
@@ -398,6 +454,8 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           onNavigate={onNavigate}
           activeView={active.name}
           onGoToView={goTo}
+          readingMode={reading.mode}
+          onSetReadingMode={reading.setMode}
         />
       ) : null}
     </div>
