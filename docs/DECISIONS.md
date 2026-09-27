@@ -158,3 +158,54 @@ so the old rule found almost nothing: `entities` fired on 7 of 238 real-world
 READMEs. A backticked term, by contrast, is a literal the author is quoting, not
 a concept being referenced. `extractEntities` now takes `{ prose, inline }`
 instead of a flat run list.
+
+---
+
+## M1 — reader
+
+**`gray-matter` was removed; frontmatter is split in-house and read with
+`js-yaml`** / A dozen-line `---` splitter plus `js-yaml` / The CommonJS default
+export of `gray-matter` did not survive the browser build. In a real page the
+parse threw, the pipeline's catch fell back to the raw source, and the YAML
+block rendered as visible document text with the title silently dropping to the
+H1. Every unit test passed, because they run in Node. Only booting the *built*
+bundle in a DOM caught it. `js-yaml` is pure JS and behaves identically
+everywhere.
+
+**`unfold.config.json` stays at the repo root and is copied into the build by a
+small Vite plugin** / A 12-line plugin in `vite.config.ts` / §1.4 names the repo
+root, and duplicating the file under `public/` would create two sources of
+truth for a file that changes.
+
+**Table cells render as plain text** / §6.3 models a cell as `string`, so
+inline formatting inside a cell has no AST to preserve / Changing the data model
+to keep cell ASTs is a pipeline change with a spec amendment behind it. The text
+itself is always right, which is what the fixture asserts.
+
+**`graph` and `steps` blocks render as their source in the reader** / Degrade
+per §1.3 / Their views belong to M3, and the brief forbids scaffolding them.
+Showing the DSL keeps the content visible and invents no UI.
+
+**Raw HTML renders as source, never as live markup** / A `<pre>` block / §4
+allows `dangerouslySetInnerHTML` only for a sanitised `<br>`. Rendering document
+HTML would be an injection surface, so `<details>` in `edge-cases.md` shows as
+text.
+
+**Scrollspy uses explicit geometry, not IntersectionObserver** / A scroll
+listener plus a 96px line, with the bottom-of-document case handled directly /
+The brief calls this out: at the end of a page the last section can be shorter
+than the viewport and never reach an observer's trigger line, so the last H2
+must be assigned explicitly. `App.test.tsx` locks the boundary down.
+
+**The `devDependencies`/`dependencies` allowlist lives in the test, not in
+config** / `genericity.test.ts` / A dependency check that reads its own
+allowlist from `package.json` would be circular.
+
+**Mermaid carries `data-theme="dark"` in every render state** / One attribute on
+the figure, not per branch / The §11.9 requirement is that mermaid renders in
+the dark theme; making the theme a property of the block rather than of a
+branch means the pending and failed states cannot drift.
+
+**A denylist term must be *identifying*** / "Table of contents" was removed from
+`genericity-denylist.json` / It is ordinary UI vocabulary, and a guard that
+fires on ordinary words trains people to ignore it. The JSON file now says so.

@@ -102,22 +102,22 @@ swatch page correctly; CI green.
 
 **Goal:** the §7.1–7.3 reader, faithful to refs, running on the real pipeline.
 
-- [ ] M1.1 App shell: header (menu/title/search trigger/mode/view switcher —
+- [x] M1.1 App shell: header (menu/title/search trigger/mode/view switcher —
       switcher renders only when capable), hash routing (`#slug`, `#/graph`,
       `#/stepper`).
-- [ ] M1.2 Block renderers: prose, code (Shiki + header strip + copy, §7.1),
+- [x] M1.2 Block renderers: prose, code (Shiki + header strip + copy, §7.1),
       tables (scroll wrapper, sticky header), quote, list, hr, terminal window
       (§6.9 styling).
-- [ ] M1.3 `loop` SVG renderer + `mermaid` lazy renderer (dark theme).
-- [ ] M1.4 Internal links: in-app scroll + flash; unresolvable → muted +
+- [x] M1.3 `loop` SVG renderer + `mermaid` lazy renderer (dark theme).
+- [x] M1.4 Internal links: in-app scroll + flash; unresolvable → muted +
       tooltip (§6.4).
-- [ ] M1.5 Hero (§7.2): title fallback chain, stats, jump chips, canvas-grid
+- [x] M1.5 Hero (§7.2): title fallback chain, stats, jump chips, canvas-grid
       ambient background.
-- [ ] M1.6 Metro TOC (§7.3): rail, fill, scrollspy (IntersectionObserver),
+- [x] M1.6 Metro TOC (§7.3): rail, fill, scrollspy (IntersectionObserver),
       now-reading chip; drawer + scrim <1280px.
-- [ ] M1.7 Progress bar, back-to-top, loader/drop screen with drag-drop
+- [x] M1.7 Progress bar, back-to-top, loader/drop screen with drag-drop
       (§6.1, §7.10).
-- [ ] M1.8 Component tests §11.9 subset + budgets check on `kitchen-sink`.
+- [x] M1.8 Component tests §11.9 subset + budgets check on `kitchen-sink`.
 
 **Gate G2:** all five fixtures + stranger README render cleanly; view switcher
 absent on `minimal`; breakpoints behave per §5.3 (spot-check 1280/768/375);
