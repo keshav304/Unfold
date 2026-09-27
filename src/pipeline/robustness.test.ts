@@ -64,6 +64,8 @@ const HOSTILE: [string, string][] = [
     ['```graph', 'nodes:', ...Array.from({ length: 500 }, (_, i) => `  n${i}: Node ${i}`), 'edges:', '  n0 -> n1', '```'].join('\n'),
   ],
   ['an html comment wrapping a heading', '<!--\n# Hidden\n-->\n\n# Visible'],
+  ['reference definitions with no references to them', '## S\n\n[unused]: https://example.com/a.md\n'],
+  ['a reference definition in the introduction', '[top]: https://example.com/b.md\n\n# T\n\nSee [the label][top].\n'],
 ]
 
 const CAPABILITY_NAMES = ['graph', 'stepper', 'glossary', 'entities', 'mermaid', 'loop', 'terminal']

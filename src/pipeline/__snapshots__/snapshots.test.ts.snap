@@ -246,6 +246,19 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
     {
       "cells": [],
       "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 2,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "reference-style-links",
+      "tests": [],
+      "title": "Reference-style links",
+    },
+    {
+      "cells": [],
+      "children": [],
       "files": [
         "src/pipeline/slug.ts",
         "tools/lint.py",
@@ -264,8 +277,8 @@ exports[`§11.1 golden snapshots > edge-cases 1`] = `
   "stats": {
     "codeBlocks": 4,
     "diagrams": 0,
-    "sections": 9,
-    "words": 240,
+    "sections": 10,
+    "words": 304,
   },
   "stepCount": 0,
   "title": "Edge Cases",

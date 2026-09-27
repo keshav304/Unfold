@@ -165,6 +165,7 @@ const ALLOWED_DEPS: Record<string, string> = {
   shiki: '§4 Code highlight — github-dark, lazy chunk',
   mermaid: '§4 Diagrams — lazy chunk, dark theme',
   cmdk: '§7.4 palette — headless combobox with the aria wiring §9 requires; hand-rolling it is how focus traps get subtly wrong',
+  '@xyflow/react': '§4 Graph — React Flow, the library the spec names, as a lazy chunk. It owns pan/zoom, viewport transforms and node focusability, which are the three things M3.7 needs a real browser to verify; a hand-rolled canvas would be re-implementing them and would fail the keyboard walk',
 }
 
 /** Tooling; never shipped to the browser. */
@@ -196,11 +197,11 @@ const ALLOWED_DEV_DEPS: Record<string, string> = {
  * §13: these belong to later milestones. Installing them early is the
  * "just for X" smell plan §9 says to reject.
  *
- * `cmdk` left this list in M2 — that is the guard doing its job: a deferred
- * library may only be promoted in the milestone that actually ships it, and
- * only with a written reason in the allowlist above.
+ * `cmdk` left this list in M2, and `@xyflow/react` in M3 — that is the guard
+ * doing its job: a deferred library may only be promoted in the milestone that
+ * actually ships it, and only with a written reason in the allowlist above.
  */
-const DEFERRED = ['framer-motion', 'canvas-confetti', '@xyflow/react', 'reactflow']
+const DEFERRED = ['framer-motion', 'canvas-confetti']
 
 function manifest(): { dependencies: Record<string, string>; devDependencies: Record<string, string> } {
   const pkg = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8')) as {

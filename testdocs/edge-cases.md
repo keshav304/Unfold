@@ -88,6 +88,19 @@ A `loop` block with nothing in it:
 None of the three above may throw. Each degrades to a plain code block with a
 development-mode warning.
 
+## Reference-style links
+
+A reference link resolves through the document's own definitions, so the label
+survives either way. See [the specification][spec] for the whole contract, and
+the contribution guide at [the project README][readme].
+
+A reference with no definition at all is not a reference: CommonMark reads
+`[the missing target][nowhere]` as literal text, and literal text renders as
+literal text. See [the missing target][nowhere].
+
+[spec]: https://example.com/spec.md "The specification"
+[readme]: https://example.com/readme.md
+
 ## Prose with entities
 
 Two file paths, deliberately fewer than the threshold for the entity

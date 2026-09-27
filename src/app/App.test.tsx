@@ -5,7 +5,7 @@
  * a view the document cannot support is not rendered at all.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { configFor, fetcherFor, renderFixture } from '../test/render-helpers'
 import { render } from '@testing-library/react'
@@ -13,6 +13,16 @@ import { App } from './App'
 import type { FixtureName } from '../test/fixtures'
 
 afterEach(cleanup)
+
+/**
+ * jsdom keeps one `window` per file, and the App seeds its route from
+ * `location.hash` — so a hash written by one test is the starting route of the
+ * next. Reset it between cases, or a test that navigates silently decides what
+ * several later tests start from.
+ */
+beforeEach(() => {
+  window.location.hash = ''
+})
 
 describe('the app renders every fixture', () => {
   it.each(['minimal', 'kitchen-sink', 'crosslinked', 'no-structure', 'edge-cases'] as FixtureName[])(
@@ -114,6 +124,45 @@ describe('§11.9 internal anchors navigate and flash', () => {
     for (const id of ['section-getting-started', 'section-runtime-shape', 'section-notes-1']) {
       expect(container.querySelector(`#${CSS.escape(id)}`)).not.toBeNull()
     }
+  })
+})
+
+describe('M3.0c the header view switcher routes, it does not rebuild', () => {
+  it('each button writes its own hash and marks itself current', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    const switcher = screen.getByRole('navigation', { name: 'View' })
+
+    for (const [label, hash] of [
+      ['Graph', '#/graph'],
+      ['Stepper', '#/stepper'],
+      ['Reader', '#/'],
+    ] as const) {
+      fireEvent.click(within(switcher).getByRole('button', { name: label }))
+      await waitFor(() => expect(window.location.hash).toBe(hash))
+      expect(container.querySelector('.app')?.getAttribute('data-view')).toBe(
+        label === 'Reader' ? 'reader' : label.toLowerCase(),
+      )
+      expect(within(switcher).getByRole('button', { name: label })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    }
+  })
+
+  it('a #/graph deep link lands on the graph view directly, with no click', async () => {
+    window.location.hash = '#/graph'
+    const { container } = await renderFixture('kitchen-sink')
+    await waitFor(() => expect(container.querySelector('.app')?.getAttribute('data-view')).toBe('graph'))
+  })
+
+  it('a #/stepper/2 deep link is not yet a route this milestone defines', async () => {
+    // M3.6 defines the per-step hash. Until then, an unrecognised `/view` route
+    // degrades to the reader like any other unknown hash (§1.3) — never a blank
+    // screen, never an error. This test is replaced by the real one in M3.6.
+    window.location.hash = '#/stepper/2'
+    const { container } = await renderFixture('kitchen-sink')
+    await waitFor(() => expect(container.querySelector('.app')).not.toBeNull())
+    expect(container.querySelector('.app')?.getAttribute('data-view')).not.toBe('undefined')
   })
 })
 

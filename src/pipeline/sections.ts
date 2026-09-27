@@ -112,11 +112,13 @@ export function splitSections(root: readonly RootContent[], slugger: Slugger): S
     }
 
     const classified = classifyNode(node)
-    if (classified.stepRefs !== undefined) {
-      for (const ref of classified.stepRefs) if (!stepRefs.includes(ref)) stepRefs.push(ref)
+    if (classified !== null) {
+      if (classified.stepRefs !== undefined) {
+        for (const ref of classified.stepRefs) if (!stepRefs.includes(ref)) stepRefs.push(ref)
+      }
+      addLinks(classified.internalLinks)
+      push(classified.block)
     }
-    addLinks(classified.internalLinks)
-    push(classified.block)
   }
 
   const result: SplitResult = {

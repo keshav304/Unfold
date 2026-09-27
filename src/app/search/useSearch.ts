@@ -11,6 +11,7 @@ import { useMemo } from 'react'
 import { createSearchIndex, snippetAround, type Snippet } from '../../pipeline/indexes'
 import { SNIPPET_WINDOW } from '../../pipeline/constants'
 import type { Doc, SearchRecord, Section } from '../../pipeline/types'
+import type { ViewName } from '../routing'
 
 /** One palette result, already resolved to something navigable. */
 export type SearchHit = {
@@ -187,3 +188,52 @@ export const GROUP_LABEL: Record<SearchHit['group'], string> = {
 
 /** Group order: document structure first, then the reference material. */
 export const GROUP_ORDER: SearchHit['group'][] = ['section', 'file', 'glossary']
+
+/* ------------------------------------------------------------------ *
+ * §7.4 static actions — the palette's switch-view rows
+ * ------------------------------------------------------------------ */
+
+/** One static row. These are not search hits: they are commands. */
+export type PaletteAction = {
+  /** Stable key, and the hash the row navigates to. */
+  id: string
+  label: string
+  /** The view this row opens. Never the one already open. */
+  view: ViewName
+  /** The heading the rows sit under. */
+  group: 'Views'
+}
+
+const ACTION_LABEL: Record<ViewName, string> = {
+  reader: 'Open the reader',
+  graph: 'Open the visual graph',
+  stepper: 'Open the stepper',
+}
+
+const VIEW_ORDER: ViewName[] = ['reader', 'graph', 'stepper']
+
+/**
+ * The switch-view rows a document can honestly offer (spec §7.4).
+ *
+ * Capability-gated with the same `capabilities` the router and the header
+ * switcher use. A view the document cannot render is absent rather than
+ * disabled: `resolveRoute` would turn the click into the reader, so a row for it
+ * would promise a view and deliver a different one — which is the dead UI the
+ * M2 review named, not a control.
+ *
+ * `current` is excluded here rather than at the call site so the rule lives in
+ * one place: a palette listing the view you are already in has nothing to switch
+ * to.
+ */
+export function paletteActions(doc: Doc, current: ViewName): PaletteAction[] {
+  const capable: ViewName[] = ['reader']
+  if (doc.capabilities.graph) capable.push('graph')
+  if (doc.capabilities.stepper) capable.push('stepper')
+
+  return VIEW_ORDER.filter((view) => capable.includes(view) && view !== current).map((view) => ({
+    id: `view:${view}`,
+    label: ACTION_LABEL[view],
+    view,
+    group: 'Views' as const,
+  }))
+}

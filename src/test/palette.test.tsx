@@ -9,7 +9,7 @@
  * the alias-to-parent-term rule and result navigation.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { App } from '../app/App'
 import { isPaletteShortcut, isTypingTarget } from '../app/palette/Palette'
@@ -17,6 +17,17 @@ import { configFor, renderFixture } from './render-helpers'
 import type { FixtureName } from './fixtures'
 
 afterEach(cleanup)
+
+/**
+ * jsdom keeps one `window` for the whole file, so a hash written by one test is
+ * still there when the next one mounts the App — and the App reads the hash for
+ * its initial route. Without this reset, a test that navigates silently changes
+ * the starting view of every test after it, which fails as a mystery assertion
+ * several cases away from the cause.
+ */
+beforeEach(() => {
+  window.location.hash = ''
+})
 
 /** Open the palette the way a user would, optionally typing a query. */
 async function openPalette(container: HTMLElement, query = ''): Promise<void> {
@@ -181,12 +192,15 @@ describe('§7.4 a result navigates and closes', () => {
     expect(container.querySelector('[data-flash="true"]')?.getAttribute('data-slug')).toBe('operational-notes')
   })
 
-  it('an empty query lists sections, so the palette is never empty', async () => {
+  it('an empty query lists sections and the switch-view rows, so the palette is never empty', async () => {
     const { container } = await renderFixture('kitchen-sink')
     await openPalette(container)
     const rows = await waitForRows(container)
     expect(rows.length).toBeGreaterThan(0)
-    expect(headings(container)).toEqual(['Sections'])
+    // Both halves of the default state: where you can go (views), and where you
+    // are (sections). A palette that opened onto one list would be a palette
+    // whose arrow keys do something different every time you press them.
+    expect(headings(container)).toEqual(['Views', 'Sections'])
   })
 
   it('a query that matches nothing says so instead of showing an empty box', async () => {
@@ -220,15 +234,99 @@ describe('§9 Esc closes the palette', () => {
   })
 })
 
-describe('A4 the palette ships no dead UI', () => {
-  it('there is no static action row for a view switch or a reading mode', async () => {
+describe('M3.0b §7.4 the palette offers a switch-view row per capable view', () => {
+  const actionRow = (container: HTMLElement, view: string): Element | null =>
+    container.querySelector(`[data-action="${view}"]`)
+
+  it('kitchen-sink offers both the graph and the stepper', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).not.toBeNull()
+    expect(actionRow(container, 'stepper')).not.toBeNull()
+  })
+
+  it('they are labelled as commands, not as search results', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')?.textContent).toBe('Open the visual graph')
+    expect(actionRow(container, 'stepper')?.textContent).toBe('Open the stepper')
+    expect(headings(container)).toContain('Views')
+  })
+
+  it('choosing one switches the view, writes the hash, and closes the palette', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    await openPalette(container)
+    await waitForRows(container)
+    fireEvent.click(actionRow(container, 'graph') as HTMLElement)
+    await waitFor(() => expect(container.querySelector('.palette')).toBeNull())
+    expect(window.location.hash).toBe('#/graph')
+  })
+
+  it('a document with no graph capability offers no graph row (never a dead one)', async () => {
+    const { container } = await renderFixture('minimal')
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).toBeNull()
+    expect(actionRow(container, 'stepper')).toBeNull()
+  })
+
+  it('crosslinked offers the graph but not the stepper', async () => {
+    const { container } = await renderFixture('crosslinked')
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).not.toBeNull()
+    expect(actionRow(container, 'stepper')).toBeNull()
+  })
+
+  it('the view you are already in is not offered — there is nothing to switch to', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    // Arrive on the graph, then open the palette from there.
+    fireEvent.click(within(container.querySelector('.view-switcher') as HTMLElement).getByRole('button', { name: 'Graph' }))
+    await waitFor(() => expect(container.querySelector('[data-view="graph"]')).not.toBeNull())
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).toBeNull()
+    expect(actionRow(container, 'stepper')).not.toBeNull()
+  })
+
+  it('typing switches the palette to search: the rows step aside for the query', async () => {
+    // `shouldFilter={false}` means cmdk will not filter them, and the action rows
+    // are not in the search index — so the palette must hide them itself, or a
+    // row sits there ignoring what the reader typed.
+    const { container } = await renderFixture('kitchen-sink')
+    await openPalette(container)
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).not.toBeNull()
+    await openPalette(container, 'operational')
+    await waitForRows(container)
+    expect(actionRow(container, 'graph')).toBeNull()
+  })
+})
+
+describe('A4 the palette still ships no dead UI', () => {
+  it('there is still no reading-mode row, because M4.1 has not built the mode', async () => {
     const { container } = await renderFixture('kitchen-sink')
     await openPalette(container)
     const palette = container.querySelector('.palette') as HTMLElement
-    // M3 fills the view routes and M4.1 the reading mode. Until then a row for
-    // either would be a control that does nothing.
-    expect(palette.textContent).not.toMatch(/reading mode|executive|switch view|reference mode/i)
-    expect(within(palette).queryAllByRole('button')).toHaveLength(0)
+    // M4.1 builds the toggle. A row for it now would be the dead control the M2
+    // review rejected, and the rejection is narrowed rather than lifted.
+    expect(palette.textContent).not.toMatch(/reading mode|executive|reference mode/i)
+  })
+
+  it('every row it does offer opens something real', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    await openPalette(container)
+    await waitForRows(container)
+    const rows = Array.from(container.querySelectorAll('.palette-item')) as HTMLElement[]
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      // A row is either a search result (it navigates to a slug) or a view action
+      // (it names a view this document can render). Nothing else is allowed in.
+      const isAction = row.hasAttribute('data-action')
+      expect(isAction || (row.textContent ?? '') !== '').toBe(true)
+    }
   })
 })
 

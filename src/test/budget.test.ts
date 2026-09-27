@@ -107,14 +107,40 @@ describe('§10 bundle budgets', () => {
     expect(lazy.length).toBeGreaterThan(5)
   })
 
-  it('the deferred milestone libraries are absent from the whole build', () => {
+  it('the still-deferred milestone libraries are absent from the whole build', () => {
     if (!available) return
     const names = allJs.join(' ')
-    // `cmdk` left this list in M2: the palette ships it in M2.2. These three
-    // remain M3/M4 and must not have crept in early.
-    for (const deferred of ['framer-motion', 'canvas-confetti', 'xyflow']) {
+    // `cmdk` left this list in M2, and `xyflow` in M3 — each promoted in the
+    // milestone that actually shipped it, with its reason in the genericity
+    // allowlist. Framer Motion is M4.4's motion work and confetti is M4.5's
+    // delight; neither has a written reason yet, so neither may be installed.
+    for (const deferred of ['framer-motion', 'canvas-confetti']) {
       expect(names).not.toContain(deferred)
     }
+  })
+
+  it('React Flow is a lazy chunk and never part of the entry (M3.1, spec §10)', () => {
+    if (!available) return
+    // §10 names React Flow as a lazy chunk explicitly. Asserting only that it
+    // appears *somewhere* would pass even if a stray import in the shell pulled
+    // it into the entry — which is the failure this rule exists to catch.
+    //
+    // The marker is a string from the library's own bundle rather than a chunk
+    // *filename*: Vite names chunks after the importing module, and the graph
+    // view's name would not prove which library is inside it.
+    const MARKER = 'xyflow'
+    const entry = entryChunks
+      .map((name) => readFileSync(join(distDir, 'assets', name), 'utf8'))
+      .join('')
+    expect(entry, 'React Flow leaked into the entry chunk').not.toContain(MARKER)
+
+    const lazy = allJs
+      .filter((name) => !entryChunks.includes(name))
+      .map((name) => readFileSync(join(distDir, 'assets', name), 'utf8'))
+      .join('')
+    expect(lazy, 'React Flow is in no chunk at all — the graph view may not be built').toContain(
+      MARKER,
+    )
   })
 })
 

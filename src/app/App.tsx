@@ -266,7 +266,14 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         tab order and in every accessibility scan.
       */}
       {paletteOpen ? (
-        <Palette doc={doc} open onOpenChange={closePalette} onNavigate={onNavigate} />
+        <Palette
+          doc={doc}
+          open
+          onOpenChange={closePalette}
+          onNavigate={onNavigate}
+          activeView={active.name}
+          onGoToView={goTo}
+        />
       ) : null}
     </div>
   )

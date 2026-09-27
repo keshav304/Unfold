@@ -87,7 +87,33 @@ function asParagraph(node: Content): Paragraph {
   return { type: 'paragraph', children: [] }
 }
 
-export function classifyNode(node: RootContent | Content): ClassifyResult {
+/**
+ * A `definition` node (`[label]: url "title"`) is metadata, not content.
+ *
+ * mdast lifts reference definitions out of the flow entirely — they live on the
+ * root, not in the section tree — but `classifyNode` is still handed them by the
+ * section splitter, and the default branch turned each one into an `html` block
+ * with an empty value. The reader therefore rendered one empty `<pre>` per
+ * definition: a document with three reference links gained three blank boxes,
+ * and the fixture that proves reference links work also proved this.
+ *
+ * Dropping them here is the §1.3 rule applied correctly: a construct the
+ * renderer has no presentation for is absent, not rendered as a gap. The
+ * definitions themselves are still collected in `parseDocument` and carried on
+ * the `Doc`, so the links they resolve keep working.
+ */
+export function isDefinitionNode(node: RootContent | Content): boolean {
+  return node.type === 'definition'
+}
+
+/**
+ * Classify one node, or return `null` when the node has no presentation at all
+ * (a link definition). A `null` is not an empty block: an empty block renders
+ * an empty element, which is a gap on the page.
+ */
+export function classifyNode(node: RootContent | Content): ClassifyResult | null {
+  if (isDefinitionNode(node)) return null
+
   switch (node.type) {
     case 'paragraph':
       return result({ kind: 'prose', node: asParagraph(node) }, node)
