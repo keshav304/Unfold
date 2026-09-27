@@ -8,7 +8,7 @@
  *   - results are deduped per section
  */
 
-import { collectProseRuns } from './mdast-text'
+import { collectInlineRuns, collectProseRuns } from './mdast-text'
 import type { Block, FileRef, TestRef } from './types'
 
 export type EntityOptions = {
@@ -140,11 +140,25 @@ function buildGlossaryRegExp(
   }
 }
 
-/** Extract every entity from the prose runs of one section. */
-export function extractEntities(
-  proseRuns: readonly string[],
-  options: EntityOptions = {},
-): ExtractedEntities {
+/** Text a section is scanned from, split by which entity families may read it. */
+export type EntityRuns =
+  /** Plain prose: no fenced code, no inline code. */
+  | readonly string[]
+  | {
+      /** Glossary terms, aliases and custom config patterns read this. */
+      readonly prose: readonly string[]
+      /** The file family also reads this (A2 / spec §6.5). */
+      readonly inline: readonly string[]
+    }
+
+function splitRuns(runs: EntityRuns): { prose: readonly string[]; inline: readonly string[] } {
+  if (Array.isArray(runs)) return { prose: runs, inline: [] }
+  const record = runs as { prose?: readonly string[]; inline?: readonly string[] }
+  return { prose: record.prose ?? [], inline: record.inline ?? [] }
+}
+
+/** Extract every entity from one section. Never throws. */
+export function extractEntities(runs: EntityRuns, options: EntityOptions = {}): ExtractedEntities {
   const files = new Map<string, FileRef>()
   const tests = new Map<string, TestRef>()
   const glossaryHits: ExtractedEntities['glossaryHits'] = []
@@ -164,7 +178,10 @@ export function extractEntities(
     }
   })
 
-  for (const run of proseRuns) {
+  const { prose, inline } = splitRuns(runs)
+
+  // 1. The file family reads prose *and* inline code (A2 / spec §6.5).
+  for (const run of [...prose, ...inline]) {
     // Links arrive as bare URLs or autolinks; strip them so `https://x/y.ts`
     // does not read as a local file path.
     const text = run.replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/giu, ' ')
@@ -184,6 +201,11 @@ export function extractEntities(
 
       files.set(key, symbol === undefined ? { path: normalised } : { path: normalised, symbol })
     }
+  }
+
+  // 2. Glossary terms, aliases and custom config patterns read prose only.
+  for (const run of prose) {
+    const text = run
 
     if (glossaryRe !== undefined) {
       glossaryRe.regexp.lastIndex = 0
@@ -214,38 +236,51 @@ export function extractEntities(
   return { files: [...files.values()], tests: [...tests.values()], glossaryHits, customHits }
 }
 
-/** Text of a `Block`, in reading order, with all code excluded. */
-function blockRuns(block: Block, runs: string[]): void {
+/** Text of a `Block`, split by which entity families may read it (spec §6.5). */
+function blockRuns(block: Block, out: { prose: string[]; inline: string[] }): void {
+  const nodes: unknown[] = []
   switch (block.kind) {
     case 'prose':
     case 'quote':
-      collectProseRuns(block.node, runs)
-      return
+      nodes.push(block.node)
+      break
     case 'list':
-      for (const item of block.items) collectProseRuns(item, runs)
-      return
+      nodes.push(...block.items)
+      break
     case 'table':
       // Cells are their own little prose islands; a path in a cell counts.
-      for (const cell of [...block.header, ...block.rows.flat()]) runs.push(cell)
+      // A backticked path inside a cell is still an inline span.
+      for (const cell of [...block.header, ...block.rows.flat()]) {
+        out.prose.push(cell)
+        out.inline.push(cell)
+      }
       return
     case 'loop':
-      for (const label of block.labels) runs.push(label)
+      out.prose.push(...block.labels)
       return
     case 'graph':
-      for (const node of block.spec.nodes) runs.push(`${node.label} ${node.sub ?? ''}`.trim())
+      out.prose.push(...block.spec.nodes.map((node) => `${node.label} ${node.sub ?? ''}`.trim()))
       return
     case 'steps':
-      for (const step of block.spec) runs.push(`${step.title} ${step.description ?? ''}`.trim())
+      out.prose.push(...block.spec.map((step) => `${step.title} ${step.description ?? ''}`.trim()))
       return
     default:
       // code / terminal / mermaid / hr / html contribute nothing by design.
       return
   }
+  for (const node of nodes) {
+    collectProseRuns(node, out.prose)
+    collectInlineRuns(node, out.inline)
+  }
 }
 
-/** Prose runs for a set of blocks, with all code excluded. */
-export function proseRunsOf(blocks: readonly Block[]): string[] {
-  const runs: string[] = []
-  for (const block of blocks) blockRuns(block, runs)
-  return runs
+/**
+ * Text runs for a set of blocks. Prose excludes all code; `inline` holds only
+ * backticked spans, which the file family may read (spec §6.5, amendment A2).
+ */
+export function proseRunsOf(blocks: readonly Block[]): { prose: string[]; inline: string[] } {
+  const out = { prose: [] as string[], inline: [] as string[] }
+  for (const block of blocks) blockRuns(block, out)
+  return out
 }
+

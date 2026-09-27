@@ -284,6 +284,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
           "files": [
             "docs/spec.md",
             "unfold.config.json",
+            "src/pipeline/slug.ts::slugify",
           ],
           "kinds": {
             "prose": 1,
@@ -454,7 +455,7 @@ exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
     "codeBlocks": 3,
     "diagrams": 4,
     "sections": 6,
-    "words": 286,
+    "words": 296,
   },
   "stepCount": 3,
   "title": "Kitchen Sink Fixture",

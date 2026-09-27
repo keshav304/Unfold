@@ -19,8 +19,9 @@ Install the toolchain, then run the pipeline. Nothing here is real.
 | `npm ci` | install | frozen lockfile |
 | `make check` | verify | runs tests |
 
-The parser reads docs/spec.md and writes a document object. Configuration lives
-in unfold.config.json at the repository root.
+The parser reads `docs/spec.md` and writes a document object. Configuration lives
+in `unfold.config.json` at the repository root. The rule engine itself is
+`src/pipeline/slug.ts::slugify`.
 
 ### Tagged examples
 
@@ -90,8 +91,8 @@ edges:
 
 ## Operational notes
 
-Latency is dominated by parsing. See tools/build.sh for the build entry point
-and src/pipeline/entities.ts::extractEntities for the extraction rules.
+Latency is dominated by parsing. See `tools/build.sh` for the build entry point
+and `src/pipeline/entities.ts::extractEntities` for the extraction rules.
 
 | Signal | Meaning | Action |
 | --- | --- | --- |

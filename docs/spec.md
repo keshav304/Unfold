@@ -264,15 +264,26 @@ type Doc = {
 ```
 
 ### 6.4 Slugs — GitHub-parity (critical)
-Documents are authored against GitHub's anchor behavior; the app must match:
-lowercase → trim → drop chars that aren't letters/numbers/space/hyphen
-(Unicode-aware) → spaces → `-`. **Duplicates get `-1`, `-2` suffixes.**
+Documents are authored against GitHub's anchor behavior; the app must match the
+`github-slugger` algorithm exactly: lowercase → drop every character GitHub drops
+(punctuation and symbols) → replace each space with `-`. Two consequences the
+plain-language summary gets wrong, and that this section now states
+explicitly:
+
+- **Underscores are retained** (`under_score` → `under_score`). They are not
+  punctuation to GitHub.
+- **A dropped character leaves the space that surrounded it.** Nothing is
+  re-trimmed after removal, so `Known divergences & errata` →
+  `known-divergences--errata` (two hyphens) and `🚀 Launch` → `-launch` (leading
+  hyphen).
+
+**Duplicates get `-1`, `-2` suffixes**, counted per base slug in document order.
 Internal links `[x](#slug)` resolve in-app (scroll + flash), never 404.
 Unresolvable internal links render as muted text with a tooltip, not as
 broken navigation.
 
 ### 6.5 Entity extraction (generic, configurable)
-Walk text runs (never inside code blocks). Default patterns:
+Walk text runs, **never inside fenced code blocks**. Default patterns:
 
 | Entity | Pattern shape | Becomes |
 |---|---|---|
@@ -283,6 +294,14 @@ Walk text runs (never inside code blocks). Default patterns:
 
 Dedupe per section. The extension list and extra regexes are config-extensible
 (§1.4) but the defaults must be language-agnostic.
+
+**Inline code spans are scanned by the file family, glossary terms are not.**
+A fenced block is sample text and is skipped wholesale, but backticked text in
+prose (`` `src/parser.ts::parse` ``) is an author pointing at a real file, and
+technical documents write paths that way far more often than in bare prose — so
+the file-path, `path::symbol` and test-id patterns match inside `inlineCode` too.
+Glossary-term and alias matching stays plain-prose only: a term in backticks is
+a literal string the author is quoting, not a concept being referenced.
 
 ### 6.6 Derived indexes
 - **Search** (minisearch): sections (title boosted), body text, file paths,

@@ -9,7 +9,13 @@ export { slugify, Slugger, uniqueSlugFactory } from './slug'
 export { isAsciiDiagram } from './terminal'
 export { classifyNode, internalLinksOf, normaliseLang, type ClassifyResult } from './blocks'
 export { splitSections, type SplitResult } from './sections'
-export { extractEntities, proseRunsOf, type EntityOptions, type ExtractedEntities } from './entities'
+export {
+  extractEntities,
+  proseRunsOf,
+  type EntityOptions,
+  type EntityRuns,
+  type ExtractedEntities,
+} from './entities'
 export { buildGlossary, isGlossaryCandidate, parseAliasLine } from './glossary'
 export { parseGraph } from './dsl/graph'
 export { parseSteps, type StepParseResult } from './dsl/steps'
@@ -36,6 +42,7 @@ export {
   toPlainTextLines,
   toProseText,
   collectProseRuns,
+  collectInlineRuns,
   blocksToPlainText,
   countWords,
   walk,

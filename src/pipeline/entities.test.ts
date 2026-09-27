@@ -171,9 +171,21 @@ describe('code is never scanned (§6.5, §11.7)', () => {
     expect(doc.capabilities.entities).toBe(false)
   })
 
-  it('a path inside an inline code span is not an entity', () => {
+  it('a path inside an inline code span IS an entity (A2)', () => {
+    // A backticked path in prose is an author pointing at a real file, and
+    // technical documents write them that way far more often than bare.
     const { doc } = parseMarkdown(['# T', '', 'Prose with no paths, but `src/inline.py` inline.'].join('\n'))
-    expect(doc.indexes.filePaths).toEqual([])
+    expect(doc.indexes.filePaths).toEqual(['src/inline.py'])
+  })
+
+  it('a path::symbol inside an inline code span is an entity (A2)', () => {
+    const { doc } = parseMarkdown(['# T', '', 'See `src/app.ts::render` for details.'].join('\n'))
+    expect(doc.indexes.filePaths).toEqual(['src/app.ts'])
+  })
+
+  it('a test id inside an inline code span is a test (A2)', () => {
+    const { doc } = parseMarkdown(['# T', '', 'Covered by `tests/a.test.ts::adds_numbers`.'].join('\n'))
+    expect(doc.indexes.filePaths).toEqual(['tests/a.test.ts'])
   })
 
   it('a path in prose IS an entity, in the same document as fenced paths', () => {
@@ -260,12 +272,50 @@ describe('glossary term matching is word-bounded (§6.5)', () => {
   })
 })
 
-describe('proseRunsOf skips code but keeps table cells', () => {
-  it('table cells are prose islands', () => {
+describe('proseRunsOf splits prose from inline code (§6.5, A2)', () => {
+  it('table cells reach both run sets', () => {
     const source = ['# T', '', '| File |', '| --- |', '| src/a.ts |'].join('\n')
     const { doc } = parseMarkdown(source)
     expect(doc.intro[0]?.kind).toBe('table')
-    expect(proseRunsOf(doc.intro)).toContain('src/a.ts')
+    const runs = proseRunsOf(doc.intro)
+    expect(runs.prose).toContain('src/a.ts')
+    expect(runs.inline).toContain('src/a.ts')
+  })
+
+  it('inline code reaches the inline set but never the prose set', () => {
+    const source = ['# T', '', 'Run `npm ci` to install.'].join('\n')
+    const { doc } = parseMarkdown(source)
+    const runs = proseRunsOf(doc.intro)
+    expect(runs.inline).toContain('npm ci')
+    expect(runs.prose.join(' ')).not.toContain('npm ci')
+  })
+
+  it('a fenced block reaches neither set', () => {
+    const source = ['# T', '', '```text', 'src/fenced.ts', '```'].join('\n')
+    const { doc } = parseMarkdown(source)
+    const runs = proseRunsOf(doc.intro)
+    expect(runs.prose.join(' ')).not.toContain('src/fenced.ts')
+    expect(runs.inline.join(' ')).not.toContain('src/fenced.ts')
+  })
+})
+
+describe('glossary terms stay prose-only even in backticks (A2)', () => {
+  const glossary = [{ term: 'Adapter', aliases: ['MR'] }]
+
+  it('a term in plain prose matches', () => {
+    const { glossaryHits } = extractEntities({ prose: ['An adapter wraps.'], inline: [] }, { glossary })
+    expect(glossaryHits).toHaveLength(1)
+  })
+
+  it('a term inside backticks does NOT match', () => {
+    // The author is quoting a literal string, not referencing a concept.
+    const { glossaryHits } = extractEntities({ prose: ['The class'], inline: ['Adapter'] }, { glossary })
+    expect(glossaryHits).toEqual([])
+  })
+
+  it('the array shorthand is prose-only, so backticks are irrelevant there', () => {
+    const { glossaryHits } = extractEntities(['An adapter wraps.'], { glossary })
+    expect(glossaryHits).toHaveLength(1)
   })
 })
 

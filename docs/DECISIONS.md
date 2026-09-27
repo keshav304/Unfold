@@ -139,3 +139,22 @@ case-insensitive, and `linksTo` must be resolvable for §6.4 to hold.
 
 **`edges:` lines use `a -> b | label`, not `a -> b: label`** / `|` only / §6.7's
 grammar is `a -> b [| label]`.
+
+---
+
+## Ratified amendments (M1 kickoff)
+
+**A1 — §6.4 slug algorithm** / The spec's prose summary was replaced with the
+`github-slugger` algorithm, stating explicitly that underscores are retained and
+that a dropped character leaves its surrounding space / Docs only; the code
+already did this. The prose summary and the real algorithm disagreed on `_`, and
+§6.4's stated intent is GitHub parity.
+
+**A2 — §6.5 inline code spans** / Fenced blocks are still skipped wholesale, but
+the file family (path, `path::symbol`, test id) now also matches inside
+`inlineCode`; glossary terms and custom config patterns stay prose-only /
+Technical documents write paths in backticks far more often than in bare prose,
+so the old rule found almost nothing: `entities` fired on 7 of 238 real-world
+READMEs. A backticked term, by contrast, is a literal the author is quoting, not
+a concept being referenced. `extractEntities` now takes `{ prose, inline }`
+instead of a flat run list.

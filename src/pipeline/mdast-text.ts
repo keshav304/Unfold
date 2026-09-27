@@ -49,10 +49,10 @@ function collectText(node: unknown, parts: string[]): void {
 }
 
 /**
- * The phrasing runs of a node, in document order, *skipping* code: fenced code
- * blocks, indented code and inline code spans. Entity extraction and body text
- * both use this, which is what keeps file paths inside a fence out of the
- * index (spec §6.5).
+ * The phrasing runs of a node, in document order, skipping *all* code: fenced
+ * code blocks, indented code and inline code spans. Glossary terms and custom
+ * config patterns read from these — a term in backticks is a literal string the
+ * author is quoting, not a concept being referenced (spec §6.5).
  */
 export function collectProseRuns(node: unknown, runs: string[] = []): string[] {
   if (node === null || typeof node !== 'object') return runs
@@ -74,6 +74,27 @@ export function collectProseRuns(node: unknown, runs: string[] = []): string[] {
   for (const child of candidate.children ?? []) collectProseRuns(child, runs)
   return runs
 }
+
+/**
+ * The inline-code spans of a node, in document order, skipping fenced code.
+ * The file family reads from these (spec §6.5): backticked text in prose is an
+ * author pointing at a real file, and technical documents write paths that way
+ * far more often than in bare prose.
+ */
+export function collectInlineRuns(node: unknown, runs: string[] = []): string[] {
+  if (node === null || typeof node !== 'object') return runs
+  const candidate = node as { type?: string; value?: string; children?: unknown[] }
+  if (typeof candidate.type !== 'string') return runs
+
+  if (candidate.type === 'code' || candidate.type === 'html') return runs
+  if (candidate.type === 'inlineCode') {
+    if (typeof candidate.value === 'string') runs.push(candidate.value)
+    return runs
+  }
+  for (const child of candidate.children ?? []) collectInlineRuns(child, runs)
+  return runs
+}
+
 
 /** Plain text of a node with code excluded, whitespace-collapsed. */
 export function toProseText(node: unknown): string {
