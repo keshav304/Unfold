@@ -1,0 +1,47 @@
+{
+  "$comment": "Strings that must never appear in src/** (testdocs/ and *.test.* excepted). The point is that the app cannot know anything about the bundled demo document: if a term from it shows up in app code, someone hardcoded content instead of reading the Doc. Extend this list when a new demo document is added; never trim it to make a failure go away.",
+  "lists": [
+    {
+      "description": "The demo document's product name and its components",
+      "terms": [
+        "Argus",
+        "frozen-instrument",
+        "Ocado",
+        "Tesco",
+        "Vertex",
+        "Buddy",
+        "Amendment G"
+      ]
+    },
+    {
+      "description": "Domain nouns unique to the demo document",
+      "terms": [
+        "buddy/copilot",
+        "contiguous token run",
+        "scoring",
+        "packs",
+        "geometry scopes",
+        "buddy/"
+      ]
+    },
+    {
+      "description": "Demo-document headings, longest phrases first",
+      "terms": [
+        "how Argus actually works",
+        "The product in one page",
+        "What Argus does",
+        "frozen-instrument concept",
+        "Bird's-eye architecture",
+        "four processes in the local profile",
+        "full request lifecycle",
+        "The backend, layer by layer",
+        "one source of runtime truth",
+        "the composition root",
+        "deterministic extraction",
+        "the password gate",
+        "the ceremony and the linters",
+        "Table of contents"
+      ]
+    }
+  ]
+}
