@@ -133,13 +133,13 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
   })
 
   /* ---------------- explicit graph / steps: first block wins ------------- */
+  // The introduction counts: a `graph` or `steps` block above the first H2 is
+  // still a block the document provides.
   let explicitGraph: GraphSpec | undefined
   const steps: StepSpec[] = []
-  for (const section of flat) {
-    for (const block of section.blocks) {
-      if (block.kind === 'graph' && explicitGraph === undefined) explicitGraph = block.spec
-      if (block.kind === 'steps') steps.push(...block.spec)
-    }
+  for (const block of [...split.intro, ...flat.flatMap((section) => section.blocks)]) {
+    if (block.kind === 'graph' && explicitGraph === undefined) explicitGraph = block.spec
+    if (block.kind === 'steps') steps.push(...block.spec)
   }
 
   /* ---------------- per-section annotation ------------------------------- */

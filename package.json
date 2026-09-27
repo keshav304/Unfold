@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "npm run typecheck && npm run test && npm run build",
-    "print-doc": "vite-node scripts/print-doc.ts"
+    "print-doc": "vite-node scripts/print-doc.ts",
+    "stranger-test": "vite-node scripts/stranger-test.ts"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

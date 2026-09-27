@@ -1,0 +1,546 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`§11.1 golden snapshots > crosslinked 1`] = `
+{
+  "capabilities": {
+    "entities": false,
+    "glossary": false,
+    "graph": true,
+    "loop": false,
+    "mermaid": false,
+    "stepper": false,
+    "terminal": false,
+  },
+  "glossaryTerms": [],
+  "graphDerived": true,
+  "introKinds": {
+    "prose": 1,
+  },
+  "sections": [
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [
+        "storage",
+      ],
+      "slug": "ingest",
+      "tests": [],
+      "title": "Ingest",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [
+        "presentation",
+      ],
+      "slug": "storage",
+      "tests": [],
+      "title": "Storage",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [
+        "ingest",
+      ],
+      "slug": "presentation",
+      "tests": [],
+      "title": "Presentation",
+    },
+  ],
+  "stats": {
+    "codeBlocks": 0,
+    "diagrams": 0,
+    "sections": 3,
+    "words": 123,
+  },
+  "stepCount": 0,
+  "title": "Crosslinked Fixture",
+  "titleSource": "h1",
+}
+`;
+
+exports[`§11.1 golden snapshots > edge-cases 1`] = `
+{
+  "capabilities": {
+    "entities": false,
+    "glossary": false,
+    "graph": false,
+    "loop": false,
+    "mermaid": false,
+    "stepper": false,
+    "terminal": false,
+  },
+  "glossaryTerms": [],
+  "graphDerived": null,
+  "introKinds": {
+    "prose": 1,
+  },
+  "sections": [
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "duplicate-headings",
+      "tests": [],
+      "title": "Duplicate headings",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [
+        "duplicate-headings",
+      ],
+      "slug": "duplicate-headings-1",
+      "tests": [],
+      "title": "Duplicate headings",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [
+        "self-reference",
+      ],
+      "slug": "self-reference",
+      "tests": [],
+      "title": "Self reference",
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "中文标题",
+          "tests": [],
+          "title": "中文标题",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "пример",
+          "tests": [],
+          "title": "Пример",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "-launch",
+          "tests": [],
+          "title": "🚀 Launch",
+        },
+      ],
+      "files": [],
+      "kinds": {},
+      "level": 2,
+      "linksTo": [],
+      "slug": "unicode-headings",
+      "tests": [],
+      "title": "Unicode headings",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "html": 2,
+        "prose": 2,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "raw-html-in-markdown",
+      "tests": [],
+      "title": "Raw HTML in markdown",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "table": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "empty-table",
+      "tests": [],
+      "title": "Empty table",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "code": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "nested-code-fences",
+      "tests": [],
+      "title": "Nested code fences",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "code": 3,
+        "prose": 4,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "malformed-blocks",
+      "tests": [],
+      "title": "Malformed blocks",
+    },
+    {
+      "children": [],
+      "files": [
+        "src/pipeline/slug.ts",
+        "tools/lint.py",
+        "src/pipeline/slug.ts::slugify",
+      ],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "prose-with-entities",
+      "tests": [],
+      "title": "Prose with entities",
+    },
+  ],
+  "stats": {
+    "codeBlocks": 4,
+    "diagrams": 0,
+    "sections": 9,
+    "words": 240,
+  },
+  "stepCount": 0,
+  "title": "Edge Cases",
+  "titleSource": "h1",
+}
+`;
+
+exports[`§11.1 golden snapshots > kitchen-sink 1`] = `
+{
+  "capabilities": {
+    "entities": true,
+    "glossary": true,
+    "graph": true,
+    "loop": true,
+    "mermaid": true,
+    "stepper": true,
+    "terminal": true,
+  },
+  "glossaryTerms": [
+    "Measurement Run",
+    "Adapter",
+    "Snapshot",
+  ],
+  "graphDerived": false,
+  "introKinds": {
+    "prose": 1,
+  },
+  "sections": [
+    {
+      "children": [
+        {
+          "children": [],
+          "files": [
+            "docs/spec.md",
+            "unfold.config.json",
+          ],
+          "kinds": {
+            "prose": 1,
+            "table": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "environment",
+          "tests": [],
+          "title": "Environment",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "code": 2,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "tagged-examples",
+          "tests": [],
+          "title": "Tagged examples",
+        },
+      ],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "getting-started",
+      "tests": [],
+      "title": "Getting started",
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "graph": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "component-graph",
+          "tests": [],
+          "title": "Component graph",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "steps": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "request-walkthrough",
+          "tests": [],
+          "title": "Request walkthrough",
+        },
+      ],
+      "files": [],
+      "kinds": {
+        "loop": 1,
+        "mermaid": 1,
+        "prose": 3,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "runtime-shape",
+      "tests": [],
+      "title": "Runtime shape",
+    },
+    {
+      "children": [],
+      "files": [
+        "tools/build.sh",
+        "src/pipeline/entities.ts::extractEntities",
+      ],
+      "kinds": {
+        "hr": 1,
+        "prose": 1,
+        "quote": 1,
+        "table": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "operational-notes",
+      "tests": [],
+      "title": "Operational notes",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "notes",
+      "tests": [],
+      "title": "Notes",
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "measurement-run",
+          "tests": [],
+          "title": "Measurement Run",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "adapter",
+          "tests": [],
+          "title": "Adapter",
+        },
+        {
+          "children": [],
+          "files": [],
+          "kinds": {
+            "prose": 1,
+          },
+          "level": 3,
+          "linksTo": [],
+          "slug": "snapshot",
+          "tests": [],
+          "title": "Snapshot",
+        },
+      ],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "glossary",
+      "tests": [],
+      "title": "Glossary",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "notes-1",
+      "tests": [],
+      "title": "Notes",
+    },
+  ],
+  "stats": {
+    "codeBlocks": 3,
+    "diagrams": 4,
+    "sections": 6,
+    "words": 286,
+  },
+  "stepCount": 3,
+  "title": "Kitchen Sink Fixture",
+  "titleSource": "frontmatter",
+}
+`;
+
+exports[`§11.1 golden snapshots > minimal 1`] = `
+{
+  "capabilities": {
+    "entities": false,
+    "glossary": false,
+    "graph": false,
+    "loop": false,
+    "mermaid": false,
+    "stepper": false,
+    "terminal": false,
+  },
+  "glossaryTerms": [],
+  "graphDerived": null,
+  "introKinds": {
+    "prose": 1,
+  },
+  "sections": [
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "purpose",
+      "tests": [],
+      "title": "Purpose",
+    },
+    {
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "scope",
+      "tests": [],
+      "title": "Scope",
+    },
+  ],
+  "stats": {
+    "codeBlocks": 0,
+    "diagrams": 0,
+    "sections": 2,
+    "words": 58,
+  },
+  "stepCount": 0,
+  "title": "Minimal Fixture",
+  "titleSource": "h1",
+}
+`;
+
+exports[`§11.1 golden snapshots > no-structure 1`] = `
+{
+  "capabilities": {
+    "entities": false,
+    "glossary": false,
+    "graph": false,
+    "loop": false,
+    "mermaid": false,
+    "stepper": false,
+    "terminal": false,
+  },
+  "glossaryTerms": [],
+  "graphDerived": null,
+  "introKinds": {
+    "prose": 3,
+  },
+  "sections": [],
+  "stats": {
+    "codeBlocks": 0,
+    "diagrams": 0,
+    "sections": 0,
+    "words": 86,
+  },
+  "stepCount": 0,
+  "title": "No Structure",
+  "titleSource": "filename",
+}
+`;

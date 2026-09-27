@@ -29,32 +29,93 @@ export type ExtractedEntities = {
   customHits: { name: string; text: string }[]
 }
 
-/* Path shape: slash-joined segments, the last carrying a known extension.
- * Windows separators are normalised to `/` before matching. */
-const PATH_CORE = '(?:[A-Za-z0-9_.@~-]+[\\\\/])*[A-Za-z0-9_.@~-]+'
+/* Path shape and boundaries are defined below, next to PATH_BODY. */
 /* A `::symbol` suffix, e.g. `src/app.ts::render`. */
-const SYMBOL = '(?:::([A-Za-z_$][\\w$]*))?'
+const SYMBOL = '(?:::(?<symbol>[A-Za-z_$][\\w$]*))?'
 /* Left boundary: not preceded by a word character, `/`, `.` or `-`. */
 const LEFT = '(?<![\\w./\\\\-])'
-/* Right boundary: end of text or a delimiter that cannot extend a path. */
-const RIGHT = '(?=$|[\\s,;:!?)"\'`\\]])'
+/* Glossary terms are matched word-bounded (spec §6.5), so their right boundary
+ * is simply "not a word character" — which includes sentence punctuation, so a
+ * term at the end of a line still matches. A path needs no right boundary:
+ * its final segment already ends at the extension, and `(?!\\w)` forbids a
+ * longer word from continuing it. */
+const WORD_RIGHT = '(?=$|[^\\p{L}\\p{N}_])'
 
-/** An identifier that marks a test: `test_x`, `x.test`, `x.spec`, `TestX`. */
-const TEST_ID = /^(?:test[_.-]|Test[A-Z])/
+/**
+ * A bare token with no `/` is only a file mention if its stem *looks like a
+ * filename* rather than like a product name:
+ *
+ *   - all lowercase:            `readme.md`, `index.ts`
+ *   - all uppercase:            `README.md`, `LICENSE`
+ *   - lowercase then dotted:    `unfold.config.json`
+ *
+ * A single capitalised word is rejected, so `Node.js` is not a file chip. This
+ * is a rule about case shape only — no product, language or document is named
+ * anywhere in this module. It errs toward false negatives, because §1.1 wants
+ * a missing chip far more than a fictional one.
+ */
+const BARE_STEM = [
+  '[a-z0-9_@~-]+(?:\\.[a-z0-9_@~-]+)*', // all lowercase, optionally dotted
+  '[A-Z0-9_@~-]+(?:\\.[A-Z0-9_@~-]+)*', // all uppercase, optionally dotted
+  '[a-z0-9_@~-]+\\.[A-Za-z0-9_@~-]+', // lowercase head, then any suffix
+].join('|')
+/** A path with at least one separator: `src/app.ts`, `docs/spec.md`. */
+const NESTED_PATH = '(?:[A-Za-z0-9_.@~-]+[\\\\/])+[A-Za-z0-9_.@~-]+'
+const PATH_BODY = `(?:${NESTED_PATH}|${BARE_STEM})`
+
+/**
+ * What makes a `path::identifier` a test id (spec §6.5). Either the identifier
+ * reads like a test (`test_x`, `TestX`) or the path itself does (`a.test.ts`,
+ * `a.spec.ts`). A `::identifier` is required either way: a bare
+ * `tests/a.test.ts` with no symbol is an ordinary file path.
+ */
+function isTestId(symbol: string, path: string): boolean {
+  return /^(?:test[_.-]|Test[A-Z])/u.test(symbol) || /\.(?:test|spec)\./u.test(path)
+}
+
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
+/**
+ * A regex that can never match. Must be global: `matchAll` rejects a
+ * non-global pattern outright, so a "matches nothing" fallback has to be global.
+ */
+const MATCH_NOTHING = /(?!)/gu
+
+/** `ts` → `(?:t|T)(?:s|S)`, so an extension matches either case without the `i` flag. */
+function caseInsensitiveLiteral(value: string): string {
+  return Array.from(value)
+    .map((character) =>
+      character.toLowerCase() === character.toUpperCase()
+        ? character
+        : `(?:${character.toLowerCase()}|${character.toUpperCase()})`,
+    )
+    .join('')
 }
 
 function buildPathRegExp(extensions: readonly string[]): RegExp {
   const list = extensions
     .map((extension) => extension.replace(/^\.+/, ''))
     .filter((extension) => extension !== '')
-    .map(escapeRegExp)
   // An empty extension list must not match every dotted token.
-  if (list.length === 0) return /(?!)/u
-  return new RegExp(`${LEFT}(${PATH_CORE}\\.(${list.join('|')}))(?!\\w)${SYMBOL}`, 'giu')
+  if (list.length === 0) return MATCH_NOTHING
+  const extensionAlt = list.map((ext) => caseInsensitiveLiteral(escapeRegExp(ext))).join('|')
+
+  // Named groups: capture indices shift silently when the shape above changes.
+  //
+  // Deliberately NOT case-insensitive: the bare-stem alternatives encode a
+  // case-shape rule (`Node.js` is a product, `node.js` is a file), and the `i`
+  // flag would collapse exactly that distinction. The extension list is
+  // case-expanded instead, so `README.MD` still matches.
+  return new RegExp(
+    `${LEFT}(?<path>${PATH_BODY}\\.(?:${extensionAlt}))(?!\\w)${SYMBOL}`,
+    'gu',
+  )
 }
+
+
 
 function buildGlossaryRegExp(
   glossary: readonly { term: string; aliases: string[] }[],
@@ -74,7 +135,7 @@ function buildGlossaryRegExp(
     .map(escapeRegExp)
     .join('|')
   return {
-    regexp: new RegExp(`${LEFT}(${alternatives})${RIGHT}`, 'giu'),
+    regexp: new RegExp(`${LEFT}(${alternatives})${WORD_RIGHT}`, 'giu'),
     lookup,
   }
 }
@@ -99,7 +160,7 @@ export function extractEntities(
     try {
       return { name, regexp: new RegExp(pattern, 'giu') }
     } catch {
-      return { name, regexp: /(?!)/u }
+      return { name, regexp: MATCH_NOTHING }
     }
   })
 
@@ -110,16 +171,17 @@ export function extractEntities(
 
     pathRe.lastIndex = 0
     for (const match of text.matchAll(pathRe)) {
-      const path = match[1] as string
-      const symbol = match[3]
+      const path = match.groups?.['path'] as string
+      const symbol = match.groups?.['symbol']
       const normalised = path.replace(/\\/gu, '/')
       const key = symbol === undefined ? normalised : `${normalised}::${symbol}`
       if (tests.has(key) || files.has(key)) continue
 
-      if (symbol !== undefined && TEST_ID.test(symbol)) {
+      if (symbol !== undefined && isTestId(symbol, normalised)) {
         tests.set(key, { id: key, path: normalised, testId: symbol })
         continue
       }
+
       files.set(key, symbol === undefined ? { path: normalised } : { path: normalised, symbol })
     }
 

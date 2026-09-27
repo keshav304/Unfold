@@ -39,18 +39,20 @@ export function parseAliasLine(text: string): string[] {
 
 /**
  * A paragraph's text can carry an `Aliases:` line of its own (a soft line break
- * inside one paragraph is still one paragraph in mdast). So each *line* of the
- * paragraph is checked, not just the paragraph as a whole. The alias line never
- * becomes part of the definition.
+ * inside one paragraph is still one paragraph in mdast), so each *line* of the
+ * first paragraph is checked. The definition is that paragraph only — spec §6.6
+ * says "each entry's definition is its first paragraph" — minus any alias line.
  */
 function definitionOf(blocks: readonly Block[]): { definition: string; aliases: string[] } {
   const aliases: string[] = []
-  const definitionLines: string[] = []
 
   for (const block of blocks) {
     if (block.kind !== 'prose') continue
-    // `toPlainText` collapses whitespace; keep the line structure instead.
-    for (const line of toPlainTextLines(block.node)) {
+    const lines = toPlainTextLines(block.node).filter((line) => line !== '')
+    if (lines.length === 0) continue
+
+    const definitionLines: string[] = []
+    for (const line of lines) {
       const found = parseAliasLine(line)
       if (found.length > 0) {
         for (const alias of found) if (!aliases.includes(alias)) aliases.push(alias)
@@ -58,10 +60,12 @@ function definitionOf(blocks: readonly Block[]): { definition: string; aliases: 
       }
       definitionLines.push(line)
     }
+    return { definition: definitionLines.join(' ').replace(/\s+/gu, ' ').trim(), aliases }
   }
 
-  return { definition: definitionLines.join(' ').replace(/\s+/gu, ' ').trim(), aliases }
+  return { definition: '', aliases }
 }
+
 
 
 /**

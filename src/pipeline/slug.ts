@@ -2,16 +2,24 @@
  * GitHub-parity slugs (spec §6.4). Documents are authored against GitHub's
  * anchor behaviour, so the app must match it exactly:
  *
- *   lowercase → trim → drop everything that is not a letter, number, space or
- *   hyphen (Unicode-aware) → each space becomes `-`.
+ *   lowercase → drop everything GitHub drops → each space becomes `-`.
+ *
+ * GitHub's removal set is punctuation and symbols, but it *keeps* letters,
+ * numbers, combining marks, spaces, hyphens and underscores. It does not
+ * collapse runs of spaces: `a & b` becomes `a--b`, not `a-b`. It also does not
+ * re-trim after removal, which is why a leading emoji leaves a leading hyphen
+ * (`🚀 Launch` → `-launch`). The trim below happens *before* removal, matching
+ * that ordering; markdown heading text is already trimmed by the parser, so the
+ * two are indistinguishable for real documents.
  *
  * Duplicates get `-1`, `-2`, … in document order. A `Slugger` instance is
  * stateful: one document, one instance, so counters never leak between
  * documents.
  */
 
-/** Characters GitHub keeps: Unicode letters, marks, numbers, spaces, hyphens. */
-const KEEP = /[^\p{L}\p{N}\p{M}\s-]/gu
+/** Everything GitHub keeps: letters, marks, numbers, spaces, `-`, `_`. */
+const KEEP = /[^\p{L}\p{N}\p{M}\s_-]/gu
+
 
 export function slugify(text: string): string {
   return text
