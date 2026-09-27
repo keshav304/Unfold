@@ -152,10 +152,14 @@ describe('§11.9 mermaid renders in the dark theme', () => {
 
     // The library is lazy, so the block starts pending. It must settle on
     // either a rendered diagram or the source — never a permanent blank.
-    await waitFor(() => {
-      const state = container.querySelector('.mermaid')?.getAttribute('data-state')
-      expect(['ready', 'failed']).toContain(state)
-    })
+    // Mermaid is a ~1MB dynamic import; give it room on a loaded machine.
+    await waitFor(
+      () => {
+        const state = container.querySelector('.mermaid')?.getAttribute('data-state')
+        expect(['ready', 'failed']).toContain(state)
+      },
+      { timeout: 20_000 },
+    )
     const settled = container.querySelector('.mermaid')
     expect(settled?.querySelector('svg, pre')).not.toBeNull()
   })
@@ -320,5 +324,64 @@ describe('the scrollspy boundary rule (§7.3)', () => {
       const nodes = Array.from(container.querySelectorAll('.toc-node'))
       expect(nodes[nodes.length - 1]?.querySelector('.toc-title')).toBe(active)
     })
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * A5 — the served artifact must not be rendered as a document
+ * ------------------------------------------------------------------ */
+
+describe('A5: an HTML response shows the drop screen, never a rendered document', () => {
+  const APP_SHELL = `<!doctype html>
+<html lang="en"><head><title>Unfold</title></head>
+<body><div id="root"></div><script type="module" src="/assets/index.js"></script></body></html>
+`
+
+  const htmlFetcher = () =>
+    (async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: { get: (name: string) => (name.toLowerCase() === 'content-type' ? 'text/html' : null) },
+        text: async () => APP_SHELL,
+      }) as Response) as unknown as typeof fetch
+
+  it('a wrong docPath that hits the SPA fallback shows the drop screen', async () => {
+    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    await waitFor(() => {
+      expect(container.querySelector('.drop-screen')).not.toBeNull()
+    })
+    expect(container.querySelector('.app')).toBeNull()
+    expect(container.querySelector('.reader')).toBeNull()
+  })
+
+  it('the message is actionable, naming the path and the config', async () => {
+    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    await waitFor(() => {
+      expect(container.querySelector('.drop-screen')).not.toBeNull()
+    })
+    const message = container.querySelector('.drop-message')?.textContent ?? ''
+    expect(message).toMatch(/app shell/i)
+    expect(message).toContain('kitchen-sink.md')
+    expect(message).toMatch(/unfold\.config\.json/)
+  })
+
+  it('never renders the shell as document content', async () => {
+    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    await waitFor(() => {
+      expect(container.querySelector('.drop-screen')).not.toBeNull()
+    })
+    // No headings, no reader column, no sections invented from the shell.
+    expect(container.querySelectorAll('.reader-section')).toHaveLength(0)
+    expect(container.querySelectorAll('h1, h2, h3')).toHaveLength(1) // the drop screen's own h1
+    expect(container.textContent).not.toContain('id="root"')
+  })
+
+  it('the drop screen still offers a way forward', async () => {
+    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    await waitFor(() => {
+      expect(container.querySelector('.drop-screen')).not.toBeNull()
+    })
+    expect(container.querySelector('input[type="file"]')).not.toBeNull()
   })
 })

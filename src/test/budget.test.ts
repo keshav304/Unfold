@@ -7,7 +7,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -15,7 +15,12 @@ import { beforeAll, describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '../..')
-const distDir = join(repoRoot, 'dist')
+/**
+ * The budget is measured against a build this test owns, in its own output
+ * directory. Measuring `dist/` meant spawning `vite build` alongside the other
+ * workers, which wiped `dist/` out from under them — a self-inflicted flake.
+ */
+const distDir = join(repoRoot, 'dist-budget')
 
 /** §10. */
 const INITIAL_JS_BUDGET_GZ = 200 * 1024
@@ -25,10 +30,12 @@ let entryChunks: string[] = []
 let allJs: string[] = []
 
 beforeAll(() => {
-  if (!existsSync(distDir)) {
-    execFileSync('npm', ['run', 'build'], { cwd: repoRoot, stdio: 'ignore' })
-  }
-  if (!existsSync(distDir)) return
+  rmSync(distDir, { recursive: true, force: true })
+  execFileSync('npx', ['vite', 'build', '--outDir', 'dist-budget', '--emptyOutDir'], {
+    cwd: repoRoot,
+    stdio: 'ignore',
+  })
+  if (!existsSync(join(distDir, 'index.html'))) return
   available = true
 
   const html = readFileSync(join(distDir, 'index.html'), 'utf8')

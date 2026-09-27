@@ -213,6 +213,17 @@ Gutters/margins step down to `gutter-mobile`/`margin-mobile` below 768px.
 drag any `.md` onto the window or use the file picker. Parse errors → friendly
 error card with the failure reason. Never a blank screen.
 
+**A 200 response whose body is HTML (SPA fallback) is treated as not-found.**
+A static host answers a request for a missing file with the app shell and
+status 200, so a successful status alone does not mean "here is your document".
+Either signal is sufficient to refuse: a `content-type` containing `text/html`,
+or a body that begins `<!doctype html` / `<html` within its first 256 bytes.
+Rendering the shell as a document would produce a confident, entirely fictional
+zero-section reader — the worst possible failure, because it looks like success.
+The drop screen for this case names the path and points at `docPath` in
+`unfold.config.json` and at the document needing to be deployed alongside
+`dist/`.
+
 ### 6.2 Pipeline
 `read → frontmatter → remark-parse (mdast) → transform → Doc`.
 
