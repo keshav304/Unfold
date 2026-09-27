@@ -164,6 +164,7 @@ const ALLOWED_DEPS: Record<string, string> = {
   'unist-util-visit': 'mdast traversal helper for the §6.2 transform',
   shiki: '§4 Code highlight — github-dark, lazy chunk',
   mermaid: '§4 Diagrams — lazy chunk, dark theme',
+  cmdk: '§7.4 palette — headless combobox with the aria wiring §9 requires; hand-rolling it is how focus traps get subtly wrong',
 }
 
 /** Tooling; never shipped to the browser. */
@@ -189,9 +190,15 @@ const ALLOWED_DEV_DEPS: Record<string, string> = {
   '@fontsource-variable/jetbrains-mono': '§10 self-hosted subsets — code face',
 }
 
-/** §13: these belong to later milestones. Installing them early is the
- *  "just for X" smell plan §9 says to reject. */
-const DEFERRED = ['framer-motion', 'canvas-confetti', '@xyflow/react', 'reactflow', 'cmdk']
+/**
+ * §13: these belong to later milestones. Installing them early is the
+ * "just for X" smell plan §9 says to reject.
+ *
+ * `cmdk` left this list in M2 — that is the guard doing its job: a deferred
+ * library may only be promoted in the milestone that actually ships it, and
+ * only with a written reason in the allowlist above.
+ */
+const DEFERRED = ['framer-motion', 'canvas-confetti', '@xyflow/react', 'reactflow']
 
 function manifest(): { dependencies: Record<string, string>; devDependencies: Record<string, string> } {
   const pkg = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8')) as {

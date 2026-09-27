@@ -37,15 +37,3 @@ export async function waitForDocument(result: RenderResult): Promise<void> {
   }
   throw new Error('the app never left the loading state')
 }
-
-/** jsdom has no layout: give every element a position for the scrollspy. */
-export function stubLayout(): () => void {
-  const original = Element.prototype.getBoundingClientRect
-  Element.prototype.getBoundingClientRect = function stub(this: Element): DOMRect {
-    const top = Number(this.getAttribute('data-stub-top') ?? '0')
-    return { top, bottom: top + 100, left: 0, right: 0, width: 0, height: 100, x: 0, y: top, toJSON: () => ({}) } as DOMRect
-  }
-  return () => {
-    Element.prototype.getBoundingClientRect = original
-  }
-}

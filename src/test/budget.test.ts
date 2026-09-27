@@ -85,7 +85,9 @@ describe('§10 bundle budgets', () => {
   it('the deferred milestone libraries are absent from the whole build', () => {
     if (!available) return
     const names = allJs.join(' ')
-    for (const deferred of ['framer-motion', 'canvas-confetti', 'cmdk', 'xyflow']) {
+    // `cmdk` left this list in M2: the palette ships it in M2.2. These three
+    // remain M3/M4 and must not have crept in early.
+    for (const deferred of ['framer-motion', 'canvas-confetti', 'xyflow']) {
       expect(names).not.toContain(deferred)
     }
   })
