@@ -74,10 +74,10 @@ nodes:
   store: Index store | durable
   planner: Query planner
 edges:
-  shell -> ingest: submit
-  ingest -> store: write
-  store -> planner: read
-  planner -.-> shell: results
+  shell -> ingest | submit
+  ingest -> store | write
+  store -> planner | read
+  planner -.-> shell | results
 ```
 
 ### Request walkthrough
