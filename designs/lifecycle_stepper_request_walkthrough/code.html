@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-variant":"#31353f","surface-container":"#1c1f29","tertiary-container":"#b395ff","on-secondary":"#1000a9","primary-fixed":"#acedff","on-secondary-fixed-variant":"#2f2ebe","on-tertiary-fixed":"#23005c","tertiary-fixed-dim":"#d0bcff","secondary-fixed":"#e1e0ff","on-surface":"#dfe2ef","inverse-surface":"#dfe2ef","surface-container-high":"#262a34","primary-fixed-dim":"#4cd7f6","on-background":"#dfe2ef","on-tertiary-fixed-variant":"#5516be","background":"#0f131c","tertiary-fixed":"#e9ddff","on-primary-fixed-variant":"#004e5c","primary-container":"#06b6d4","on-error":"#690005","error":"#ffb4ab","surface":"#0f131c","tertiary":"#d0bcff","inverse-on-surface":"#2c303a","error-container":"#93000a","secondary":"#c0c1ff","surface-tint":"#4cd7f6","surface-dim":"#0f131c","on-secondary-container":"#b0b2ff","inverse-primary":"#00687a","surface-container-low":"#181b25","surface-container-highest":"#31353f","on-error-container":"#ffdad6","on-tertiary":"#3c0091","outline":"#869397","on-surface-variant":"#bcc9cd","on-primary-fixed":"#001f26","on-primary":"#003640","on-tertiary-container":"#4900ae","secondary-container":"#3131c0","on-secondary-fixed":"#07006c","surface-bright":"#353943","primary":"#4cd7f6","secondary-fixed-dim":"#c0c1ff","outline-variant":"#3d494c","surface-container-lowest":"#0a0e17","on-primary-container":"#00424f"},borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},spacing:{"space-2xl":"2rem","margin-mobile":"1rem","space-sm":"0.5rem","space-xs":"0.25rem",gutter:"1.5rem","space-xl":"1.5rem","space-2xs":"0.125rem","space-3xl":"3rem","space-lg":"1rem","space-md":"0.75rem","gutter-mobile":"0.75rem",margin:"2rem"},fontFamily:{"headline-lg":["Geist"],"headline-md":["Geist"],"code-md":["JetBrains Mono"],"headline-xl-mobile":["Geist"],"headline-sm":["Geist"],"display-lg":["Geist"],"code-lg":["JetBrains Mono"],"code-sm":["JetBrains Mono"],"body-md":["Inter"],"body-sm":["Inter"],"headline-xl":["Geist"],"display-lg-mobile":["Geist"],"body-lg":["Inter"],"label-caps":["JetBrains Mono"]},fontSize:{"headline-lg":["28px",{lineHeight:"36px",letterSpacing:"-0.02em",fontWeight:"500"}],"headline-md":["20px",{lineHeight:"28px",letterSpacing:"-0.015em",fontWeight:"500"}],"code-md":["12px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-xl-mobile":["26px",{lineHeight:"34px",letterSpacing:"-0.02em",fontWeight:"600"}],"headline-sm":["16px",{lineHeight:"24px",letterSpacing:"-0.01em",fontWeight:"500"}],"display-lg":["48px",{lineHeight:"56px",letterSpacing:"-0.03em",fontWeight:"600"}],"code-lg":["14px",{lineHeight:"22px",letterSpacing:"-0.01em",fontWeight:"500"}],"code-sm":["11px",{lineHeight:"16px",letterSpacing:"0.01em",fontWeight:"400"}],"body-md":["14px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"400"}],"body-sm":["12px",{lineHeight:"18px",letterSpacing:"0.005em",fontWeight:"400"}],"headline-xl":["36px",{lineHeight:"44px",letterSpacing:"-0.025em",fontWeight:"600"}],"display-lg-mobile":["32px",{lineHeight:"40px",letterSpacing:"-0.02em",fontWeight:"600"}],"body-lg":["16px",{lineHeight:"26px",letterSpacing:"-0.005em",fontWeight:"400"}],"label-caps":["10px",{lineHeight:"14px",letterSpacing:"0.08em",fontWeight:"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><div class="fixed top-0 left-0 right-0 h-[2px] z-[60] bg-gradient-to-r from-primary via-tertiary to-primary-container shadow-[0_0_10px_rgba(76,215,246,0.6)]"></div><header class="fixed top-0 left-0 right-0 h-16 z-50 bg-surface-container-low/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.3)]"><div class="w-full h-16 px-gutter flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md min-w-0"><div class="flex items-center gap-space-sm shrink-0"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[20px]">hub</span></div><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold hidden sm:inline-block">Architecture Explorer</span></div><div class="h-4 w-[1px] bg-surface-container-highest shrink-0"></div><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-2xs rounded-DEFAULT bg-surface-container-high text-on-surface-variant font-code-sm text-code-sm shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span><span>v2.4.0</span><span class="text-outline">·</span><span class="text-on-surface font-code-sm text-code-sm truncate max-w-[140px]">core-engine.md</span></div></div><div class="flex items-center gap-space-md shrink-0"><button class="flex items-center justify-between gap-space-md h-9 px-space-md rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">search</span><span class="font-body-sm text-body-sm hidden lg:inline">Quick switcher...</span></div><kbd class="px-space-xs py-space-2xs rounded-DEFAULT bg-surface-container-highest text-on-surface font-label-caps text-label-caps">⌘K</kbd></button><nav class="hidden xl:flex items-center p-space-2xs rounded-xl bg-surface-container" data-active-classes="bg-primary-container text-on-primary-container font-medium rounded-lg"><a class="px-space-md py-space-xs font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="reader" href="#">Reader</a><a class="px-space-md py-space-xs font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="architecture-graph" href="#">Architecture Graph</a><a aria-current="page" class="px-space-md py-space-xs transition-colors bg-primary-container text-on-primary-container font-medium rounded-lg" data-path="lifecycle-stepper" href="#">Lifecycle Stepper</a></nav></div><div class="flex items-center gap-space-sm shrink-0"><div class="hidden 2xl:flex items-center p-space-2xs rounded-lg bg-surface-container text-on-surface-variant font-code-sm text-code-sm"><span class="px-space-sm py-space-2xs rounded-DEFAULT bg-surface-container-high text-primary font-medium">Reference</span><span class="px-space-sm py-space-2xs hover:text-on-surface cursor-pointer transition-colors">Executive</span></div><a class="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs rounded-DEFAULT bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-all font-code-sm text-code-sm" href="https://github.com/acme/quantum-core" target="_blank"><span class="material-symbols-outlined text-[14px]">deployed_code</span><span>acme/quantum-core</span></a><button aria-label="Toggle theme" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button"><span class="material-symbols-outlined text-[18px]">dark_mode</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-16 bottom-0 w-72 bg-surface-container-lowest z-40 flex flex-col shadow-[1px_0_12px_rgba(0,0,0,0.25)]"><div class="p-space-md flex items-center justify-between"><span class="font-label-caps text-label-caps text-outline uppercase tracking-wider">Metro-Map Topology</span><span class="font-code-sm text-code-sm text-primary px-space-xs py-space-2xs rounded bg-surface-container-high">7 Nodes</span></div><div class="flex-1 overflow-y-auto px-space-md pb-space-lg"><nav class="flex flex-col gap-space-2xs" data-active-classes="bg-primary-container text-on-primary-container font-medium rounded-lg"><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="reader" href="#"><span class="w-2 h-2 rounded-full bg-primary shrink-0"></span><span class="font-body-sm text-body-sm truncate">Kernel Initialization</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="architecture-graph" href="#"><span class="w-2 h-2 rounded-full bg-tertiary shrink-0"></span><span class="font-body-sm text-body-sm truncate">Memory Pipeline</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs transition-all bg-primary-container text-on-primary-container font-medium rounded-lg" data-path="lifecycle-stepper" href="#"><span class="w-2 h-2 rounded-full bg-outline-variant shrink-0"></span><span class="font-body-sm text-body-sm truncate">Execution Lifecycle</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="runtime-spec" href="#"><span class="w-2 h-2 rounded-full bg-outline-variant shrink-0"></span><span class="font-body-sm text-body-sm truncate">Runtime Dispatch</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="fault-matrix" href="#"><span class="w-2 h-2 rounded-full bg-outline-variant shrink-0"></span><span class="font-body-sm text-body-sm truncate">Fault Tolerance Matrix</span></a></nav></div><div class="p-space-md bg-surface-container-low flex items-center justify-between"><span class="font-code-sm text-code-sm text-outline">Branch: main</span><span class="font-code-sm text-code-sm text-on-surface-variant">rev 8f9c1e</span></div></aside><div class="pl-72"><main class="relative pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Stepper Top Bar & Global Execution Progress -->
+<div class="w-full bg-surface-container-low px-gutter py-space-md shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-space-md">
+<div class="flex flex-wrap items-center gap-space-sm min-w-0">
+<div class="w-7 h-7 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]">alt_route</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Request Lifecycle: End-to-End Execution Trace</span>
+<span class="px-space-xs py-space-2xs rounded-DEFAULT bg-surface-container-highest text-on-surface-variant font-code-sm text-code-sm">10 Total Steps</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline">Deterministic sub-millisecond trace walkthrough for trace ID <span class="font-code-sm text-code-sm text-primary">req_88f91c94d</span></p>
+</div>
+</div>
+<!-- Execution Stats & Controls -->
+<div class="flex items-center gap-space-md shrink-0">
+<div class="hidden sm:flex flex-col items-end">
+<div class="flex items-center gap-space-xs">
+<span class="font-code-sm text-code-sm text-on-surface font-medium" id="stepIndicatorLabel">Step 4 of 10</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary/10 px-space-xs py-space-2xs rounded-DEFAULT font-semibold" id="percentLabel">40% COMPLETED</span>
+</div>
+<div class="w-36 h-1.5 rounded-full bg-surface-container-highest overflow-hidden mt-space-2xs">
+<div class="h-full bg-gradient-to-r from-primary via-tertiary to-primary-container transition-all duration-300 ease-out" id="topProgressBar" style="width: 40%"></div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-space-2xs h-8 px-space-sm rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all font-code-sm text-code-sm" id="btnPrev" type="button">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+<span class="hidden sm:inline">Prev</span>
+<kbd class="px-space-2xs rounded bg-surface-container-highest text-on-surface font-label-caps text-label-caps">K</kbd>
+</button>
+<button class="flex items-center gap-space-2xs h-8 px-space-sm rounded-lg bg-primary-container text-on-primary-container font-medium hover:brightness-110 shadow-sm transition-all font-code-sm text-code-sm" id="btnNext" type="button">
+<span class="hidden sm:inline">Next</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+<kbd class="px-space-2xs rounded bg-surface-container-highest text-on-surface font-label-caps text-label-caps">J</kbd>
+</button>
+</div>
+</div>
+</div>
+<!-- Metro-Map Horizontal Stepper Track -->
+<div class="w-full bg-surface-container-lowest py-space-md px-gutter overflow-x-auto">
+<div class="min-w-[1040px] flex items-center justify-between relative py-space-xs">
+<!-- Background Track Line -->
+<div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-[2px] bg-surface-container-highest z-0"></div>
+<div class="absolute left-6 top-1/2 -translate-y-1/2 h-[2px] bg-gradient-to-r from-primary to-primary-container z-0 transition-all duration-300" id="trackProgressLine" style="width: 33.3%;"></div>
+<!-- Step Nodes -->
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none" data-step="1">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface group-hover:text-primary transition-colors">01. Ingress</span>
+<span class="font-label-caps text-label-caps text-primary/80 uppercase">Done · 0.2ms</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none" data-step="2">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface group-hover:text-primary transition-colors">02. Auth & Scopes</span>
+<span class="font-label-caps text-label-caps text-primary/80 uppercase">Done · 1.1ms</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none" data-step="3">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface group-hover:text-primary transition-colors">03. Speculative Parse</span>
+<span class="font-label-caps text-label-caps text-primary/80 uppercase">Done · 0.7ms</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none" data-step="4">
+<div class="step-pill-indicator w-9 h-9 rounded-full bg-primary-container text-on-primary-container font-semibold flex items-center justify-center shadow-[0_0_18px_rgba(6,182,212,0.6)] ring-4 ring-primary/20 scale-110">
+<span class="font-code-sm text-code-sm">04</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-primary">04. Frozen Lock</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary/10 px-space-2xs rounded uppercase">ACTIVE SNAPSHOT</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="5">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">05</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">05. DAG Opt</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="6">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">06</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">06. Dist Dispatch</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="7">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">07</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">07. Worker Exec</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="8">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">08</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">08. Scoring Diff</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="9">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">09</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">09. Vector Cache</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+<button class="step-nav-btn relative z-10 flex flex-col items-center group text-left focus:outline-none opacity-60 hover:opacity-100 transition-opacity" data-step="10">
+<div class="step-pill-indicator w-8 h-8 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center shadow-sm">
+<span class="font-code-sm text-code-sm">10</span>
+</div>
+<div class="mt-space-xs flex flex-col items-center">
+<span class="font-code-sm text-code-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">10. Stream Out</span>
+<span class="font-label-caps text-label-caps text-outline uppercase">Pending</span>
+</div>
+</button>
+</div>
+</div>
+<!-- Primary Step Content Canvas -->
+<div class="w-full px-gutter py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto">
+<!-- Step Hero Card -->
+<div class="rounded-xl bg-surface-container p-space-xl shadow-xl flex flex-col gap-space-lg relative overflow-hidden">
+<!-- Glow gradient accent -->
+<div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-primary/10 via-tertiary/10 to-transparent blur-3xl pointer-events-none"></div>
+<!-- Header Label & Navigation Action -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm relative z-10">
+<div class="flex items-center gap-space-xs">
+<span class="px-space-sm py-space-2xs rounded bg-surface-container-highest text-primary font-label-caps text-label-caps uppercase tracking-wider font-semibold">STEP 04 // CONCURRENCY PRIMITIVE</span>
+<span class="text-outline">·</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">Deterministic Memory Pipeline</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="flex items-center gap-space-xs px-space-sm py-space-2xs rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors font-code-sm text-code-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">schema</span>
+<span>View Metro Node</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-sm py-space-2xs rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors font-code-sm text-code-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span>Export Trace JSON</span>
+</button>
+</div>
+</div>
+<!-- Main Step Title & Synopsis -->
+<div class="flex flex-col gap-space-xs relative z-10 max-w-4xl">
+<h1 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">The Frozen-Instrument Snapshot Lock</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+          Before evaluation commences, the execution graph creates an immutable, content-addressed snapshot of all state variables and models. This ensures determinism across speculative forks, isolating mutating side effects to safe memory pages.
+        </p>
+</div>
+<!-- Visual Metric Strip & Architecture Indicators -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-space-md py-space-sm relative z-10">
+<div class="p-space-md rounded-lg bg-surface-container-high flex flex-col gap-space-2xs shadow-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase">Acquisition Latency</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-on-surface font-semibold">0.42</span>
+<span class="font-code-sm text-code-sm text-primary">ms</span>
+</div>
+<span class="font-body-sm text-body-sm text-primary">99.8th percentile speed</span>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-high flex flex-col gap-space-2xs shadow-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase">Merkle Digest</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-code-md text-code-md text-on-surface font-semibold truncate max-w-[130px]">sha256:7f81b9...</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Validated 14 hashes</span>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-high flex flex-col gap-space-2xs shadow-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase">CoW Memory Buffer</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-on-surface font-semibold">1,024</span>
+<span class="font-code-sm text-code-sm text-tertiary">KiB</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Zero page churn</span>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-high flex flex-col gap-space-2xs shadow-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase">Cluster Consensus</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-primary font-semibold">5 / 5</span>
+<span class="font-code-sm text-code-sm text-outline">Nodes</span>
+</div>
+<span class="font-body-sm text-body-sm text-primary">Quorum locked</span>
+</div>
+</div>
+<!-- 3-Column Deep-Dive Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg relative z-10 pt-space-xs">
+<!-- Column 1: Mechanics -->
+<div class="rounded-xl bg-surface-container-low p-space-lg flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center gap-space-sm text-primary">
+<span class="material-symbols-outlined text-[20px]">memory</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-medium">Execution Mechanics</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            The lock invokes zero-overhead Copy-on-Write (CoW) memory pages. State variables are frozen into a persistent read-only vector manifest. Any thread attempting an in-place mutation triggers an asynchronous dirty-page branch.
+          </p>
+<div class="rounded-lg bg-surface-container-lowest p-space-md flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-code-sm text-code-sm text-outline">
+<span>Branch Allocation</span>
+<span class="text-primary font-semibold">Virtual Address</span>
+</div>
+<div class="font-code-sm text-code-sm text-on-surface flex items-center justify-between">
+<span>0x7FFF94002000</span>
+<span class="text-on-surface-variant font-label-caps text-label-caps px-space-xs py-space-2xs rounded bg-surface-container-high">PAGED_IN</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden mt-space-2xs">
+<div class="bg-primary h-full" style="width: 68%;"></div>
+</div>
+</div>
+<ul class="flex flex-col gap-space-xs text-on-surface-variant font-body-sm text-body-sm">
+<li class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[16px] shrink-0 mt-0.5">check_circle</span>
+<span>All 14 upstream pipeline parameters frozen</span>
+</li>
+<li class="flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[16px] shrink-0 mt-0.5">check_circle</span>
+<span>Hash chain verification strictly enforced</span>
+</li>
+</ul>
+</div>
+<!-- Column 2: Code Location & Trigger Points -->
+<div class="rounded-xl bg-surface-container-low p-space-lg flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center gap-space-sm text-tertiary">
+<span class="material-symbols-outlined text-[20px]">code</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-medium">Where This Happens</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Instrumentation is applied within the runner's pre-flight loop before graph compilation. Direct anchors pinpoint exact entry gates.
+          </p>
+<div class="flex flex-col gap-space-xs">
+<a class="group rounded-lg bg-surface-container p-space-sm flex items-center justify-between hover:bg-surface-container-high transition-colors" href="#">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-[16px]">data_object</span>
+<span class="font-code-sm text-code-sm text-on-surface font-medium truncate">app/ai/runner.py:142</span>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="font-label-caps text-label-caps text-outline">18 LOC</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[14px]">open_in_new</span>
+</div>
+</a>
+<a class="group rounded-lg bg-surface-container p-space-sm flex items-center justify-between hover:bg-surface-container-high transition-colors" href="#">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-[16px]">commit</span>
+<span class="font-code-sm text-code-sm text-on-surface font-medium truncate">app/scoring/diff.py:88</span>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="font-label-caps text-label-caps text-outline">42 LOC</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[14px]">open_in_new</span>
+</div>
+</a>
+<a class="group rounded-lg bg-surface-container p-space-sm flex items-center justify-between hover:bg-surface-container-high transition-colors" href="#">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-[16px]">lock_reset</span>
+<span class="font-code-sm text-code-sm text-on-surface font-medium truncate">kernel/snapshot.c:304</span>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="font-label-caps text-label-caps text-outline">116 LOC</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[14px]">open_in_new</span>
+</div>
+</a>
+</div>
+<div class="mt-auto flex items-center gap-space-xs font-code-sm text-code-sm text-outline">
+<span class="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+<span>Linked to Git SHA <code class="text-on-surface">8f9c1e0b</code></span>
+</div>
+</div>
+<!-- Column 3: Failure & Resilience -->
+<div class="rounded-xl bg-surface-container-low p-space-lg flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center gap-space-sm text-error">
+<span class="material-symbols-outlined text-[20px]">shield</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-medium">Failure & Recovery</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            If quorum divergence is detected or a memory lock contention exceeds 2.5ms, the engine triggers an immediate non-destructive rollback.
+          </p>
+<div class="flex flex-col gap-space-xs">
+<div class="rounded-lg bg-surface-container p-space-sm flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-code-sm text-code-sm font-medium text-on-surface">Quorum Divergence</span>
+<span class="font-label-caps text-label-caps text-error bg-error/10 px-space-xs py-space-2xs rounded">P0 TRAP</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Divergent worker drops out; replica promoted via consensus raft in <1.2ms.</p>
+</div>
+<div class="rounded-lg bg-surface-container p-space-sm flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-code-sm text-code-sm font-medium text-on-surface">Tier-1 Fallback Mode</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary/10 px-space-xs py-space-2xs rounded">AUTO_SAFE</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Serves immutable baseline models directly from NVMe-backed write caches.</p>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between font-label-caps text-label-caps text-outline uppercase pt-space-xs">
+<span>Fail-safe status</span>
+<span class="text-primary font-semibold">ARBITER READY</span>
+</div>
+</div>
+</div>
+<!-- Live Terminal Simulation Container -->
+<div class="rounded-lg bg-surface-container-lowest overflow-hidden shadow-lg mt-space-sm">
+<div class="h-9 px-space-md bg-surface-container-high flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-error"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+<span class="ml-space-sm font-code-sm text-code-sm text-on-surface-variant">stdout // runner.log (step-04-snapshot)</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-outline">TRACE_LVL=DEBUG</span>
+<button class="flex items-center gap-space-2xs text-on-surface-variant hover:text-on-surface font-code-sm text-code-sm px-space-xs py-space-2xs rounded transition-colors" id="btnCopyLogs" type="button">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+</div>
+<div class="p-space-lg font-code-sm text-code-sm text-on-surface flex flex-col gap-space-xs overflow-x-auto">
+<div class="flex items-center gap-space-sm">
+<span class="text-outline shrink-0">[04:12.887]</span>
+<span class="text-tertiary font-semibold shrink-0">[TRACE]</span>
+<span class="text-on-surface-variant">Invoking memory seal barrier on ring buffer segment 0x04</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-outline shrink-0">[04:12.889]</span>
+<span class="text-tertiary font-semibold shrink-0">[TRACE]</span>
+<span class="text-on-surface-variant">Pinned 14 pointer references; zero-copy page table cloned (CoW flags enabled)</span>
+</div>
+<div class="flex items-center gap-space-sm bg-primary/10 -mx-space-lg px-space-lg py-space-2xs rounded">
+<span class="text-primary shrink-0">[04:12.891]</span>
+<span class="text-primary font-semibold shrink-0">[INFO]</span>
+<span class="text-on-surface">Snapshot acquired: <span class="text-primary font-bold">sha256:7f81b94e82c161ac3209bf7193c72b</span> [OK]</span>
+</div>
+<div class="flex items-center gap-space-sm bg-primary/10 -mx-space-lg px-space-lg py-space-2xs rounded">
+<span class="text-primary shrink-0">[04:12.894]</span>
+<span class="text-primary font-semibold shrink-0">[INFO]</span>
+<span class="text-on-surface">Verified 14 dependencies against frozen manifest (digest checksum valid)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-outline shrink-0">[04:12.896]</span>
+<span class="text-tertiary font-semibold shrink-0">[LOCK]</span>
+<span class="text-on-surface-variant">Snapshot lock acquired in 0.42ms. Delegating to step 05 (DAG Optimization)...</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stepper Contextual Drawer / Meta Information Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+<div class="rounded-xl bg-surface-container-low p-space-lg flex flex-col gap-space-sm shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface font-medium">Memory Allocation Topology</span>
+<span class="font-label-caps text-label-caps text-outline">VIRTUAL MAP</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Representation of active memory segments pinned during the frozen lock phase. Red zones indicate forbidden mutation pages.
+        </p>
+<div class="grid grid-cols-6 gap-space-xs pt-space-xs">
+<div class="h-10 rounded bg-primary/20 flex flex-col items-center justify-center font-code-sm text-code-sm text-primary font-semibold">PAGE 0</div>
+<div class="h-10 rounded bg-primary/20 flex flex-col items-center justify-center font-code-sm text-code-sm text-primary font-semibold">PAGE 1</div>
+<div class="h-10 rounded bg-primary/20 flex flex-col items-center justify-center font-code-sm text-code-sm text-primary font-semibold">PAGE 2</div>
+<div class="h-10 rounded bg-primary/20 flex flex-col items-center justify-center font-code-sm text-code-sm text-primary font-semibold">PAGE 3</div>
+<div class="h-10 rounded bg-surface-container flex flex-col items-center justify-center font-code-sm text-code-sm text-outline">SPARE</div>
+<div class="h-10 rounded bg-surface-container flex flex-col items-center justify-center font-code-sm text-code-sm text-outline">SPARE</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-code-sm text-code-sm pt-space-xs">
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded bg-primary"></span> Read-Only (Sealed)</span>
+<span class="flex items-center gap-space-2xs"><span class="w-2 h-2 rounded bg-surface-container"></span> Unallocated CoW Page</span>
+</div>
+</div>
+<div class="rounded-xl bg-surface-container-low p-space-lg flex flex-col justify-between gap-space-md shadow-md">
+<div class="flex flex-col gap-space-2xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-surface font-medium">Execution Graph Affinity</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary/10 px-space-xs py-space-2xs rounded">AFFINITY-PINNED</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Bound to local NUMA node 0. Workers in socket 1 receive replicated pointers over QPI without traversing PCIe bridges.
+          </p>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="flex-1 rounded-lg bg-surface-container p-space-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase block">Host Socket</span>
+<span class="font-code-md text-code-md text-on-surface font-semibold">Socket #0 (Core 0-15)</span>
+</div>
+<div class="flex-1 rounded-lg bg-surface-container p-space-sm">
+<span class="font-label-caps text-label-caps text-outline uppercase block">QPI Bridge Lag</span>
+<span class="font-code-md text-code-md text-primary font-semibold">18.4 ns</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Fixed-Context Keyboard Hint Bar -->
+<div class="w-full bg-surface-container-lowest px-gutter py-space-sm shadow-md mt-auto">
+<div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-space-md font-code-sm text-code-sm text-on-surface-variant">
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-xs">
+<kbd class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface font-label-caps text-label-caps">J</kbd>
+<span>Next step</span>
+</div>
+<span class="text-outline">·</span>
+<div class="flex items-center gap-space-xs">
+<kbd class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface font-label-caps text-label-caps">K</kbd>
+<span>Previous step</span>
+</div>
+<span class="text-outline">·</span>
+<div class="flex items-center gap-space-xs">
+<kbd class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface font-label-caps text-label-caps">G</kbd>
+<span>Graph view</span>
+</div>
+<span class="text-outline">·</span>
+<div class="flex items-center gap-space-xs">
+<kbd class="px-space-xs py-space-2xs rounded bg-surface-container-high text-on-surface font-label-caps text-label-caps">SPACE</kbd>
+<span>Auto-play trace</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-space-xs text-primary">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="font-label-caps text-label-caps uppercase">Telemetry Stream: Active</span>
+</div>
+<span class="text-outline">·</span>
+<span class="font-code-sm text-code-sm text-outline">Deterministic Engine v2.4.0</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function initLifecycleStepper() {
+    let currentStep = 4;
+    const totalSteps = 10;
+    
+    const stepTitles = [
+      "Ingress Edge Handshake",
+      "Authentication & Scopes",
+      "Speculative Graph Parse",
+      "The Frozen-Instrument Snapshot Lock",
+      "DAG Topological Optimization",
+      "Distributed Dispatch Sharding",
+      "Isolated Worker Execution",
+      "Scoring Diff Matrix Sync",
+      "Vector Cache Merkle Commit",
+      "Streaming Response Chunking"
+    ];
+
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const stepIndicatorLabel = document.getElementById('stepIndicatorLabel');
+    const percentLabel = document.getElementById('percentLabel');
+    const topProgressBar = document.getElementById('topProgressBar');
+    const trackProgressLine = document.getElementById('trackProgressLine');
+    const stepButtons = document.querySelectorAll('.step-nav-btn');
+
+    function updateStep(step) {
+      if (step < 1 || step > totalSteps) return;
+      currentStep = step;
+
+      // Update Top Status
+      if (stepIndicatorLabel) {
+        stepIndicatorLabel.textContent = `Step ${currentStep} of ${totalSteps}`;
+      }
+      const pct = Math.round((currentStep / totalSteps) * 100);
+      if (percentLabel) {
+        percentLabel.textContent = `${pct}% COMPLETED`;
+      }
+      if (topProgressBar) {
+        topProgressBar.style.width = `${pct}%`;
+      }
+      if (trackProgressLine) {
+        trackProgressLine.style.width = `${((currentStep - 1) / (totalSteps - 1)) * 100}%`;
+      }
+
+      // Update Step Nodes UI
+      stepButtons.forEach((btn) => {
+        const s = parseInt(btn.getAttribute('data-step'), 10);
+        const indicator = btn.querySelector('.step-pill-indicator');
+        
+        btn.classList.remove('opacity-60');
+        indicator.className = 'step-pill-indicator w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-200';
+
+        if (s < currentStep) {
+          indicator.classList.add('bg-surface-container-high', 'text-primary');
+          indicator.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span>';
+        } else if (s === currentStep) {
+          indicator.className = 'step-pill-indicator w-9 h-9 rounded-full bg-primary-container text-on-primary-container font-semibold flex items-center justify-center shadow-[0_0_18px_rgba(6,182,212,0.6)] ring-4 ring-primary/20 scale-110';
+          indicator.innerHTML = `<span class="font-code-sm text-code-sm">${s.toString().padStart(2, '0')}</span>`;
+        } else {
+          btn.classList.add('opacity-60');
+          indicator.classList.add('bg-surface-container', 'text-on-surface-variant');
+          indicator.innerHTML = `<span class="font-code-sm text-code-sm">${s.toString().padStart(2, '0')}</span>`;
+        }
+      });
+    }
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => updateStep(currentStep - 1));
+    }
+    if (btnNext) {
+      btnNext.addEventListener('click', () => updateStep(currentStep + 1));
+    }
+
+    stepButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const s = parseInt(btn.getAttribute('data-step'), 10);
+        updateStep(s);
+      });
+    });
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'j' || e.key === 'J') {
+        updateStep(currentStep + 1);
+      } else if (e.key === 'k' || e.key === 'K') {
+        updateStep(currentStep - 1);
+      } else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        // Cycle auto-play step
+        updateStep(currentStep >= totalSteps ? 1 : currentStep + 1);
+      }
+    });
+
+    // Copy Logs Action
+    const btnCopyLogs = document.getElementById('btnCopyLogs');
+    if (btnCopyLogs) {
+      btnCopyLogs.addEventListener('click', () => {
+        const text = `[INFO] [04:12.891] Snapshot acquired: sha256:7f81b94e82c161ac3209bf7193c72b [OK]
+[INFO] [04:12.894] Verified 14 dependencies against frozen manifest`;
+        navigator.clipboard?.writeText(text);
+        btnCopyLogs.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span><span>Copied</span>';
+        setTimeout(() => {
+          btnCopyLogs.innerHTML = '<span class="material-symbols-outlined text-[14px]">content_copy</span><span>Copy</span>';
+        }, 1500);
+      });
+    }
+  })();
+</script></main></div></body></html>
