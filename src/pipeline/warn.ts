@@ -11,7 +11,21 @@ export type Warning = {
 }
 
 let sink: Warning[] = []
-let echoToConsole = false
+
+/**
+ * Whether warnings reach the console.
+ *
+ * Defaults to **development builds only**, and that default is the rule rather
+ * than a setting: §1.3 asks for a "development-mode warning", so a production
+ * build that logs one is not being helpful, it is violating the spec and failing
+ * the e2e console-noise gate. The e2e suite is the reason this was found — it
+ * runs against a *built* artifact, so anything the app prints in production
+ * shows up there as a failure.
+ *
+ * `import.meta.env.DEV` is substituted at build time, so the `false` branch is
+ * dead code in a production bundle and costs nothing.
+ */
+let echoToConsole = import.meta.env.DEV
 
 /** Replace the warning sink. Returns the previous sink. */
 export function setWarningSink(next: Warning[]): Warning[] {
@@ -20,7 +34,7 @@ export function setWarningSink(next: Warning[]): Warning[] {
   return previous
 }
 
-/** Mirror warnings to `console.warn` as well (dev server default). */
+/** Mirror warnings to `console.warn` as well. See the note on the default. */
 export function setWarningEcho(enabled: boolean): void {
   echoToConsole = enabled
 }

@@ -1082,6 +1082,525 @@
   }
 
 /* ==========================================================================
+   M3 — the graph workbench (§7.6) and the stepper (§7.7).
+
+   The three zones of the workbench are grid *columns*, never conditional
+   wrappers. That is the whole of M3.5 trap (c): the inspector column is
+   reserved whether or not the panel is open, so opening and closing the panel
+   animates the panel and leaves the canvas at exactly the width it had. A
+   conditional column would reflow the grid, React Flow would re-measure, and
+   the reader's viewport would jump under the cursor.
+   ========================================================================== */
+
+/* ---------- segmented pane switch (<768px only) ---------- */
+.workbench-tabs {
+  display: none;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-base);
+}
+
+.workbench-tab {
+  padding: var(--space-2xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.workbench-tab[aria-pressed='true'] {
+  color: var(--primary);
+  background: var(--accent-wash);
+  border-color: var(--border-focus);
+}
+
+/* ---------- the workbench grid ---------- */
+.graph-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-width);
+  align-items: start;
+  min-height: calc(100vh - var(--code-header-height) - var(--space-2xl));
+  background: var(--canvas);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.graph-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100vh - var(--code-header-height) - var(--space-2xl));
+}
+
+.graph-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-xl) var(--space-md);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.graph-title {
+  margin: 0;
+  color: var(--text-high);
+}
+
+/* §7.6: the derived-mode chip. A pill, per DESIGN.md's badge shape. */
+.graph-chip {
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- the canvas (§5.2: --grid-line on a 24px pitch) ---------- */
+.graph-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--canvas);
+}
+
+/* React Flow's own chrome, brought onto the tokens. */
+.graph-canvas .react-flow__attribution {
+  display: none;
+}
+.graph-canvas .react-flow__controls {
+  box-shadow: var(--elevation-2);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+.graph-canvas .react-flow__controls-button {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-muted);
+  fill: var(--text-muted);
+}
+.graph-canvas .react-flow__controls-button:hover {
+  background: var(--surface-interactive);
+}
+.graph-canvas .react-flow__minimap {
+  display: none;
+}
+
+/* The zoom control's own focus ring, per §9. */
+.graph-canvas .react-flow__controls-button:focus-visible {
+  outline: 1px solid var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+/* ---------- metro nodes (DESIGN.md "Interactive Metro-Map Nodes") ---------- */
+.metro-node {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2xs);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-1);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-base);
+  /* The 1px inner hairline, exactly as tokens.css defines it. */
+  box-shadow: var(--elevation-inner);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.metro-node:hover {
+  border-color: var(--border-focus);
+}
+
+.metro-node__label {
+  color: var(--text-high);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.metro-node__sub {
+  color: var(--text-muted);
+}
+
+/* Active node: --primary stroke plus the cyan→indigo gradient wash (§7.6). */
+.metro-node[data-selected='true'] {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--accent-wash) 0%, var(--surface-1) 55%, var(--surface-1) 100%);
+  box-shadow: var(--elevation-inner), var(--elevation-glow);
+}
+
+.metro-handle {
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* ---------- edges: 2px --border-muted; `-.->` stays dashed ---------- */
+.graph-canvas .react-flow__edge-path {
+  stroke: var(--border-muted);
+  stroke-width: 2;
+}
+
+/*
+ * §7.6: "when hovered or actively tracing execution, track animates using an
+ * SVG dash-array glow with the cyan-to-violet gradient."
+ *
+ * The track carries the cyan→violet gradient while it is animating, and settles
+ * to the muted resting stroke when it is not. That ordering matters: an
+ * animation that never stops is a permanent glow, which reads as decoration
+ * rather than as "this edge is live".
+ *
+ * Reduced motion zeroes the duration in tokens.css, so under `reduce` this is a
+ * static dashed edge — which is the correct static fallback, not a missing one.
+ */
+.graph-canvas .react-flow__edge.graph-edge--dashed .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+  stroke: var(--gradient);
+  animation: edge-trace var(--motion-reveal) linear infinite;
+}
+
+@keyframes edge-trace {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.graph-canvas .react-flow__edge:hover .react-flow__edge-path,
+.graph-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--primary);
+  filter: drop-shadow(0 0 4px var(--primary));
+}
+
+
+/* ---------- the inspector panel (--inspector-width, §7.6) ---------- */
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: var(--inspector-width);
+  height: calc(100vh - var(--code-header-height) - var(--space-2xl));
+  padding: var(--space-lg) var(--space-xl);
+  overflow-y: auto;
+  background: var(--surface-1);
+  border-left: 1px solid var(--border-muted);
+  /* Signature motion #2 (spec §8): the panel slides, the canvas does not move. */
+  animation: panel-in var(--motion-slow) var(--ease-out);
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateX(var(--space-xl));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-head__kind {
+  color: var(--text-muted);
+}
+
+.inspector-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-base);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+.inspector-close:hover {
+  color: var(--text-high);
+  border-color: var(--border-focus);
+}
+
+.inspector-title {
+  margin: 0;
+  color: var(--text-high);
+}
+
+.inspector-sub {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* The panel's prose goes through the shared inline pipeline, so it gets the
+   reader's prose rules rather than a second set. */
+.inspector-prose .reader-prose {
+  color: var(--text-secondary);
+}
+
+.inspector-files__label {
+  color: var(--text-muted);
+}
+
+.inspector-files__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inspector-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--gradient);
+  border: 0;
+  border-radius: var(--radius-base);
+  color: var(--canvas);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--motion-fast) var(--ease-out);
+}
+
+/* ---------- the stepper (§7.7) ---------- */
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-2xl) 0;
+  max-width: var(--reading-column);
+}
+
+.stepper-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.stepper-head__kind {
+  color: var(--text-muted);
+}
+
+.stepper-count {
+  color: var(--text-muted);
+}
+
+/*
+ * The trace the dots sit on.
+ *
+ * The design ref draws the stepper as a horizontal rail with a node per step and
+ * the current one lit, so the line is not decoration — it is what makes a row of
+ * circles read as a *sequence* rather than as a toolbar. Drawn as one
+ * pseudo-element behind the row rather than as a border per dot, because per-dot
+ * borders produce a visibly broken line at every joint.
+ */
+.stepper-dots {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.stepper-dots::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  height: 1px;
+  background: var(--border-muted);
+}
+
+.step-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.step-dot[data-state='past'] {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+/* The lit step, per DESIGN.md's active-node treatment. */
+.step-dot[data-state='active'] {
+  background: var(--accent-wash);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: var(--elevation-glow);
+}
+
+.step-dot__mark {
+  font-variant-numeric: tabular-nums;
+}
+
+.stepper-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-xl);
+  background: var(--surface-1);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  /* Signature moment #3 (spec §8): the step transition. */
+  animation: step-in var(--motion-slow) var(--ease-out);
+}
+
+@keyframes step-in {
+  from {
+    transform: translateX(var(--space-lg));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.step-number {
+  color: var(--primary);
+}
+
+.step-title {
+  margin: 0;
+  color: var(--text-high);
+}
+
+.step-description {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.step-source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  align-self: flex-start;
+  margin-top: var(--space-xs);
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+.step-source:hover {
+  color: var(--primary);
+  border-color: var(--border-focus);
+}
+
+.stepper-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.stepper-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+.stepper-button:hover:not(:disabled) {
+  color: var(--text-high);
+  border-color: var(--border-focus);
+}
+.stepper-button:disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.inspector-action:hover:not(:disabled) {
+  filter: brightness(1.1);
+  box-shadow: var(--elevation-glow);
+}
+
+/* Disabled, not hidden (M3.4): the reader can see there is a section to open
+   and that this node is not it. */
+.inspector-action:disabled {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  filter: none;
+  box-shadow: none;
+}
+
+.inspector-hint {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.graph-empty {
+  margin: var(--space-2xl) 0;
+  padding: var(--space-xl);
+  max-width: var(--reading-column);
+  border-radius: var(--radius-lg);
+}
+
+.view-boot {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  color: var(--text-muted);
+}
+
+.graph-canvas .react-flow__edge-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-code-sm-size);
+}
+
+/* React Flow's own node focus ring is replaced by ours so a focused node reads
+   the same as a focused button anywhere else in the app (§9). */
+.graph-canvas .react-flow__node:focus-visible {
+  outline: 1px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-base);
+}
+
+
+/* ==========================================================================
    Breakpoints (DESIGN.md §5.3, spec §5.3). Outside @layer so the media query
    wins over the component layer without needing specificity tricks.
    ========================================================================== */
@@ -1171,5 +1690,104 @@
   .back-to-top {
     right: var(--margin-mobile);
     bottom: var(--margin-mobile);
+  }
+}
+
+/* ==========================================================================
+   M3.5 — the workbench at each breakpoint (spec §5.3).
+
+   ≥1280   rail + canvas + 440px panel (the default rules above)
+   768–1279  the rail is the M1 drawer; canvas and panel split 50/50
+   <768    one pane, switched by the segmented control in the header
+   ========================================================================== */
+
+/* 768–1279: canvas and panel share the width evenly; the rail is the drawer. */
+@media (max-width: 1279px) {
+  .app-main:has(.graph-workbench) {
+    padding: 0;
+  }
+
+  .graph-workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border: 0;
+    border-radius: 0;
+  }
+
+  .inspector {
+    width: auto;
+  }
+}
+
+/* <768: one pane at a time, switched by the segmented control. */
+@media (max-width: 767px) {
+  .workbench-tabs {
+    display: flex;
+  }
+
+  /*
+   * The header's view switcher steps aside here.
+   *
+   * §5.3 gives the narrow layout its own navigation — the segmented control — so
+   * the switcher is a second way to do the same job. Keeping both did not just
+   * duplicate navigation, it pushed the header past the viewport: the M3 mobile
+   * screenshot showed "READER / G…" running off the right edge, because the
+   * segmented control had joined a header that was already full.
+   *
+   * This is part of *defining* the segmented control, not the M4.2 chrome pass:
+   * the plan's M4.2 item is the title collapsing to a stub, and the title is
+   * untouched here.
+   */
+  .view-switcher {
+    display: none;
+  }
+
+  /*
+   * The pane that is not on show is removed from the layout entirely, not
+   * hidden with `visibility` or parked off-canvas. A React Flow canvas that is
+   * `display: none` measures 0×0, and fit-view against a zero-sized container
+   * produces a viewport showing nothing — which is why `GraphView` re-fits when
+   * `visible` flips rather than trusting its mount-time measurement.
+   */
+  .app-body[data-pane='docs'] .graph-workbench {
+    display: none;
+  }
+
+  .graph-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The panel is a full-width sheet below the canvas on mobile, where a 440px
+     column beside a 375px viewport would leave the canvas unusable. */
+  .graph-stage {
+    height: 60vh;
+  }
+
+  .inspector {
+    width: auto;
+    height: auto;
+    max-height: none;
+    border-left: 0;
+    border-top: 1px solid var(--border-muted);
+  }
+
+  /* §7.7: the stepper runs vertically on mobile. */
+  .stepper-dots {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stepper-panel {
+    animation-name: step-in-mobile;
+  }
+}
+
+@keyframes step-in-mobile {
+  from {
+    transform: translateY(var(--space-md));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

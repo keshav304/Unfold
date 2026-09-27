@@ -34,6 +34,10 @@ export function useDocument(
   const parse = useCallback((text: string, fileName: string, config: UnfoldConfig) => {
     const sink: Warning[] = []
     const previous = setWarningSink(sink)
+    // The pipeline's own warnings are collected and handed to the shell rather
+    // than printed, so a document can surface them; the echo is restored to
+    // whatever it was — `import.meta.env.DEV` in a real build — rather than forced
+    // on, which is what made M3's view-layer warnings appear in production.
     setWarningEcho(false)
     try {
       const doc = parseDocument(text, { fileName, config })
@@ -41,7 +45,7 @@ export function useDocument(
       setState({ status: 'ready', doc, config })
     } finally {
       setWarningSink(previous)
-      setWarningEcho(true)
+      setWarningEcho(import.meta.env.DEV)
     }
   }, [])
 

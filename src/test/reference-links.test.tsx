@@ -41,11 +41,6 @@ const WITH_REFERENCES = [
   '',
 ].join('\n')
 
-const CONTEXT: InlineContext = {
-  slugs: new Set<string>(),
-  fileExtensions: DEFAULT_FILE_EXTENSIONS,
-  entities: true,
-}
 /**
  * Render every prose block of the first section, through the real pipeline.
  *

@@ -7,7 +7,7 @@
  * capabilities there is no switcher at all, not a disabled one.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import type { UnfoldConfig } from '../pipeline/config'
 import { flattenSections } from '../pipeline/indexes'
 import { DropScreen, ErrorCard } from './components/DropScreen'
@@ -15,11 +15,19 @@ import { Hero } from './components/Hero'
 import { Toc } from './components/Toc'
 import { Palette, isPaletteShortcut, isTypingTarget } from './palette/Palette'
 import { Reader } from './views/Reader'
-import { hashFor, parseHash, resolveRoute, type Route, type ViewName } from './routing'
+import { Stepper, clampStep } from './stepper/Stepper'
+import { hashFor, parseHash, resolveRoute, stepperHash, type Route, type ViewName } from './routing'
 import { scrollToSlug } from './navigate'
 import { useDocument } from './useDocument'
 import { useScrollProgress } from './useScrollProgress'
 import { useScrollSpy } from './useScrollSpy'
+
+/**
+ * The graph view is a lazy chunk and nothing else may import it statically
+ * (§10, M3.1). `budget.test.ts` reads the built entry chunk and fails if
+ * `xyflow` appears in it, so this is the one line that has to stay a `lazy()`.
+ */
+const GraphView = lazy(() => import('./graph/GraphView'))
 
 const VIEW_LABEL: Record<ViewName, string> = {
   reader: 'Reader',
@@ -116,6 +124,51 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
     setRoute(next)
   }, [])
 
+  /* ---------------- stepper step (M3.6) ---------------- */
+
+  const stepCount = doc?.steps?.length ?? 0
+  /**
+   * The step the route names, clamped to the document's real range.
+   *
+   * Clamping rather than rejecting is deliberate: a deep link to a step this
+   * document does not have is a stale link, and the reader should land on the
+   * nearest real step rather than on an error or a blank view (§1.3).
+   */
+  const requestedStep = active.name === 'stepper' ? active.step : undefined
+  const step = clampStep(requestedStep ?? 1, stepCount)
+
+  /**
+   * The stepper owns the step, the shell owns the hash — the same split the
+   * palette has for results. `hashFor` is written here because the URL is the
+   * deep link (§7.7): a reader who is on step 3 can copy the address bar.
+   */
+  const setStep = useCallback(
+    (next: number) => {
+      const clamped = clampStep(next, stepCount)
+      setRoute({ name: 'stepper', step: clamped })
+      if (typeof window !== 'undefined') window.location.hash = stepperHash(clamped)
+    },
+    [stepCount],
+  )
+
+  /* ---------------- the <768px segmented control (M3.5) ---------------- */
+
+  /*
+   * The narrow-screen control does **not** hold its own state. An earlier
+   * version kept a `mobilePane` alongside the route, on the reasoning that a pane
+   * switch is presentation and not navigation — which was wrong, and wrong in a
+   * way the browser found: the "Docs" button set the pane but the reader was not
+   * rendered, because the route still said graph. Two sources of truth for one
+   * fact, and the second one silently won.
+   *
+   * The pane *is* a different view, so it gets a different route. One owner of
+   * the URL, the back button walks the panes, and a reader who copies the address
+   * bar gets the pane they were looking at. The `visible` flag the graph view
+   * still receives is derived from the route, so a resize across 768px cannot
+   * leave the canvas hidden at desktop width.
+   */
+  const graphVisible = active.name === 'graph'
+
   const h2Slugs = useMemo(
     () => (doc === undefined ? [] : doc.sections.map((section) => section.slug)),
     [doc],
@@ -170,6 +223,51 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         <div className="app-header__spacer" />
 
         {/*
+          M3.5: the <768px segmented tabs — **Docs / Visual Graph, and no Metrics
+          tab**. The old DESIGN.md mention of a Metrics pane was explicitly
+          dropped (§5.3): there is no metrics view in v1, and a tab that leads
+          nowhere is dead UI.
+
+          These are *pane switches, not tabs*, and deliberately not a `tablist`.
+          A real tab must own a `tabpanel`, and the element it switches is
+          `<main>` — giving that a `tabpanel` role would strip the `main`
+          landmark §9 requires, and axe would rightly complain about the
+          mismatch. So this is a button group with `aria-pressed`, which says
+          exactly what is true: two ways to show one region, neither of which
+          navigates.
+
+          Only the graph control is capability-gated, and a document that cannot
+          render a graph gets Docs alone — the same rule the header switcher
+          follows. The group is hidden by CSS above 768px, where the workbench
+          shows both zones at once: a narrow-screen affordance, not a second
+          navigation model.
+
+          Each button navigates rather than flipping local state, because each
+          one *is* a different view. That is what makes the back button and the
+          address bar agree with what is on screen.
+        */}
+        {doc.capabilities.graph ? (
+          <div className="workbench-tabs" role="group" aria-label="Workbench pane">
+            <button
+              type="button"
+              className="workbench-tab t-label-caps"
+              aria-pressed={!graphVisible}
+              onClick={() => goTo('reader')}
+            >
+              Docs
+            </button>
+            <button
+              type="button"
+              className="workbench-tab t-label-caps"
+              aria-pressed={graphVisible}
+              onClick={() => goTo('graph')}
+            >
+              Visual Graph
+            </button>
+          </div>
+        ) : null}
+
+        {/*
           The palette trigger (spec §7.4). It is the *primary* way in, so it is
           focusable and labelled — and it is the element focus returns to when
           the palette closes (see `restoreFocusTo`).
@@ -211,7 +309,13 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         must collapse with it, or the content falls into the 260px rail column
         and the main area stays empty.
       */}
-      <div className="app-body" data-rail={doc.sections.length > 0 ? 'true' : 'false'}>
+      <div
+        className="app-body"
+        data-rail={doc.sections.length > 0 ? 'true' : 'false'}
+        // Which pane is on show (M3.5). The attribute is what the stylesheet keys
+        // the "hide the other pane" rule on.
+        data-pane={graphVisible ? 'graph' : 'docs'}
+      >
         <Toc
           doc={doc}
           active={activeSlug}
@@ -221,6 +325,14 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
         />
 
         <main className="app-main" id="main">
+          {/*
+            M3.5 workbench. The three zones are grid columns, not conditional
+            wrappers, so opening the inspector never reflows the canvas — the
+            canvas keeps its measured width and React Flow's viewport stays where
+            the reader left it. The panel column is reserved at every width
+            (`--inspector-width` on desktop, 50% on tablet) and the panel
+            animates *inside* it.
+          */}
           {active.name === 'reader' ? (
             <>
               <a className="skip-link" href="#main">
@@ -236,17 +348,30 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
                 fileExtensions={config.fileExtensions}
               />
             </>
-          ) : (
-            // M3 owns these views. Until then the route is real and the view is
-            // honest about not existing yet: a message, never a blank screen.
-            <div className="app-placeholder elev-1">
-              <h2 className="t-headline-md">{VIEW_LABEL[active.name]} view</h2>
-              <p className="t-body-md">
-                This document is capable of a {VIEW_LABEL[active.name].toLowerCase()} view. The view itself
-                arrives in a later milestone.
-              </p>
-            </div>
-          )}
+          ) : null}
+
+          {active.name === 'graph' ? (
+            <Suspense
+              fallback={
+                <div className="view-boot" role="status" aria-live="polite">
+                  <span className="t-label-caps">Loading graph</span>
+                </div>
+              }
+            >
+              <GraphView
+                doc={doc}
+                slugs={slugs}
+                onNavigate={onNavigate}
+                descriptions={config.descriptions}
+                fileExtensions={config.fileExtensions}
+                visible={graphVisible}
+              />
+            </Suspense>
+          ) : null}
+
+          {active.name === 'stepper' ? (
+            <Stepper steps={doc.steps ?? []} step={step} onStepChange={setStep} onNavigate={onNavigate} />
+          ) : null}
         </main>
       </div>
 
