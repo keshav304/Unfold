@@ -101,10 +101,9 @@ describe('M1.0a: colour literals live in tokens.css only', () => {
 
 type Denylist = { description: string; terms: string[] }
 
-const denylistFile = JSON.parse(readFileSync(resolve(here, 'genericity-denylist.json'), 'utf8')) as {
-  $comment?: string
-  lists?: Denylist[]
-}
+const denylistFile = JSON.parse(
+  readFileSync(resolve(here, 'genericity-denylist.json'), 'utf8'),
+) as { $comment?: string; lists?: Denylist[] }
 const denylists: Denylist[] = denylistFile.lists ?? []
 
 function stringOffenders(): string[] {
@@ -127,7 +126,25 @@ describe('M1.0b: no document-specific strings in src/', () => {
     expect(stringOffenders()).toEqual([])
   })
 
-  it('the denylist is non-empty, or the check is vacuous', () => {
+  it('the denylist is non-empty and documented, or the check is vacuous', () => {
+    expect(denylists.length).toBeGreaterThan(0)
+    expect(denylists.every((entry) => entry.terms.length > 0)).toBe(true)
+    expect(denylistFile.$comment).toBeTypeOf('string')
+  })
+
+  it('the denylist actually covers the bundled demo document', () => {
+    const demo = readFileSync(resolve(repoRoot, 'ARCHITECTURE.md'), 'utf8')
+    const headings = demo
+      .split('\n')
+      .filter((line) => /^#{1,3}\s/.test(line))
+      .map((line) => line.replace(/^#+\s+/u, '').trim())
+    const haystack = JSON.stringify(denylistFile).toLowerCase()
+    // If the demo doc is renamed or rewritten, this says so rather than
+    // quietly checking nothing.
+    const covered = headings.filter((heading) => haystack.includes(heading.toLowerCase()))
+    expect(covered.length).toBeGreaterThan(0)
+  })
+})
 
 /* ------------------------------------------------------------------ *
  * (c) Dependencies stay inside the spec §4 allowlist
@@ -209,22 +226,5 @@ describe('M1.0c: no dependency outside the spec §4 allowlist', () => {
         expect(reason.length, `${name} needs a justification`).toBeGreaterThan(0)
       }
     }
-  })
-})
-
-    expect(denylists.length).toBeGreaterThan(0)
-    expect(denylists.every((entry) => entry.terms.length > 0)).toBe(true)
-  })
-
-  it('the denylist actually covers the bundled demo document', () => {
-    const demo = readFileSync(resolve(repoRoot, 'ARCHITECTURE.md'), 'utf8')
-    const headings = demo
-      .split('\n')
-      .filter((line) => /^#{1,3}\s/.test(line))
-      .map((line) => line.replace(/^#+\s+/u, '').trim())
-    const haystack = JSON.stringify(denylistFile).toLowerCase()
-    // If the demo doc is renamed or rewritten, this says so rather than
-    // quietly checking nothing.
-    expect(headings.filter((heading) => haystack.includes(heading.toLowerCase())).length).toBeGreaterThan(0)
   })
 })
