@@ -596,3 +596,54 @@ in `beforeEach`** / The App seeds its route from `location.hash` / A test that
 writes a hash silently decides the starting view of every test after it, and the
 failure then reads as a mystery several cases away from the cause. This cost two
 M3 debugging detours before it was written down.
+
+---
+
+## R11 — the G4 refinements
+
+**The inspector is a reserved column at ≥1280 and an overlay below it** /
+Refined at G4/R11a, superseding the flat "reserve the column everywhere" rule /
+The reservation is kept exactly where DESIGN.md specifies the three-pane
+workbench, because there the 440px band reads as part of the instrument and
+removing it would mean the canvas resized every time a node was clicked — the
+jump trap (c) exists to prevent. Below 1280 the same reservation is the wrong
+trade: 440px is 37% of a 1024px viewport spent on an empty band, and at 768px it
+leaves the canvas 328px, which cannot show a five-node graph. So at 768–1279 the
+panel becomes an **absolutely positioned overlay**, capped at 60% so the canvas
+stays readable behind it, and below 768 it becomes a full-width bottom sheet.
+
+Worth being precise about: the overlay does not weaken trap (c). The trap is
+"opening the panel must not move the canvas", and an absolutely positioned panel
+does not participate in the grid at all, so the canvas keeps its exact width
+whether the panel is open or closed — the same guarantee, obtained by a
+different mechanism at each breakpoint. The panel's slide also changes direction
+with the mechanism: a short fade-and-slide on desktop, a drawer from the right
+edge on tablet, a sheet from the bottom on mobile. One signature moment (§8),
+three keyframes, because the motion is supposed to explain *where the thing came
+from*.
+
+**`--text-subtle` stays; its contract is narrowed and then enforced** / The G3
+recommendation, approved at G4 and applied / The token and its §5.2 value
+(`#475569`) are unchanged, and no intermediate token was minted — the measured
+figures in the G3 entry still stand (2.56 / 2.36 / 2.52 / 1.93:1 against a 4.5:1
+requirement, with every size in the scale being normal text). All eleven
+informational declarations moved to `--text-muted`: the `⌘K` hint, the hero stat
+labels, `CONTENTS`, the TOC's H3 children, `NOW READING`, the §6.4 unresolvable
+link and its underline, code and terminal line numbers, and the palette
+placeholder. Exactly one use remains — `.stepper-button:disabled`, which WCAG
+1.4.3 exempts as part of an inactive component, and which is the first entry in
+`TEXT_SUBTLE_ALLOWLIST` in `tokens.test.ts` with its exemption quoted.
+
+**The contrast gate is now zero-violation, and the allowlist was deleted rather
+than emptied** / `KNOWN_OWNED_BY_M4_3` is gone from both e2e specs / A named
+allowlist entry that is no longer needed is a hole in the gate with a comment
+attached to it, and the next person to widen a threshold will find the pattern.
+Both specs now assert `violations(page) === []` on the reader, the graph view
+(panel open and closed) and the stepper.
+
+`page-has-heading-one` on the stepper is the finding this gates most visibly, and
+it is worth recording *how* it was handled: it was found while the allowlist still
+existed, which is precisely when an allowlist is most likely to be widened to
+absorb a new audit. It was fixed instead — the step title is the view's `h1`,
+because the reader's H1 lives in the reader and a view that has no top-level
+heading announces its structure from the wrong starting point.

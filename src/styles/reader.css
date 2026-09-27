@@ -78,7 +78,7 @@
   }
 
   .app-search__kbd {
-    color: var(--text-subtle);
+    color: var(--text-muted);
     border: 1px solid var(--border-muted);
     border-radius: var(--radius-sm);
     padding: 0 var(--space-2xs);
@@ -208,7 +208,7 @@
     margin: 0 0 var(--space-xl);
   }
   .hero-stat dt {
-    color: var(--text-subtle);
+    color: var(--text-muted);
   }
   .hero-stat dd {
     margin: 0;
@@ -254,7 +254,7 @@
     justify-content: space-between;
   }
   .toc-head__label {
-    color: var(--text-subtle);
+    color: var(--text-muted);
   }
 
   .toc-close {
@@ -333,7 +333,7 @@
     background: transparent;
     border: 0;
     padding: var(--space-2xs) 0;
-    color: var(--text-subtle);
+    color: var(--text-muted);
     text-align: left;
     cursor: pointer;
     font-size: var(--text-code-sm-size);
@@ -361,7 +361,7 @@
     border-radius: var(--radius-base);
   }
   .toc-now-reading .t-label-caps {
-    color: var(--text-subtle);
+    color: var(--text-muted);
   }
   .toc-now-reading__title {
     color: var(--text-high);
@@ -474,12 +474,12 @@
   }
   /* §6.4: an unresolvable internal link is muted with a tooltip, not broken. */
   .inline-link--unresolved {
-    color: var(--text-subtle);
+    color: var(--text-muted);
     cursor: help;
-    border-bottom: 1px dotted var(--text-subtle);
+    border-bottom: 1px dotted var(--text-muted);
   }
   .inline-link--unresolved:hover {
-    border-bottom-color: var(--text-subtle);
+    border-bottom-color: var(--text-muted);
   }
 
   .reader-html,
@@ -557,7 +557,7 @@
     font-family: var(--font-mono);
     font-size: var(--text-code-sm-size);
     line-height: var(--text-code-lg-line);
-    color: var(--text-subtle);
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
 
@@ -649,7 +649,7 @@
     font-family: var(--font-mono);
     font-size: var(--text-code-sm-size);
     line-height: var(--text-code-lg-line);
-    color: var(--text-subtle);
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
 
@@ -856,7 +856,7 @@
     outline: none;
   }
   .palette-input::placeholder {
-    color: var(--text-subtle);
+    color: var(--text-muted);
   }
 
   .palette-header__esc {
@@ -1693,12 +1693,29 @@
   }
 }
 
-/* ==========================================================================
-   M3.5 — the workbench at each breakpoint (spec §5.3).
+/*
+   M3.5 — the workbench at each breakpoint (spec §5.3, refined at G4/R11a).
 
-   ≥1280   rail + canvas + 440px panel (the default rules above)
-   768–1279  the rail is the M1 drawer; canvas and panel split 50/50
-   <768    one pane, switched by the segmented control in the header
+   ≥1280     rail + canvas + a *reserved* 440px panel
+   768–1279  the rail is the M1 drawer; the panel becomes an OVERLAY
+   <768      one pane, switched by the segmented control; the panel is a sheet
+
+   The three zones of the ≥1280 workbench are grid *columns*, never conditional
+   wrappers. That is the whole of M3.5 trap (c): the inspector column is
+   reserved whether or not the panel is open, so opening and closing the panel
+   animates the panel and leaves the canvas at exactly the width it had. A
+   conditional column would reflow the grid, React Flow would re-measure, and
+   the reader's viewport would jump under the cursor.
+
+   Below 1280 the reserved column is the wrong trade, and R11a settled it: a
+   440px band sitting empty for most of the session is 37% of a 1024px viewport
+   spent on nothing, and at 768px the canvas is left with 328px — too narrow to
+   read a five-node graph. So below 1280 the panel stops being a column and
+   becomes an overlay: the canvas keeps the full width whether the panel is open
+   or closed, which *also* means opening the panel still does not move the
+   canvas. The reservation is kept at ≥1280 because that is the workbench
+   DESIGN.md specifies, and there the band reads as part of the instrument
+   rather than as a gap.
    ========================================================================== */
 
 /* 768–1279: canvas and panel share the width evenly; the rail is the drawer. */
@@ -1708,13 +1725,50 @@
   }
 
   .graph-workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* One column: the canvas takes the full width whether or not the panel is
+       open, which is the point of R11a. The panel is taken out of flow below. */
+    grid-template-columns: minmax(0, 1fr);
+    position: relative;
     border: 0;
     border-radius: 0;
   }
 
   .inspector {
-    width: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    /* Never more than 60% of the workbench, so the canvas stays readable behind
+       it — an overlay that covers the thing it describes is not an overlay. */
+    width: min(var(--inspector-width), 60%);
+    /* Over a canvas rather than beside it, so the panel needs its own edge. */
+    border-left: 1px solid var(--border-muted);
+    box-shadow: var(--elevation-2);
+    /* The slide now reads as a drawer coming in from the right edge, so the
+       direction differs from the desktop panel — see the keyframes. */
+    animation-name: panel-in-overlay;
+  }
+}
+
+@keyframes panel-in-overlay {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in-sheet {
+  from {
+    transform: translateY(var(--space-lg));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
@@ -1756,18 +1810,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* The panel is a full-width sheet below the canvas on mobile, where a 440px
-     column beside a 375px viewport would leave the canvas unusable. */
+  /* The panel is a full-width sheet on mobile, where a 440px column beside a
+     375px viewport would leave the canvas unusable (R11a). */
   .graph-stage {
     height: 60vh;
   }
 
   .inspector {
+    top: auto;
+    left: 0;
     width: auto;
     height: auto;
-    max-height: none;
+    max-height: 60vh;
     border-left: 0;
     border-top: 1px solid var(--border-muted);
+    box-shadow: var(--elevation-2);
+    animation-name: panel-in-sheet;
   }
 
   /* §7.7: the stepper runs vertically on mobile. */

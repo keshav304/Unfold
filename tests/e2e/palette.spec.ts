@@ -158,21 +158,19 @@ test.describe('the palette in a real browser', () => {
 
   test('the reader page introduces no new axe violations', async ({ page }) => {
     const console_ = watchConsole(page)
-    const found = (await violations(page)).map((entry) => entry.split(' ')[0])
-
-    // `color-contrast` is *known and owned elsewhere*: plan §9 assigns "AA on
-    // chips + muted text (the usual failures)" to M4.3, and fixing it means
-    // changing `--text-muted` / `--text-subtle` for the whole design system.
-    // Failing on it here would either block every milestone until M4.3 or
-    // invite loosening the threshold, and both are worse than naming it.
+    // Zero violations, not "fewer than before".
     //
-    // So the known audit is named and printed, and everything else is a hard
-    // failure. `landmark-unique` used to be in this list — two table scrollers
-    // both called "Table" — and M2 fixed it by naming each after its header
-    // row. When M4.3 lands, delete this line and the gate closes.
-    const KNOWN_OWNED_BY_M4_3 = ['color-contrast']
-    const unexpected = found.filter((id) => !KNOWN_OWNED_BY_M4_3.includes(id))
-    expect(unexpected, `open a11y debt on the reader: ${found.join(', ')}`).toEqual([])
+    // This gate used to name one audit and print it: `KNOWN_OWNED_BY_M4_3`
+    // carried `color-contrast`, because `--text-subtle` was failing AA on
+    // informational text. M4.3 ratified the fix (see DECISIONS.md) and migrated
+    // every informational use to `--text-muted`, which clears AA on all four
+    // surfaces. The named exception is deleted rather than commented out: an
+    // allowlist entry that is no longer needed is a hole in the gate, and a
+    // comment is not a reason to keep one.
+    //
+    // `landmark-unique` used to be in that list too — two table scrollers both
+    // called "Table" — and M2 fixed it by naming each after its header row.
+    expect(await violations(page)).toEqual([])
     console_.assertQuiet()
   })
 })

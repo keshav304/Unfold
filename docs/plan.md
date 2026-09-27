@@ -224,16 +224,25 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             is one layout change instead of two.
 - [ ] M4.3 A11y audit: §9 checklist, `:focus-visible` rings, AA on chips +
       muted text (the usual failures).
-      - [ ] **Apply the `--text-subtle` contract decided at G3** (see
+      - [x] **Apply the `--text-subtle` contract decided at G3** (see
             `DECISIONS.md`): `--text-subtle` becomes inactive/decorative only,
             and all nine informational uses move to `--text-muted`. The token
             *value* is unchanged, so this is a find-and-replace over the table
-            in that entry, not a design decision.
-      - [ ] Delete `KNOWN_OWNED_BY_M4_3` from `tests/e2e/palette.spec.ts`; the
-            axe gate goes back to zero violations.
-      - [ ] Add the `tokens.test.ts` guard: no rule may use `--text-subtle`
+            in that entry, not a design decision. **Applied at G4/R11b** — and
+            the visual result was *not* noticeably too strong, so no
+            intermediate token was minted.
+      - [x] Delete `KNOWN_OWNED_BY_M4_3` from `tests/e2e/palette.spec.ts`; the
+            axe gate goes back to zero violations. Also deleted from
+            `tests/e2e/graph.spec.ts`, so the graph and stepper views are gated
+            the same way. **Done at G4/R11b** — deleted rather than emptied,
+            because an unused allowlist entry is a hole in the gate.
+      - [x] Add the `tokens.test.ts` guard: no rule may use `--text-subtle`
             outside an explicit inactive/decorative allowlist. Lands with the
-            migration, not before it.
+            migration, not before it. **Done at G4/R11b** — a selector→reason
+            map, with "no dead entries" and "would actually catch one" tests,
+            scanning every stylesheet rather than only `reader.css`.
+      - [ ] Remaining §9 checklist items (focus-ring sweep, chip contrast at
+            every surface) are not yet done.
 - [ ] M4.4 Motion audit (§8): exactly 3 signature moments; reveals fire once;
       reduced-motion → full static fallback verified.
 - [ ] M4.5 Delight behind `features.delight` (§7.10); off under

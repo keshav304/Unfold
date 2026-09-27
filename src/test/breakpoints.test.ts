@@ -240,17 +240,26 @@ describe('M3.5a: ≥1280 the workbench is rail + canvas + a reserved 440px panel
   })
 })
 
-describe('M3.5b: 768–1279 the canvas and the panel split 50/50', () => {
+describe('M3.5b: 768–1279 the panel overlays the canvas (R11a)', () => {
   const query = mediaAll('max-width:1279px')
 
-  it('the split is two equal flexible columns', () => {
-    expect(declInAny(query, '.graph-workbench', 'grid-template-columns')).toBe(
-      'minmax(0, 1fr) minmax(0, 1fr)',
-    )
+  it('the workbench is a single column, so the canvas gets the full width', () => {
+    // R11a: a reserved 440px column below 1280 left the canvas 328px at 768 —
+    // too narrow to read a graph, and 37% of a 1024px viewport spent on an empty
+    // band. The panel stops being a column here.
+    expect(declInAny(query, '.graph-workbench', 'grid-template-columns')).toBe('minmax(0, 1fr)')
   })
 
-  it('the panel drops its fixed width, because half the viewport is not 440px', () => {
-    expect(declInAny(query, '.inspector', 'width')).toBe('auto')
+  it('the panel is taken out of flow, so opening it still does not move the canvas', () => {
+    // Trap (c) is preserved by the overlay rather than by the reservation: an
+    // absolutely positioned panel does not participate in the grid at all.
+    expect(declInAny(query, '.inspector', 'position')).toBe('absolute')
+    expect(declInAny(query, '.graph-workbench', 'position')).toBe('relative')
+  })
+
+  it('it overlays from the right edge and is capped so the canvas stays readable', () => {
+    expect(declInAny(query, '.inspector', 'right')).toBe('0')
+    expect(declInAny(query, '.inspector', 'width')).toBe('min(var(--inspector-width), 60%)')
   })
 
   it('the rail is still the M1 drawer here, not a workbench column', () => {
@@ -292,7 +301,10 @@ describe('M3.5c: <768 one pane, switched by the segmented control', () => {
   })
 
   it('the panel is a full-width sheet, not a 440px column beside 375px', () => {
+    // R11a: below 768 the overlay becomes a bottom sheet spanning the width.
     expect(declInAny(query, '.inspector', 'width')).toBe('auto')
+    expect(declInAny(query, '.inspector', 'left')).toBe('0')
+    expect(declInAny(query, '.inspector', 'border-left')).toBe('0')
   })
 
   it('the stepper runs vertically on mobile (§7.7)', () => {

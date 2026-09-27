@@ -10,7 +10,7 @@
  * a real browser.
  */
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import postcss, { type Rule } from 'postcss'
@@ -168,5 +168,99 @@ describe('tokens.css is the single source of visual truth', () => {
 
   it('honours reduced motion (§8)', () => {
     expect(css).toContain('prefers-reduced-motion: reduce')
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * M4.3 — the `--text-subtle` contract
+ *
+ * Ratified at G3 and applied here: the token stays, its value is unchanged, and
+ * what changes is *what may use it*. It is for text WCAG 1.4.3 exempts because
+ * it belongs to an inactive or purely decorative element, and for nothing else.
+ *
+ * It measures 2.56:1 on `--canvas`, 2.36:1 on `--surface-1`, 2.52:1 on
+ * `--code-surface` and 1.93:1 on `--surface-2`; AA needs 4.5:1 and every size in
+ * the scale is normal text, so the 3:1 large-text allowance is never available.
+ * `--text-muted` clears AA on all four with headroom.
+ *
+ * The migration it made necessary is in `reader.css`. This guard is what stops
+ * the contract from being advisory: `aria-hidden` is not an exemption (contrast
+ * applies to visible text whether or not it is in the accessibility tree, which
+ * is why the `⌘K` hint was flagged), so "it is decorative" has to be written down
+ * as a *selector* and defended, not asserted about a class of element.
+ * ------------------------------------------------------------------ */
+
+/**
+ * The complete allowlist of inactive/decorative uses.
+ *
+ * A selector, not a token: the decision is about the element, and an element
+ * that is a disabled control on Monday is not one on Tuesday. Adding an entry
+ * here is a reviewable diff with a reason attached in review — which is the
+ * point, and is why this is a literal list rather than a pattern match on
+ * `disabled` or `[aria-hidden]`.
+ */
+const TEXT_SUBTLE_ALLOWLIST: Record<string, string> = {
+  // An inactive control: WCAG 1.4.3 exempts text that "is part of an inactive
+  // user interface component". The stepper's Previous/Next buttons at the ends
+  // of the walkthrough are exactly that.
+  '.stepper-button:disabled': 'WCAG 1.4.3 inactive-component exemption; the button is genuinely disabled at the first and last step.',
+}
+
+function subtleUses(): { selector: string; prop: string; line: number }[] {
+  const found: { selector: string; prop: string; line: number }[] = []
+  // Every stylesheet, not just reader.css: a new file must not be a way round it.
+  for (const name of readdirSync(stylesDir)) {
+    if (!name.endsWith('.css') || name === 'tokens.css') continue
+    const ast = postcss.parse(readFileSync(resolve(stylesDir, name), 'utf8'), { from: name })
+    ast.walkRules((rule) => {
+      rule.walkDecls((decl) => {
+        if (!decl.value.includes('var(--text-subtle)')) return
+        found.push({
+          selector: rule.selector,
+          prop: decl.prop,
+          line: decl.source?.start?.line ?? 0,
+        })
+      })
+    })
+  }
+  return found
+}
+
+describe('M4.3 `--text-subtle` is only for inactive or decorative text', () => {
+  it('every use of it is on the allowlist, with a reason', () => {
+    const offenders = subtleUses().filter((use) => TEXT_SUBTLE_ALLOWLIST[use.selector] === undefined)
+    expect(
+      offenders,
+      offenders
+        .map((use) => `  ${use.selector} { ${use.prop} } (line ${use.line}) — informational text must use --text-muted`)
+        .join('\n'),
+    ).toEqual([])
+  })
+
+  it('every allowlist entry names why that element is exempt', () => {
+    // An entry with an empty reason is an entry nobody thought about.
+    for (const [selector, reason] of Object.entries(TEXT_SUBTLE_ALLOWLIST)) {
+      expect(reason.length, `${selector} needs a reason`).toBeGreaterThan(0)
+    }
+  })
+
+  it('the allowlist has no dead entries', () => {
+    // Otherwise a migrated rule leaves its name behind and the allowlist quietly
+    // stops describing anything.
+    const used = new Set(subtleUses().map((use) => use.selector))
+    expect(Object.keys(TEXT_SUBTLE_ALLOWLIST).filter((selector) => !used.has(selector))).toEqual([])
+  })
+
+  it('would actually catch one', () => {
+    // A guard that cannot fail is not a guard.
+    expect(TEXT_SUBTLE_ALLOWLIST['.hero-stat dt']).toBeUndefined()
+  })
+
+  it('the token still exists, with its §5.2 value unchanged', () => {
+    // The G3 decision was to *narrow the contract*, not to remove the tier. A
+    // refactor that quietly deleted the token would leave the design system one
+    // step shorter than DESIGN.md specifies.
+    expect(readTokens()).toContain('--text-subtle: #475569')
+    expect(readTokens()).toContain('--text-muted: #94a3b8')
   })
 })

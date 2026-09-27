@@ -40,20 +40,21 @@ async function violations(page: Page, include?: string): Promise<string[]> {
 }
 
 /**
- * The one allowlisted axe entry, named rather than hidden.
+ * Zero violations — not "fewer than before".
  *
- * `color-contrast` is the `--text-subtle` debt DECISIONS.md assigned to M4.3; the
- * rule says the token is for inactive/decorative use only and every informational
- * use moves to `--text-muted`. It is counted and printed here, and the line is
- * deleted by M4.3 at which point this gate is zero-violation. The M3 views must
- * not *add* to it.
+ * This gate used to carry one named exception, `KNOWN_OWNED_BY_M4_3` =
+ * `color-contrast`, because `--text-subtle` was failing AA on informational text.
+ * M4.3 ratified the fix (DECISIONS.md) and migrated every informational use to
+ * `--text-muted`, so the exception is deleted rather than commented out: an
+ * allowlist entry that is no longer needed is a hole in the gate.
+ *
+ * The M3 views had to earn that. `page-has-heading-one` on the stepper is the
+ * kind of finding an allowlist is most likely to be widened to absorb, and it was
+ * fixed instead — the step title is the view's `h1`.
  */
-const KNOWN_OWNED_BY_M4_3 = ['color-contrast']
-
-async function expectNoUnexpectedViolations(page: Page, scope: string): Promise<void> {
+async function expectNoViolations(page: Page, scope: string): Promise<void> {
   const found = await violations(page)
-  const unexpected = found.map((entry) => entry.split(' ')[0]).filter((id) => !KNOWN_OWNED_BY_M4_3.includes(id))
-  expect(unexpected, `open a11y debt on the ${scope}: ${found.join(', ')}`).toEqual([])
+  expect(found, `a11y violations on the ${scope}: ${found.join(', ')}`).toEqual([])
 }
 
 /** Open the graph view and wait for React Flow to have painted nodes. */
@@ -176,11 +177,43 @@ test.describe('the graph workbench in a real browser', () => {
   test('the graph view introduces no new axe violations, panel open or closed', async ({ page }) => {
     const console_ = watchConsole(page)
     await openGraph(page)
-    await expectNoUnexpectedViolations(page, 'graph view, panel closed')
+    await expectNoViolations(page, 'graph view, panel closed')
 
     await page.locator('.react-flow__node').first().click()
     await expect(page.locator('.inspector')).toBeVisible()
-    await expectNoUnexpectedViolations(page, 'graph view, panel open')
+    await expectNoViolations(page, 'graph view, panel open')
+    console_.assertQuiet()
+  })
+
+  test('768-1279: the panel overlays the canvas, which keeps its width either way', async ({ page }) => {
+    const console_ = watchConsole(page)
+    // R11a: the reserved 440px column is kept at >=1280 and dropped below it.
+    // Below 1280 it was 37% of a 1024px viewport spent on an empty band, and at
+    // 768px it left the canvas 328px — too narrow for a five-node graph.
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await openGraph(page)
+
+    // Closed: the canvas has the FULL width, which is the whole point.
+    const closed = await page.locator('.graph-canvas').boundingBox()
+    const workbench = await page.locator('.graph-workbench').boundingBox()
+    expect(Math.abs((closed?.width ?? 0) - (workbench?.width ?? 0))).toBeLessThanOrEqual(1)
+    await snapshot(page, '14-graph-tablet-panel-closed')
+
+    // Open: it overlays, and the canvas is still exactly as wide. Trap (c) is
+    // preserved by the overlay rather than by the reservation — an absolutely
+    // positioned panel does not participate in the grid at all.
+    await page.locator('.react-flow__node').first().click()
+    await expect(page.locator('.inspector')).toBeVisible()
+    const open = await page.locator('.graph-canvas').boundingBox()
+    expect(Math.abs((open?.width ?? 0) - (closed?.width ?? 0))).toBeLessThanOrEqual(1)
+
+    // And the overlay is capped, so it does not cover the thing it describes.
+    const panel = await page.locator('.inspector').boundingBox()
+    expect(panel!.width).toBeLessThanOrEqual(workbench!.width * 0.6 + 1)
+    // It sits over the right-hand edge, not beside the canvas.
+    expect(panel!.x + panel!.width).toBeGreaterThanOrEqual(workbench!.x + workbench!.width - 1)
+
+    await snapshot(page, '15-graph-tablet-panel-open')
     console_.assertQuiet()
   })
 
@@ -274,7 +307,7 @@ test.describe('the stepper in a real browser', () => {
     await expect(page.locator('.stepper')).toHaveAttribute('data-step', '2')
     expect((await activeElement(page)).class, 'focus left the stepper').toContain('step-dot')
 
-    await expectNoUnexpectedViolations(page, 'stepper view')
+    await expectNoViolations(page, 'stepper view')
     console_.assertQuiet()
   })
 
