@@ -1,0 +1,5 @@
+/* P0.3 — self-hosted variable subsets via @fontsource (font-display: swap
+ * declared by the packages). No remote font host is contacted at runtime. */
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
