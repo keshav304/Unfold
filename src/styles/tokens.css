@@ -36,7 +36,34 @@
   --text-high: #f8fafc; /* headlines, active code, focal metrics */
   --text-secondary: #cbd5e1; /* prose */
   --text-muted: #94a3b8; /* metadata, breadcrumbs */
-  --text-subtle: #475569; /* disabled, line numbers */
+  /*
+   * INACTIVE / DECORATIVE ONLY. Decided at G3, applied in M4.3.
+   *
+   * The value is the spec §5.2 canonical one and is not changing. What changed
+   * is the contract: this token is for text that WCAG 1.4.3 exempts because it
+   * is part of an inactive or purely decorative element, and for nothing else.
+   *
+   * Measured against the surfaces this app actually uses:
+   *
+   *     on --canvas 2.56:1   on --surface-1 2.36:1
+   *     on --code-surface 2.52:1   on --surface-2 1.93:1
+   *
+   * AA needs 4.5:1 for normal text, and every text size in the scale
+   * (`--text-code-sm` 11px, `--text-body-lg` 14px, `--text-label-caps` 10px) is
+   * normal text. So this token cannot be used for anything a reader is meant to
+   * read — including text that merely looks decorative, because contrast applies
+   * to visible text whether or not it is `aria-hidden`.
+   *
+   * `--text-muted` measures 7.58 / 6.96 / 7.45 / 5.71:1 on those same four
+   * surfaces, so it is the tier for every faint-but-informational use: line
+   * numbers, the ⌘K hint, TOC children, the placeholder.
+   *
+   * The ramp is therefore three legible steps (high → secondary → muted) plus
+   * this one reserved for inactive state. See `docs/DECISIONS.md` for why no
+   * intermediate token was minted, and `docs/plan.md` M4.3 for the migration
+   * and the guard that keeps this honest.
+   */
+  --text-subtle: #475569;
 
   /* ---------- Code container (DESIGN.md §Components) ---------- */
   --code-surface: #0a0f1d;

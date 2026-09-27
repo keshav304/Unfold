@@ -404,13 +404,71 @@ external-link branch too / The branch dropped it, so a file path inside
 external link silently stopped resolving. The internal-link branch passed it; the
 external branch simply did not.
 
-**`color-contrast` is a known a11y finding owned by M4.3, and the axe gate names
-it rather than hiding it** / `KNOWN_OWNED_BY_M4_3` in `tests/e2e/palette.spec.ts` /
-Plan §9 assigns "AA on chips + muted text (the usual failures)" to M4.3, and
-fixing it means changing `--text-muted` / `--text-subtle` design tokens for the
-whole system. The Playwright scan fails on *any other* audit and prints the known
-one, so the debt is visible and counted rather than absent. Lighthouse — the
-threshold the spec actually states — scores 96 and passes.
+**`--text-subtle` is INACTIVE/DECORATIVE ONLY; all nine current uses move to
+`--text-muted`, and no intermediate token is minted** / Decided at G3, applied in
+M4.3 / The value is the spec §5.2 canonical `#475569` and does not change; only
+the usage contract does.
+
+*Why the token, not component CSS.* The nine uses are not nine independent
+judgement calls — they are one misreading of what the token means, repeated.
+`tokens.css` said "disabled, line numbers" and every later use took "line numbers"
+as licence to reach for it for anything faint. A per-component fix would leave
+the same trap armed for the next contributor.
+
+*The measurements* (computed, not estimated, across the four surfaces the app
+uses): `--text-subtle` gives 2.56:1 on `--canvas`, 2.36:1 on `--surface-1`,
+2.52:1 on `--code-surface` and 1.93:1 on `--surface-2`. AA requires 4.5:1, and
+every size in the scale — `--text-code-sm` 11px, `--text-body-lg` 14px,
+`--text-label-caps` 10px — is normal text, so the 3:1 large-text allowance is
+never available. `--text-muted` gives 7.58 / 6.96 / 7.45 / 5.71:1 on the same
+four, clearing AA everywhere with headroom, including on the popover surface.
+There is therefore **no compliance argument for an intermediate value**, and
+`aria-hidden` is not an exemption: contrast applies to visible text whether or not
+it is in the accessibility tree, which is why the `⌘K` hint was flagged.
+
+*Why not mint `--text-faint` (~#7d8ba1).* The only reason to would be to keep
+four legible steps, and the one place the lost step mattered is the TOC, where
+H2 `--text-muted` sat one step above H3 `--text-subtle`. That hierarchy never
+depended on colour: H2 is 16px Inter, H3 is 11px mono with an 8px indent and a
+tick, and each has its own active treatment (H2 → `--text-high`, H3 →
+`--primary`). Collapsing the colour step costs nothing a reader can perceive and
+buys a five-name scale becoming a four-name one, with a three-step legible ramp
+that is easier to apply correctly than a four-step one. A new name plus a new
+value chosen by eye, for no compliance gain, is the more expensive option.
+
+*The migration, so M4.3 is mechanical* — every use of `--text-subtle` in
+`src/styles/reader.css`, all of which are informational:
+
+| Site | What it is |
+|---|---|
+| `.app-search__kbd` | the `⌘K` hint in the header |
+| `.hero-stat dt` | the READ / SECTIONS / WORDS stat labels |
+| `.toc-head__label` | the rail's `CONTENTS` label |
+| `.toc-child` | H3 entries in the rail — real navigation |
+| `.toc-now-reading .t-label-caps` | the `NOW READING` label |
+| `.inline-link--unresolved` | §6.4's "muted" unresolvable internal link |
+| `.code-line-number` | code line numbers |
+| `.terminal-line-number` | terminal line numbers |
+| `.palette-input::placeholder` | the palette's search placeholder |
+
+`.inline-link--unresolved` is the one that makes the case: §6.4 says an
+unresolvable link renders as *muted* text, and the code was using a token
+darker than the one the spec's own word denotes.
+
+*Definition of done for M4.3, so this cannot regress:* the migration, **plus**
+deleting `KNOWN_OWNED_BY_M4_3` from `tests/e2e/palette.spec.ts` so the axe gate
+returns to zero violations, **plus** a `tokens.test.ts` guard that fails if
+`--text-subtle` appears in any stylesheet rule outside an explicit
+inactive/decorative allowlist. The guard is what makes the decision executable
+rather than advisory; it ships with the migration because shipping it first would
+simply fail.
+
+**The axe gate names `color-contrast` rather than hiding it, until the fix lands**
+/ `KNOWN_OWNED_BY_M4_3` in `tests/e2e/palette.spec.ts` / The Playwright scan
+fails on *any* other audit and prints the known one, so the debt is counted and
+visible instead of absent. Lighthouse — the threshold the spec actually states —
+scores 96 and passes, so the G2 item is retired either way. The line is deleted by
+M4.3, at which point the gate is zero-violation.
 
 **`landmark-unique` on table scrollers was fixed here, not deferred** / Each
 `role="region"` is named after its own header row / Two regions both called

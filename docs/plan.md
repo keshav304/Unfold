@@ -208,16 +208,44 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
 - [ ] M4.1 Executive/Reference mode (§7.8): per-section rule, "show all"
       override, transition, localStorage persist.
 - [ ] M4.2 Mobile pass: all views at 375px; tabs; drawer; touch targets.
+      - [ ] **Header title collapses to a 1px stub at 375px** (found at G3, in
+            `artifacts/e2e/02-kitchen-sink-mobile.png`): the search button and
+            the view switcher consume the row. Fix it *here*, not in M3 — M3 adds
+            the segmented tabs to this same header region, and batching the two
+            is one layout change instead of two.
 - [ ] M4.3 A11y audit: §9 checklist, `:focus-visible` rings, AA on chips +
       muted text (the usual failures).
+      - [ ] **Apply the `--text-subtle` contract decided at G3** (see
+            `DECISIONS.md`): `--text-subtle` becomes inactive/decorative only,
+            and all nine informational uses move to `--text-muted`. The token
+            *value* is unchanged, so this is a find-and-replace over the table
+            in that entry, not a design decision.
+      - [ ] Delete `KNOWN_OWNED_BY_M4_3` from `tests/e2e/palette.spec.ts`; the
+            axe gate goes back to zero violations.
+      - [ ] Add the `tokens.test.ts` guard: no rule may use `--text-subtle`
+            outside an explicit inactive/decorative allowlist. Lands with the
+            migration, not before it.
 - [ ] M4.4 Motion audit (§8): exactly 3 signature moments; reveals fire once;
       reduced-motion → full static fallback verified.
 - [ ] M4.5 Delight behind `features.delight` (§7.10); off under
       reduced-motion.
 - [ ] M4.6 Perf pass (§10): lazy chunks verified in build output; ≤200KB
       initial gz; Lighthouse re-run.
+      - [ ] **TBT 520ms** (G3 CI baseline) and LCP 4.3s. Likely initial render
+            plus lazy-chunk resolution on `kitchen-sink`, which is the
+            fixture the audit loads. Work the LCP waterfall fix A6 deferred here.
+      - [ ] **Compare CI-to-CI.** Headless Lighthouse is not DevTools and the
+            numbers are not comparable across harnesses. The G3 CI run —
+            perf 62, a11y 96, bp 100, seo 82; FCP 3.4s, LCP 4.3s, TBT 520ms,
+            CLS 0.022, SI 4.8s — is the baseline, and `artifacts/lighthouse.json`
+            is regenerated every CI run, so the comparison is mechanical.
+      - [ ] Perf assertions still do not exist and are not added before the
+            waterfall work; until then the audit records, per A6.
 - [ ] M4.7 Deploy: static `dist/` to Netlify/GH Pages; `base` config if
       subpath; final stranger test against the deployed URL.
+- [ ] **Optional:** a lighter render-test fixture. The unit suite is 51s, mostly
+      full-`kitchen-sink` renders including the lazy mermaid chunk. Not urgent —
+      CI is 2m16s — but it is the lever if the suite keeps growing.
 
 **Gate G5 = release.** Full §11 suite green on CI; §13 M4 criteria checked;
 README with: what it is, config reference (§1.4), authoring conventions
