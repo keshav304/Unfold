@@ -44,18 +44,18 @@ Total: ~11–14 sessions. Cut lines per milestone in §8.
 
 **Goal:** everything M0 consumes exists before any app code.
 
-- [ ] P0.1 Init Vite + React 18 + TS strict + Tailwind; Vitest wired; CI
+- [x] P0.1 Init Vite + React 18 + TS strict + Tailwind; Vitest wired; CI
       script (`typecheck → vitest → build`) running green on an empty app.
-- [ ] P0.2 Extract `src/styles/tokens.css` from DESIGN.md + §5.2 table.
+- [x] P0.2 Extract `src/styles/tokens.css` from DESIGN.md + §5.2 table.
       Include elevation shadows, `--gradient`, grid-line color. Confirm zero
       hex values anywhere else (grep check later).
-- [ ] P0.3 Self-host fonts (Geist, Inter, JetBrains Mono, subsets,
+- [x] P0.3 Self-host fonts (Geist, Inter, JetBrains Mono, subsets,
       `font-display: swap`) + `tnum` utility.
-- [ ] P0.4 Author the five fixtures in `testdocs/` per §11 table. `kitchen-sink.md`
+- [x] P0.4 Author the five fixtures in `testdocs/` per §11 table. `kitchen-sink.md`
       must include: frontmatter, tables, tagged code, ASCII diagram, mermaid,
       loop, **explicit graph block, steps block**, glossary with an explicit
       `Aliases:` line, entity paths, duplicate headings.
-- [ ] P0.5 Author `crosslinked.md`: NO graph block, exactly 3 internal
+- [x] P0.5 Author `crosslinked.md`: NO graph block, exactly 3 internal
       cross-links across exactly 3 H2s (boundary fixture).
 - [ ] P0.6 Prepare the demo doc (you, not the agent): optionally add
       ` ```graph ` / ` ```steps ` blocks to `ARCHITECTURE.md` — it's an authoring
@@ -68,24 +68,24 @@ swatch page correctly; CI green.
 
 **Goal:** `md file → Doc object` as a pure, tested function (§6.2–6.3). No UI.
 
-- [ ] M0.1 Loader + config: `fetch(docPath)` with 404/`file://` fallback path
+- [x] M0.1 Loader + config: `fetch(docPath)` with 404/`file://` fallback path
       stubbed; `unfold.config.json` parser (§1.4, all fields optional).
-- [ ] M0.2 Frontmatter + mdast parse → raw AST (§6.2).
-- [ ] M0.3 Section splitter (H2 top-level, H3 nested) + block classifier,
+- [x] M0.2 Frontmatter + mdast parse → raw AST (§6.2).
+- [x] M0.3 Section splitter (H2 top-level, H3 nested) + block classifier,
       including ASCII `terminal` detection (§6.9) and `loop` parsing.
-- [ ] M0.4 **GitHub-parity slugs** (§6.4) + duplicate `-1/-2` suffixing +
+- [x] M0.4 **GitHub-parity slugs** (§6.4) + duplicate `-1/-2` suffixing +
       test vectors. This is the #1 source of broken anchors — test it to death.
-- [ ] M0.5 Entity extraction (§6.5): file paths, `path::symbol`, test ids,
+- [x] M0.5 Entity extraction (§6.5): file paths, `path::symbol`, test ids,
       glossary terms. No scanning inside code blocks. Config-extensible list.
-- [ ] M0.6 Glossary assembly (§6.6): candidate headings, merge, explicit-only
+- [x] M0.6 Glossary assembly (§6.6): candidate headings, merge, explicit-only
       aliases.
-- [ ] M0.7 Graph + steps DSL parsers (§6.7–6.8) with graceful failure →
+- [x] M0.7 Graph + steps DSL parsers (§6.7–6.8) with graceful failure →
       `code` block.
-- [ ] M0.8 Capability detection (§1.1) + derived-graph thresholds (§6.7):
+- [x] M0.8 Capability detection (§1.1) + derived-graph thresholds (§6.7):
       constants `DERIVED_GRAPH_MIN_LINKS/SECTIONS = 3` in one constants file.
-- [ ] M0.9 Indexes (§6.6): minisearch build, backlinks, per-section text with
+- [x] M0.9 Indexes (§6.6): minisearch build, backlinks, per-section text with
       snippet windows.
-- [ ] M0.10 Tests §11.1–11.7 (golden snapshots per fixture, slug vectors,
+- [x] M0.10 Tests §11.1–11.7 (golden snapshots per fixture, slug vectors,
       capability matrix, threshold boundaries, DSL degradation, glossary,
       extraction). All green.
 
