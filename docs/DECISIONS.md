@@ -475,3 +475,124 @@ M4.3, at which point the gate is zero-violation.
 "Table" is a real defect (a screen-reader user cannot tell them apart) and the
 fix is three lines and derived from the document. It was the other M4.3-adjacent
 finding the axe scan surfaced, and unlike contrast it needed no token change.
+
+---
+
+## M3 — graph, stepper, workbench
+
+**The stepper's per-step hash is `#/stepper/<n>`, 1-based** / `#/stepper` and
+`#/stepper/3` / §7.7 requires the stepper to be "deep-linkable per step" and
+says nothing about the format. A second segment after the view is the only shape
+that leaves `#<slug>` (§7.1) and `#/graph` untouched, and 1-based because the
+steps' own numbering is 1-based (§6.8) — a reader who sees "Step 3" types 3. A
+`0` or a non-number is not a step: `/stepper/abc` degrades to the reader like any
+unknown hash rather than being read as step 1, which would show the wrong step
+for a bad link. A number past the end is **clamped** to the last step rather than
+rejected, because a stale deep link is a link that has outlived its document and
+the nearest real step is a better answer than an error (§1.3).
+
+**A graph node's section is its id, matched against the document's slugs** /
+Case-insensitive, exact; no fuzzy matching / §7.6 says the panel shows "section
+title, first prose block, file chips" and "Open section" goes to the reader "at
+that slug" — but the two modes answer differently, and pretending otherwise
+would be the fiction §1.1 forbids. A **derived** map's node ids *are* the H2
+slugs the pipeline derived them from, so the mapping is total. An **explicit**
+graph's ids are whatever the author typed (`browser`, `api`, `db`), and §6.7 has
+no syntax for pointing a node at a section, so it resolves only when the author
+used a slug. A node that resolves to nothing keeps its panel with the graph's own
+label and subtitle, its "Open section" **disabled rather than hidden**, and a
+dev-mode warning naming the ids. Hiding the button would leave a panel with no
+way onward and no explanation; fuzzy matching (`runtime` → "Runtime shape") would
+present a guess as a link.
+
+**The graph layout is a view concern and lives outside the pipeline** / Layered
+left-to-right by longest path, in `src/app/graph/layout.ts` / The §6.7 DSL
+carries no coordinates, so *something* has to place the nodes, and the pipeline's
+job ended when it decided the graph exists and what is in it. M3.3's rule that
+the view consumes `doc.graph` and recomputes nothing is about the *derivation* —
+thresholds, linksTo, H3→parent-H2. Placement is presentation, and keeping it in
+the pipeline would have meant putting a canvas geometry in a `Doc` that is
+supposed to be a function of the markdown alone. It is a pure function, so it is
+tested without a browser.
+
+**Cyclic graphs are broken before layering, not merely survived** / Back edges
+are found by an explicit-stack DFS and removed; the longest path runs on the
+remaining DAG / §6.7's grammar permits cycles and the kitchen-sink fixture has
+one (`planner -.-> shell` closes a four-node loop). A layered layout needs a
+partial order and a cyclic graph has none. The first version used an on-stack
+guard, which made the walk terminate — and put every node of a cycle in the same
+column, so the loop rendered as a vertical stack with the tracks looping around
+each box. The termination test was green; the screenshot was not. Removing the
+back edges makes the chain the map and the dashed edge the return curve it is,
+and the test now asserts the *shape* (columns 0,1,2,3) rather than only that the
+call returns.
+
+**The inspector column is reserved at every width** / The panel animates inside
+its column; the grid template never changes / M3.5's trap (c). A conditional
+column would reflow the grid when the panel opened, React Flow would re-measure,
+and the reader's viewport would jump under the cursor. The cost is a visible
+440px band when nothing is selected at ≥1280 — accepted, because the alternative
+is a canvas that moves every time a reader clicks a node, and the band is empty
+canvas rather than a broken one. At 768–1279 the split is the 50/50 §5.3
+specifies, and the same argument applies.
+
+**The `<768px` control is a button group with `aria-pressed`, not a `tablist`** /
+Each button navigates to a view, and `<main>` keeps its landmark / §5.3 calls
+these "segmented tabs", and they look like tabs. A real tab must own a
+`tabpanel`, and the element being switched is `<main>` — giving that a
+`tabpanel` role strips the `main` landmark §9 requires, and axe flags the
+mismatch. So the label was taken as a description of the *shape*, not of the
+semantics: two buttons that show one region, neither of which navigates… except
+that they do, which is the other half of this decision. **Each button navigates**
+(`goTo('reader')` / `goTo('graph')`). An earlier version held a `mobilePane` in
+component state beside the route, on the reasoning that a pane switch is
+presentation; the Playwright run found the Docs button setting the pane while the
+reader was never rendered. Two sources of truth for one fact, and the route won.
+The pane *is* a different view, so it gets a route, and the back button and the
+address bar now agree with the screen.
+
+**The header's view switcher is hidden below 768px** / The segmented control is
+the navigation there / §5.3 gives the narrow layout its own navigation, so the
+switcher was a second control doing the same job — and keeping both pushed the
+header past the viewport ("READER / G…" cut off at 375px in the M3 screenshot).
+This is part of *defining* the segmented control rather than the M4.2 chrome
+pass, which owns the title stubbing and is untouched.
+
+**The stepper is a `tablist` of progress dots over one `tabpanel`** / Chosen
+over a plain button group / The dots *are* the steps and the body *is* the panel,
+which is the relationship `tablist`/`tab`/`tabpanel` already names, and it gives
+§7.7's arrow-key behaviour without a bespoke key handler. Roving tabindex (one
+Tab stop, arrows within) is what a screen-reader user expects from a tablist.
+Focus then has to follow the control the reader is using: arrows *on a dot* keep
+focus on the dots, while ←/→ anywhere else move the panel into focus, because
+that is where the new step is being read. The Playwright walk found the first
+version stealing focus to the panel in both cases.
+
+**The step title is the view's `h1`** / Not an `h2` / The stepper view has no
+document H1 of its own — the reader's H1 lives in the reader — and axe is right
+that a page with no top-level heading announces its structure from the wrong
+starting point. Found by the axe gate, not by reading the code.
+
+**Pipeline warnings echo only in development builds** / `echoToConsole` defaults
+to `import.meta.env.DEV`, and `useDocument` restores that default rather than
+forcing it on / §1.3 asks for a "development-mode warning". A production build
+that prints one is not being helpful, it is violating the spec — and it fails the
+e2e console-noise gate, which is how M3's own graph warning was caught shipping.
+`useDocument` had been setting the echo back to `true` after parsing, which
+forced it on for every *later* warning including the view layer's.
+
+**A `definition` node produces no block** / `classifyNode` returns `null` for
+it / mdast lifts reference definitions onto the root, but the section splitter
+still hands them to the classifier, and the default branch turned each into an
+`html` block with an empty value. The reader therefore rendered one empty `<pre>`
+per reference link: a document with three reference links gained three blank
+boxes. Found by the M3.0a fixture that exists to prove reference links work.
+§1.3 applied correctly is "absent, not rendered as a gap" — and the definitions
+themselves are still collected onto the `Doc`, so the links they resolve keep
+working.
+
+**jsdom keeps one `window` per test file, so tests that navigate reset the hash
+in `beforeEach`** / The App seeds its route from `location.hash` / A test that
+writes a hash silently decides the starting view of every test after it, and the
+failure then reads as a mystery several cases away from the cause. This cost two
+M3 debugging detours before it was written down.

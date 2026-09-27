@@ -184,19 +184,28 @@ popovers open via keyboard focus; `minimal.md` renders zero chips.
 
 **Goal:** the SKIM showpieces (§7.6–7.7) with both graph modes proven.
 
-- [ ] M3.1 Lazy React Flow chunk; canvas on `--grid-line`; metro node styling
+- [x] M3.1 Lazy React Flow chunk; canvas on `--grid-line`; metro node styling
       (§7.6: shell/stroke/active gradient wash; edge dash-glow).
-- [ ] M3.2 Explicit graph rendering + `Architecture` labeling.
-- [ ] M3.3 Derived `Document map` from precomputed links + `Auto-generated
+- [x] M3.2 Explicit graph rendering + `Architecture` labeling.
+- [x] M3.3 Derived `Document map` from precomputed links + `Auto-generated
       map` chip; below-threshold → capability off.
-- [ ] M3.4 Inspector panel (440px): slide-in (signature motion #2), first
+- [x] M3.4 Inspector panel (440px): slide-in (signature motion #2), first
       prose block, file chips, "Open section" → reader.
-- [ ] M3.5 Workbench layout per §5.3: ≥1280 3-zone; 768–1279 50/50; <768
+- [x] M3.5 Workbench layout per §5.3: ≥1280 3-zone; 768–1279 50/50; <768
       segmented tabs (Docs / Visual Graph — no Metrics tab).
-- [ ] M3.6 Stepper view (§7.7): horizontal/vertical, ←/→, progress dots,
+- [x] M3.6 Stepper view (§7.7): horizontal/vertical, ←/→, progress dots,
       deep-link per step, `@slug` source links.
-- [ ] M3.7 Graph a11y: focusable labeled nodes, Enter/Esc.
-- [ ] M3.8 Threshold boundary tests (§11.4) wired to the real UI states.
+- [x] M3.7 Graph a11y: focusable labeled nodes, Enter/Esc.
+- [x] M3.8 Threshold boundary tests (§11.4) wired to the real UI states.
+  - [x] `test/breakpoints.test.ts` extended with the workbench rules. Its
+        `media()` helper returned the *last* matching block, so the second
+        `@media (max-width: 1279px)` M3 added made the reader's own rules
+        invisible to the existing tests. It now unions every matching block.
+  - [x] Screenshots are part of the M3 contract: the cyclic graph that
+        `graph-layout.test.ts` reported as *terminating correctly* rendered as
+        a vertical stack, and only `artifacts/e2e/08-*.png` showed it. The
+        cycle test now asserts the shape (columns 0,1,2,3), not just that the
+        call returns.
 
 **Gate G4:** boundary demo (2 links off / 3 on, explicit wins); keyboard walk
 of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
