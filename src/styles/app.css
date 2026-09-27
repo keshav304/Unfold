@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base canvas. Tokens only — no literals here (hard rule: colors live in tokens.css). */
+html,
+body {
+  background: var(--canvas);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Canvas grid texture, 24px pitch (spec §7.2). */
+.grid-canvas {
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-pitch) var(--grid-pitch);
+}
