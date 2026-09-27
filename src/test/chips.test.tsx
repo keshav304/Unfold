@@ -394,6 +394,48 @@ describe('§7.5 a popover shows only what the document supports', () => {
   })
 })
 
+describe('a reference link keeps its text and its href (found by the stranger round)', () => {
+  it('[label][ref] renders as a link, not as nothing', () => {
+    // The stranger round found this: a `linkReference` has no `value`, so it
+    // fell through to the default branch and the author's text vanished.
+    const { doc } = parseMarkdown(
+      ['See [`src/a.ts`][ref] for detail.', '', '[ref]: https://example.com/a'].join('\n'),
+    )
+    const block = doc.intro.find((entry) => entry.kind === 'prose')
+    expect(block?.kind).toBe('prose')
+    const { container } = render(
+      <BlockView
+        block={block as Block}
+        context={{
+          slugs: new Set<string>(),
+          entities: true,
+          fileExtensions: DEFAULT_FILE_EXTENSIONS,
+          ...(doc.linkDefinitions === undefined ? {} : { linkDefinitions: doc.linkDefinitions }),
+        }}
+      />,
+    )
+    const link = container.querySelector('a')
+    expect(link?.getAttribute('href')).toBe('https://example.com/a')
+    // And the text survived — including the file chip inside the label.
+    expect(link?.textContent).toContain('src/a.ts')
+    expect(container.querySelector('.entity-chip')?.getAttribute('data-file')).toBe('src/a.ts')
+  })
+
+  it('an unresolved reference keeps its label as plain text', () => {
+    const { doc } = parseMarkdown('See [the docs][missing] for detail.')
+    const block = doc.intro.find((entry) => entry.kind === 'prose')
+    const { container } = render(
+      <BlockView
+        block={block as Block}
+        context={{ slugs: new Set<string>(), entities: true, fileExtensions: DEFAULT_FILE_EXTENSIONS }}
+      />,
+    )
+    // Dropping the words is never the answer (§1.3: degrade, never blank).
+    expect(container.textContent).toContain('the docs')
+    expect(container.querySelector('a')).toBeNull()
+  })
+})
+
 describe('§1.1 a document with no entities renders no chips at all', () => {
   it('minimal has none', async () => {
     const { container } = await renderFixture('minimal')

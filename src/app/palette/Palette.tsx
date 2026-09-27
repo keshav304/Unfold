@@ -14,7 +14,7 @@
  *     mode do not exist yet; M3 and M4.1 add them when they are real.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command } from 'cmdk'
 import type { Doc } from '../../pipeline/types'
 import {
@@ -94,6 +94,7 @@ export function Palette({ doc, open, onOpenChange, onNavigate }: PaletteProps): 
   const index = useSearchIndex(doc)
   const groups = useMemo(() => paletteGroups(doc), [doc])
   const [query, setQuery] = useState('')
+  const listRef = useRef<HTMLDivElement>(null)
 
   const hits = useMemo(() => index.search(query), [index, query])
 
@@ -101,6 +102,56 @@ export function Palette({ doc, open, onOpenChange, onNavigate }: PaletteProps): 
   useEffect(() => {
     if (open) setQuery('')
   }, [open])
+
+  /**
+   * Repair cmdk's list DOM so the combobox is actually a combobox.
+   *
+   * `Command.List` renders `role="listbox"` and `Command.Item` renders
+   * `role="option"`, but cmdk puts three wrapper `div`s between them: a sizing
+   * wrapper (`cmdk-list-sizer`, which it measures to set `--cmdk-list-height`),
+   * a per-group wrapper, and each group's heading.
+   *
+   * `aria-required-children` requires a listbox's *direct* children to be
+   * `option` or `group`, so an un-roled wrapper in between is a **critical**
+   * violation: axe reports it, and a screen reader announces a listbox that
+   * appears to hold nothing. `role="presentation"` does not help on the direct
+   * child — axe rejects a presentation child of a listbox just the same.
+   *
+   * So the sizing wrapper becomes the listbox's one `group`, the per-group
+   * wrappers become `presentation` (their children hoist into the sizing
+   * group), and the heading does too. cmdk's own `cmdk-group-items` div is
+   * already `role="group"`, so the group's accessible name moves there, where a
+   * `group` is allowed to carry one.
+   *
+   * The result is the textbook shape:
+   *
+   *     listbox > group > [group > option…]
+   *
+   * Only attributes are touched. Restructuring the nodes themselves fights
+   * React: the rows are children of the sizing wrapper, so removing it takes
+   * the list with it, and React throws on the next render.
+   *
+   * cmdk renders these nodes itself and exposes no prop for any of it, so the
+   * repair happens after mount. A jsdom test could assert the attributes; only
+   * the Playwright axe scan can prove the consequence.
+   */
+  useEffect(() => {
+    if (!open) return
+    const list = listRef.current
+    if (list === null) return
+    list.querySelector('[cmdk-list-sizer]')?.setAttribute('role', 'group')
+    for (const group of list.querySelectorAll('[cmdk-group]')) {
+      const items = group.querySelector('[cmdk-group-items]')
+      // A `group` may carry a name; a presentation wrapper may not, and an
+      // `aria-label` on a generic element is itself a violation.
+      if (items !== null && group.getAttribute('aria-label') !== null) {
+        items.setAttribute('aria-label', group.getAttribute('aria-label') as string)
+        group.removeAttribute('aria-label')
+      }
+      group.setAttribute('role', 'presentation')
+      group.querySelector('[cmdk-group-heading]')?.setAttribute('role', 'presentation')
+    }
+  }, [open, query])
 
   // §7.4: a result navigates — scroll, flash and hash — and the palette closes.
   //
@@ -169,7 +220,7 @@ export function Palette({ doc, open, onOpenChange, onNavigate }: PaletteProps): 
           </span>
         </div>
 
-        <Command.List className="palette-list" aria-label={LIST_LABEL}>
+        <Command.List className="palette-list" ref={listRef} aria-label={LIST_LABEL}>
           <Command.Empty className="palette-empty t-body-md">No matches in this document.</Command.Empty>
           {groupHits(hits, groups).map(([group, rows]) => (
             <Command.Group

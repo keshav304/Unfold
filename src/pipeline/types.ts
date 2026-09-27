@@ -123,9 +123,26 @@ export type DocIndexes = {
   filePaths: string[]
 }
 
+/**
+ * A link reference definition, `[label]: url "title"`.
+ *
+ * Kept on the `Doc` rather than resolved away at classify time: a
+ * `linkReference` node carries only the label and the identifier, so the href
+ * lives in the root's definition list. Without these the renderer has no URL to
+ * put on the link — and a reference link rendered as nothing at all is silent
+ * content loss.
+ */
+export type LinkDefinition = { url: string; title?: string }
+
 export type Doc = {
   title: string
   description?: string
+  /**
+   * Identifier → definition, from the document's own reference definitions.
+   *
+   * Absent for a document that declares none, which is the common case.
+   */
+  linkDefinitions?: Record<string, LinkDefinition>
   /** Where the title came from — spec §7.2 fallback chain, minus the UI. */
   titleSource: 'frontmatter' | 'h1' | 'filename'
   intro: Block[]

@@ -111,6 +111,9 @@ export function Reader({
       titles,
       descriptions,
       fileExtensions,
+      // Only carried when the document declares any; `exactOptionalPropertyTypes`
+      // will not accept an explicit `undefined` here.
+      ...(doc.linkDefinitions === undefined ? {} : { linkDefinitions: doc.linkDefinitions }),
     }
   }, [doc, slugs, onNavigate, descriptions, fileExtensions])
 

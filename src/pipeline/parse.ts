@@ -114,6 +114,21 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
     root = { type: 'root', children: [] }
   }
 
+  /*
+   * Link reference definitions (`[label]: url`). mdast keeps them on the root,
+   * out of the node tree, so they are collected here and handed to the renderer
+   * alongside the document. A `linkReference` node has no URL of its own, and a
+   * link with no URL and no lookup renders as an empty string — the reader would
+   * silently drop the author's text.
+   */
+  const linkDefinitions: Record<string, { url: string; title?: string }> = {}
+  for (const node of root.children) {
+    if (node.type !== 'definition') continue
+    const definition: { url: string; title?: string } = { url: node.url }
+    if (typeof node.title === 'string' && node.title !== '') definition.title = node.title
+    linkDefinitions[(node.identifier ?? '').toLowerCase()] = definition
+  }
+
   const split = splitSections(root.children as RootContent[], new Slugger())
   const sections = split.sections
   const flat = flattenSections(sections)
@@ -274,6 +289,7 @@ export function parseDocument(source: string, options: ParseOptions = {}): Doc {
     titleSource,
     intro: split.intro,
     sections,
+    ...(Object.keys(linkDefinitions).length === 0 ? {} : { linkDefinitions }),
     capabilities,
     stats: {
       words: countWords([introText, ...flat.map((section) => section.text)].join(' ')),

@@ -16,8 +16,12 @@
 
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import { extname, join, normalize, resolve, sep } from 'node:path'
-import { PREVIEW_PORT } from '../../playwright.config'
+import type { Page } from '@playwright/test'
+import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** The port the test host binds. Fixed, so a stray server is obvious. */
+export const PREVIEW_PORT = 4183
 
 const MIME: Record<string, string> = {
   '.html': 'text/html',
@@ -30,15 +34,33 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
 }
 
-/** Which document the served config advertises; swapped per scenario. */
+/**
+ * Which document the served config advertises.
+ *
+ * This is server state, and it is set **over HTTP** rather than by importing a
+ * setter. Playwright loads `global-setup.ts` and the spec files through
+ * *different module registries*, so a module-level variable set by a test is a
+ * different variable from the one the running server reads — the scenario then
+ * silently serves the default document and passes or fails for the wrong
+ * reason. A request crosses that boundary explicitly.
+ */
 let servedDocPath = '/testdocs/kitchen-sink.md'
 
-export function setServedDocPath(path: string): void {
-  servedDocPath = path
+/** The control endpoint a scenario uses to choose its document. */
+export const SET_DOC_PATH = '/__set-doc-path'
+
+/** Point the served config at a document, from inside a test. */
+export async function useDocument(page: Page, docPath: string): Promise<void> {
+  const response = await page.request.get(`${SET_DOC_PATH}?docPath=${encodeURIComponent(docPath)}`)
+  if (!response.ok()) throw new Error(`the test host refused to set docPath: ${response.status()}`)
+  servedDocPath = docPath
 }
 
+// `import.meta.dirname` needs Node 20; this project is on Node 18.
+const here = dirname(fileURLToPath(import.meta.url))
+
 export function repoRoot(): string {
-  return resolve(import.meta.dirname, '../..')
+  return resolve(here, '../..')
 }
 
 export function distDir(): string {
@@ -53,12 +75,30 @@ export const STRANGER_PREFIX = '/node_modules/'
 export async function startServer(port = PREVIEW_PORT): Promise<Server> {
   const root = distDir()
   const server = createServer((req, res) => {
-    const requested = decodeURIComponent((req.url ?? '/').split('?')[0] as string)
+    const url = req.url ?? '/'
+    const requested = decodeURIComponent(url.split('?')[0] as string)
+
+    // The test control plane. Deliberately not a file path: it is a switch for
+    // the harness, not content.
+    if (requested === SET_DOC_PATH) {
+      const wanted = new URL(url, 'http://localhost').searchParams.get('docPath')
+      if (wanted === null) {
+        res.writeHead(400).end('docPath is required')
+        return
+      }
+      servedDocPath = wanted
+      res.writeHead(200, { 'content-type': 'text/plain' }).end(wanted)
+      return
+    }
 
     // The config the app fetches at boot, resolved per scenario so the real
     // fetch path is exercised end to end.
+    //
+    // `no-store` is not decoration: without it Chromium serves scenario 2's
+    // document to scenario 3 from its HTTP cache, and the whole file passes or
+    // fails for reasons that have nothing to do with the app.
     if (requested === '/unfold.config.json') {
-      res.writeHead(200, { 'content-type': 'application/json' })
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
       res.end(JSON.stringify({ docPath: servedDocPath }))
       return
     }
@@ -78,7 +118,10 @@ export async function startServer(port = PREVIEW_PORT): Promise<Server> {
         existsSync(outside) &&
         !statSync(outside).isDirectory()
       ) {
-        res.writeHead(200, { 'content-type': MIME[extname(outside)] ?? 'application/octet-stream' })
+        res.writeHead(200, {
+          'content-type': MIME[extname(outside)] ?? 'application/octet-stream',
+          'cache-control': 'no-store',
+        })
         createReadStream(outside).pipe(res)
         return
       }
@@ -87,7 +130,10 @@ export async function startServer(port = PREVIEW_PORT): Promise<Server> {
       return
     }
 
-    res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' })
+    res.writeHead(200, {
+      'content-type': MIME[extname(file)] ?? 'application/octet-stream',
+      'cache-control': 'no-store',
+    })
     createReadStream(file).pipe(res)
   })
 

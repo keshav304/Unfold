@@ -346,3 +346,74 @@ say, and it is false.
 this project's Node is 18.20.8. The brief says not to upgrade Node unilaterally,
 so the newest *compatible* version is the correct answer rather than a reason to
 stop. Revisit at the Node bump, not before.
+
+**Lighthouse is pinned to 12.8.2 and run through `npx`, not a declared
+dependency** / `npx --yes lighthouse@12.8.2` / The M2 brief authorises exactly
+three new packages, and Lighthouse brings a large tree. Lighthouse 13 pulls in
+`yargs` / `cliui` / `string-width` versions declaring `engines.node >= 20`, so
+12.8.2 is the newest release that runs on this Node. Same rule as Playwright:
+newest *compatible*, and a note to revisit at the Node bump.
+
+**The test host's document is chosen over HTTP, not through a module-level
+setter** / `GET /__set-doc-path?docPath=…` / Playwright loads `global-setup.ts`
+and the spec files through *different module registries*, so a `servedDocPath`
+variable set by a test is not the variable the running server reads. The first
+three scenarios therefore silently served the default document — one of them
+asserted a drop screen and got a fully rendered reader. A request crosses the
+process boundary explicitly, and the host sends `cache-control: no-store` so
+Chromium cannot serve scenario 2's document to scenario 3.
+
+**cmdk's list DOM is repaired after mount, attributes only** / `role` attributes
+on its wrapper `div`s / `Command.List` renders `role="listbox"` and `Command.Item`
+renders `role="option"`, but cmdk inserts un-roled `div`s between them, which
+breaks ARIA ownership (`aria-required-children`, critical — a listbox announced
+as empty). `role="presentation"` does *not* satisfy the rule: axe rejects a
+presentation child of a listbox too. So the sizing wrapper becomes a `group` and
+the group wrappers become `presentation`, leaving `listbox > group > option`.
+Restructuring the nodes instead is not an option: the rows are children of the
+wrapper, so removing it takes the list with it, and React throws on the next
+render.
+
+**cmdk's list also needs `--cmdk-list-height`, and we do not provide it** /
+Deliberate / The sizing wrapper exists only to publish that CSS variable, which
+this app's stylesheet does not read. Dropping it is safe: cmdk guards its mount
+effect on the wrapper being present and no-ops its scroll path without it.
+
+**The budget test builds with `NODE_ENV=production` explicitly** / Vitest sets
+`NODE_ENV=test` for every child / It had been measuring a **test-mode** bundle
+since M0: Vite substitutes `process.env.NODE_ENV` at build time, so the dev
+branches survive and the tree-shaking that makes the shipped bundle small never
+happens. Same application, 681KB raw / 204.8KB gz in test mode against 418KB raw
+/ 132.4KB gz in production. It only surfaced when M2's palette, chips and popovers
+pushed the inflated figure past 200KB — the budget had been green against a
+number nobody ships.
+
+**Reference links (`[label][ref]`) resolve from the document's definitions, and
+an unresolved one keeps its label** / `Doc.linkDefinitions` / The stranger round
+found it: a `linkReference` node carries no `value`, so it fell through to the
+default branch and rendered as *nothing* — ``See [`contributing.md`][ref]`` came
+out as "See  in…", deleting the author's text and any chip inside it. Reference
+links are common in exactly the READMEs this app is pointed at. Definitions live
+on the mdast root, out of the node tree, so they are carried on the `Doc`; an
+unresolved reference degrades to its label, which is the same rule §6.4 sets for
+internal links and the only one that does not drop words.
+
+**A link's children render with the context** / `childrenOf(node, context)` in the
+external-link branch too / The branch dropped it, so a file path inside
+`See [src/a.ts](https://…)` got no chip and a nested `#slug` link inside an
+external link silently stopped resolving. The internal-link branch passed it; the
+external branch simply did not.
+
+**`color-contrast` is a known a11y finding owned by M4.3, and the axe gate names
+it rather than hiding it** / `KNOWN_OWNED_BY_M4_3` in `tests/e2e/palette.spec.ts` /
+Plan §9 assigns "AA on chips + muted text (the usual failures)" to M4.3, and
+fixing it means changing `--text-muted` / `--text-subtle` design tokens for the
+whole system. The Playwright scan fails on *any other* audit and prints the known
+one, so the debt is visible and counted rather than absent. Lighthouse — the
+threshold the spec actually states — scores 96 and passes.
+
+**`landmark-unique` on table scrollers was fixed here, not deferred** / Each
+`role="region"` is named after its own header row / Two regions both called
+"Table" is a real defect (a screen-reader user cannot tell them apart) and the
+fix is three lines and derived from the document. It was the other M4.3-adjacent
+finding the axe scan surfaced, and unlike contrast it needed no token change.

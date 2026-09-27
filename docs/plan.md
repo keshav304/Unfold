@@ -155,6 +155,28 @@ Lighthouse ≥ 90/95.
 - [x] M2.8 Budget: entry 131.9KB gz (§10 limit 200KB); cmdk is bundled into the
       entry chunk, not a lazy one.
 
+- [x] M2.PW1 `tests/e2e/` Playwright project, its own `test:e2e` script, wired
+      into `npm run ci` after the unit suite. Global setup builds once and serves
+      `dist/` with SPA fallback, a path-traversal guard and a second mount for
+      documents outside `dist/`. Every context runs `reducedMotion: 'reduce'`.
+- [x] M2.PW2 Served-artifact scenarios: kitchen-sink (title from frontmatter, no
+      raw `---`, terminal/loop/mermaid present, no horizontal overflow at 1440 or
+      375), a wrong `docPath` refused with the A5 drop screen, `no-structure` with
+      no rail and a full-width single column asserted by bounding box. Every
+      scenario fails on any console error or warning.
+- [x] M2.PW3 The palette in a real engine: ⌘K open, arrows, Enter navigates, Esc
+      restores focus to the trigger (asserted on `document.activeElement`), `/`
+      inert in an input, Tab cycles inside the palette, Esc on a chip's popover
+      returns focus to the chip, and axe-core reports zero violations on the open
+      palette.
+- [x] M2.PW4 Lighthouse against the preview server each run, `CHROME_PATH` pointed
+      at Playwright's chromium. **a11y ≥ 95 is a hard fail** (it scores 96);
+      performance is recorded to `artifacts/lighthouse.json` only, per A6.
+- [x] One screenshot per scenario in `artifacts/e2e/`, never diffed — visual
+      regression is adopted at the M4 freeze.
+
+**Backlog (added at G3):** Playwright screenshot-diff baselines, at the M4 freeze.
+
 **Gate G3:** search smoke §11.8 green on every fixture; `/` and ⌘K both work;
 popovers open via keyboard focus; `minimal.md` renders zero chips.
 

@@ -1,14 +1,30 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "strict": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    "scripts/ui-smoke.ts"
+  ],
+  "excludeComment": "ui-smoke.ts predates the scripts typecheck and imports jsdom, which ships no types; adding @types/jsdom is a dependency this milestone did not authorise. It is excluded rather than silenced with a blanket `any` module declaration, so the gap stays visible."
 }

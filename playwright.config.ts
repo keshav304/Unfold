@@ -12,14 +12,16 @@
  * nothing. Assert on state, never on sleeps.
  */
 import { defineConfig, devices } from '@playwright/test'
+import { PREVIEW_PORT } from './tests/e2e/server'
 
-/** The port the preview server binds. Fixed, so a stray server is obvious. */
-export const PREVIEW_PORT = 4183
 export const BASE_URL = `http://127.0.0.1:${PREVIEW_PORT}`
 
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './artifacts/e2e/results',
+  /* Build once, serve `dist/` once, share the server with every worker. */
+  globalSetup: './tests/e2e/global-setup.ts',
+  globalTeardown: './tests/e2e/global-teardown.ts',
   /* The cap is deliberate: Playwright supplements the unit suite, it does not
    * become a second 500-test project. */
   fullyParallel: false,
@@ -31,11 +33,14 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'artifacts/e2e/results.json' }]],
   use: {
     baseURL: BASE_URL,
-    /* Spec §8: the app's own a11y feature zeroes every animation, so the suite
-     * never has to wait for one. */
-    reducedMotion: 'reduce',
     trace: 'off',
     video: 'off',
+    /**
+     * Spec §8: the app's own a11y feature zeroes every animation, so the suite
+     * never has to wait for one. This is a *browser context* option, which is
+     * why it lives here rather than at the top level of `use`.
+     */
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     {

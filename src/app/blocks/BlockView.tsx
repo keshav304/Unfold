@@ -8,6 +8,7 @@
 
 import type { ReactNode } from 'react'
 import type { Paragraph } from 'mdast'
+import { tableCellText } from '../../pipeline/blocks'
 import type { Block, InlineNode } from '../../pipeline/types'
 import { renderInline, type InlineContext } from './Inline'
 import { CodeBlock } from './CodeBlock'
@@ -24,6 +25,22 @@ function inline(node: Paragraph, context: InlineContext, key: string): ReactNode
 /** A table cell's inline runs, through the same pipeline as prose (A3). */
 function inlineNodes(cell: readonly InlineNode[], context: InlineContext): ReactNode {
   return cell.map((child, index) => renderInline(child, index, context))
+}
+
+/**
+ * The scrollable table's landmark name.
+ *
+ * The wrapper is a `role="region"` so a keyboard user can reach the horizontal
+ * scroller (§7.1), and every landmark on a page must have a *unique* name —
+ * two regions both called "Table" is `landmark-unique`, and a screen-reader
+ * user hears "Table" with no way to tell them apart. Naming each one after its
+ * own header row is derived from the document, so two tables with different
+ * columns are distinguishable and nothing is invented.
+ */
+function tableLabel(block: Extract<Block, { kind: 'table' }>): string {
+  const header = block.header.map((cell) => tableCellText(cell)).filter((text) => text !== '')
+  if (header.length === 0) return 'Table'
+  return `Table: ${header.join(', ')}`
 }
 
 function listItems(items: readonly unknown[], context: InlineContext, ordered: boolean): ReactNode {
@@ -81,7 +98,7 @@ export function BlockView({ block, context }: BlockProps): ReactNode {
 
     case 'table':
       return (
-        <div className="reader-table-scroll" tabIndex={0} role="region" aria-label="Table">
+        <div className="reader-table-scroll" tabIndex={0} role="region" aria-label={tableLabel(block)}>
           <table className="reader-table">
             <thead>
               <tr>

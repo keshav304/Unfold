@@ -8,3 +8,6 @@ dist-budget
 
 # Lighthouse HTML reports are artifacts, not sources.
 lighthouse*.html
+
+# Playwright + Lighthouse output: artifacts for review, never sources.
+artifacts/

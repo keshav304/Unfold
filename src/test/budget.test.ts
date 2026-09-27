@@ -34,6 +34,18 @@ beforeAll(() => {
   execFileSync('npx', ['vite', 'build', '--outDir', 'dist-budget', '--emptyOutDir'], {
     cwd: repoRoot,
     stdio: 'ignore',
+    // **Production mode, explicitly.** Vitest sets `NODE_ENV=test` for every
+    // process it spawns, and Vite builds a materially different bundle from
+    // that: `process.env.NODE_ENV` is substituted at build time, so the
+    // dev-only branches survive and the tree-shaking that makes the shipped
+    // bundle small never happens. The symptom was an "entry" of 681KB raw /
+    // 204.8KB gz against a real production entry of 418KB raw / 132.4KB gz —
+    // the same application, measured with the wrong environment.
+    //
+    // It went unnoticed because the inflated figure only crossed 200KB once M2
+    // added the palette, chips and popovers. The budget has been measuring a
+    // bundle nobody ships since M0.
+    env: { ...process.env, NODE_ENV: 'production' },
   })
   if (!existsSync(join(distDir, 'index.html'))) return
   available = true
@@ -55,9 +67,22 @@ describe('§10 bundle budgets', () => {
       (sum, name) => sum + gzipSync(readFileSync(join(distDir, 'assets', name))).length,
       0,
     )
-    // Reported so a regression is visible in CI output, not just on failure.
-    expect(`${(gz / 1024).toFixed(1)}KB gz (${(raw / 1024).toFixed(1)}KB raw)`).toBeTypeOf('string')
+    // Printed, not just asserted: a budget that only speaks when it fails tells
+    // you nothing until it is already broken, and §10 is a number a human reads.
+    process.stdout.write(
+      `  entry: ${entryChunks.join(', ')} — ${(gz / 1024).toFixed(1)}KB gz (${(raw / 1024).toFixed(1)}KB raw)\n`,
+    )
     expect(gz).toBeLessThanOrEqual(INITIAL_JS_BUDGET_GZ)
+  })
+
+  it('cmdk lands in the entry chunk, not a lazy one (M2.8)', () => {
+    if (!available) return
+    // The palette is the one interaction that must feel instant (spec §7.4), so
+    // splitting cmdk out would add a round trip to opening it. cmdk is ~11KB, so
+    // this is a placement decision rather than a size one.
+    const entry = entryChunks.join(' ')
+    const lazy = allJs.filter((name) => !entry.includes(name))
+    expect(lazy.join(' ')).not.toContain('cmdk')
   })
 
   it('the entry chunk pulls in React but not the syntax highlighters', () => {
