@@ -123,6 +123,21 @@ export const MISSING_DOC = '/testdocs/definitely-not-deployed.md'
 export const STRANGER_PREFIX = '/node_modules/'
 
 /**
+ * The analytics script's path, and the body the harness answers it with.
+ *
+ * Exported so `analytics.spec.ts` asserts against the same constant the host
+ * serves, rather than a second copy of the string in a test — a test that
+ * hardcodes the URL it expects is a test that passes when the app changes both
+ * halves together and breaks when only one does.
+ */
+export const ANALYTICS_SCRIPT = '/_vercel/insights/script.js'
+export const ANALYTICS_STUB = [
+  '// Served by the harness, not by the app.',
+  '// On Vercel this path is answered by the platform; see startServer().',
+  '',
+].join('\n')
+
+/**
  * Start the host. One per test run, shared by every worker.
  *
  * `root` is a parameter rather than a hardcoded `distDir()` because M4.6b
@@ -159,6 +174,29 @@ export async function startServer(port = PREVIEW_PORT, root = distDir()): Promis
     if (requested === '/unfold.config.json') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
       res.end(JSON.stringify({ docPath: servedDocPath }))
+      return
+    }
+
+    /**
+     * The analytics endpoint, stubbed.
+     *
+     * On Vercel, `/_vercel/insights/script.js` is served by the **platform** —
+     * it is not a file in this repository and never was. Everywhere else it
+     * 404s, and a 404 is a console error in Chromium, which means every scenario
+     * that asserts a quiet console would fail on a request the app is behaving
+     * correctly in making. The alternative — teaching the console watcher to
+     * ignore one URL — would trade a real signal for a convenience, and the next
+     * genuine 404 would hide behind it.
+     *
+     * So the harness answers the request the way the host would, with an empty
+     * script. What is being tested is the app's behaviour, not the platform's
+     * analytics implementation; and the request itself remains observable, which
+     * is what lets `analytics.spec.ts` assert that the script is fetched (and
+     * only in production mode).
+     */
+    if (requested === ANALYTICS_SCRIPT) {
+      res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' })
+      res.end(ANALYTICS_STUB)
       return
     }
 

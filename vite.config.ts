@@ -4,6 +4,17 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const CONFIG_FILE = 'unfold.config.json'
+
+/**
+ * The analytics script's path, and a body for it.
+ *
+ * On Vercel this path is served by the platform. It is declared in one place
+ * and shared with the e2e host (`tests/e2e/server.ts` imports the same idea)
+ * so the dev server, the test host and the production platform cannot drift on
+ * the spelling of a URL the app depends on.
+ */
+const ANALYTICS_SCRIPT = '/_vercel/insights/script.js'
+const ANALYTICS_STUB = '// Answered locally. On Vercel the platform serves this path.\n'
 /** The bundled documents. `testdocs/` is the source of truth; this is the
  *  directory the build ships them to, keeping the same relative `docPath`. */
 const DOCS_DIR = 'testdocs'
@@ -27,6 +38,15 @@ function shipDeployable(): Plugin {
         if (req.url === `/${CONFIG_FILE}` && existsSync(CONFIG_FILE)) {
           res.setHeader('content-type', 'application/json')
           res.end(readFileSync(CONFIG_FILE))
+          return
+        }
+        // The analytics endpoint is served by the *platform* on Vercel, so in
+        // dev it has to be answered here or every page load logs a 404 in the
+        // console. Same reasoning as the config above: the deployable unit
+        // includes the endpoints the host provides, not only the files.
+        if (req.url === ANALYTICS_SCRIPT) {
+          res.setHeader('content-type', 'text/javascript')
+          res.end(ANALYTICS_STUB)
           return
         }
         next()

@@ -14,6 +14,7 @@ import { DropScreen, ErrorCard } from './components/DropScreen'
 import { Hero } from './components/Hero'
 import { Toc } from './components/Toc'
 import { Palette, isPaletteShortcut, isTypingTarget } from './palette/Palette'
+import { Analytics } from '@vercel/analytics/react'
 import { Reader } from './views/Reader'
 import { Welcome } from './views/Welcome'
 
@@ -483,6 +484,37 @@ export function App({ config, fetcher, autoLoad: autoLoadProp }: AppProps): JSX.
       ) : null}
 
       <div className="progress-bar" style={{ ['--progress' as string]: `${progress * 100}%` }} aria-hidden="true" />
+
+      {/*
+        Web analytics, and the whole of it.
+
+        ## Why `@vercel/analytics/react` and not `/next`
+
+        Both entry points export a component called `Analytics`, and the `/next`
+        one is the one most copy-pasted from the docs. It imports
+        `next/navigation.js` for route tracking, so in a Vite app it is not "the
+        wrong analytics" — it is a build that cannot resolve, or a `next` install
+        dragged in to satisfy an import nothing here uses. This is a Vite + React
+        SPA, so the React entry point is the correct one: same component, same
+        events, and its only import is `react`.
+
+        ## What this does and does not collect
+
+        Vercel Web Analytics: page views and the referrer, plus coarse
+        browser/device metadata. **No cookies, no cross-site identifier, no
+        fingerprinting, no PII**, and nothing about the *document* — the app never
+        sends the markdown a reader is looking at, a config path, or a query
+        string. The script is deferred and adds no first-party cookie, so the
+        §9 a11y and §10.1 perf gates are unaffected, which `analytics.test.tsx`
+        and the gates both check rather than assume.
+
+        ## Turning it off
+
+        Delete this element. There is no config flag on purpose: a flag for
+        "don't phone home" would be a second thing to get wrong, and the honest
+        way to not send analytics is not to ship the code that sends them.
+      */}
+      <Analytics mode="production" />
 
       <header className="app-header">
         <button

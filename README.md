@@ -1,187 +1,325 @@
-# Argus — AI Shadow Audit
+# Unfold
 
-An observability product that measures the relationship between AI shopping agents
-and a retailer, and outputs **one score plus a ranked, evidence-backed fix list**.
+**A generic interactive markdown explorer.** Point it at a well-structured `.md`
+file and get a reader: generated navigation, reading-time hero, metro-map table of
+contents, search, glossary chips — and, only when the document actually provides
+the data, a graph view, a stepper, and inline diagrams.
 
-It answers three questions, and the console has a page for each:
-
-1. **OUTBOUND — what do agents say?** Fire realistic shopping prompts at three
-   model slots, 5 runs each. Measure presence, rank, whether the claims are TRUE
-   against verified data, and which competitor displaced us on which claim.
-2. **INBOUND — can agents actually shop?** Replay complete agent journeys against
-   a mock transaction platform and find where they silently fail (a tier that can
-   browse but never check out; member prices never applied).
-3. **INTEGRITY — is the retailer's own assistant honest?** Run the same missions
-   with sponsorship weighting ON vs OFF and measure whether paid placement changes
-   recommendations and whether the customer pays more.
-
-**Everything runs against a synthetic retailer we built ourselves**, with defects
-planted on purpose. That is what makes every finding provable: we hold the ground
-truth. LLMs only role-play shopping agents — **all scoring, verification, journey
-logic and optimisation is deterministic application code.**
-
----
-
-## Quick start (inside the company environment)
-
-**First time running this? Open `RUNBOOK.md`** — it is the ordered checklist of what
-is left to do now that Vertex, node_modules and PostgreSQL are available, including
-the two blockers that must be cleared before the app can boot.
+> **The document is data. The app is a renderer.** Anything the document does not
+> provide, Unfold hides rather than fakes. No feature is hardcoded to a particular
+> document, and `src/test/genericity.test.ts` fails the build if a term from the
+> bundled demo ever appears in app code.
 
 ```bash
-cp .env.example .env         # then fill in GCP_PROJECT / DB_* (never commit .env)
-./setup.sh                   # conda envs + npm installs (uses Artifactory)
-make up                      # node + fastapi + react + nginx
-make seed                    # synthetic estate + deterministic fixtures
-make demo                    # reseed, cache the three acts, launch in demo mode
+npm install
+npm run dev      # http://localhost:5173 — reads ./unfold.config.json
 ```
 
-Open **`http://localhost:8080/argus/`** — the console is served through nginx at
-the proxy path. `localhost:3000` works too but is *not* the deployment path: always
-verify through the proxy.
-
-### The `make` targets
-
-| Command | What it does |
-|---|---|
-| `make up` | `./launch-app dev` — the template's own run model |
-| `make down` | stops the four processes |
-| `make health` | `./check-health.sh` — all processes plus the nginx route |
-| `make test` | `pytest` (backend) + `npm test` (frontend) |
-| `make verify` | health + tests + `npm run build` |
-| `make seed` | rebuild the synthetic estate from `SEED=42`, idempotent |
-| `make demo` | reseed + cached three-act playback, zero live LLM calls |
-| `make probe` | environment probe → `PROBE_REPORT.md` |
-| `make bakeoff` | model bake-off → `reports/bakeoff.md` |
+Then drop any `.md` file onto the window, or point `docPath` at one.
 
 ---
 
-## Architecture
+## Contents
 
-The template's process split is kept exactly as intended — nginx fronts a React
-app, a Node pass-through and a FastAPI service:
-
-```
-browser → nginx :8080
-    <PROXY_PATH>/                    → CRA        :3000   UI
-    <PROXY_PATH>/api/                → node-proxy :3001   health, config, pass-through
-    <PROXY_PATH>/fastapi/            → FastAPI    :9000   the console API
-    <PROXY_PATH>/proxy/absolute/9000/→ FastAPI    :9000   Wharf compat router
-```
-
-All console calls go to `<PROXY_PATH>/fastapi/api/...`. The frontend reads its base
-path from `REACT_APP_PROXY_PATH`; **no leading-slash URL is ever hardcoded.**
-
-```text
-Backend (python-fastapi/)
-  app/estate/     synthetic retailer, planted defects, feed, personas
-  app/mockapi/    the retailer's platform: catalog/cart/checkout/orders + telemetry
-  app/ai/         three model slots, structured outputs, cache, simulated fixtures
-  app/sensors/    S1 grid · S2 feed auditor · S3 funnel · S4 loyalty · S5 integrity
-  app/journeys/   deterministic 8-step journey state machines (Penny/Dee/Nia)
-  app/scoring/    ARIS · stats/CIs · fix list · impact · value-optimal baseline
-  app/api/        the console API (SPEC §4.4)
-  app/audit.py    one audit cycle: estate → sensors → ARIS → fix list
-  scripts/        probe_env.py · bakeoff.py · prepare_demo.py
-
-Frontend (react-frontend/) — CRA + TypeScript + Tailwind
-  src/pages/      Command Center · Findings · Outbound Explorer · Journey Replay
-                  · Integrity Report · Demo Mode · Models & Cache
-  src/lib/        typed API client, types mirroring the OpenAPI schemas
-  src/components/ panels, CIs, hand-rolled SVG charts
-```
-
-### Database
-
-**PostgreSQL only** (SPEC §2). `DATABASE_URL` is assembled at runtime from
-`SHORTCODE` / `DB_USER` / `DB_POSTGRES` / `CUSTOM_DB_INSTANCE` / `GCP_PROJECT` plus
-a Secret Manager lookup for the password — the Aeris pattern. There is **no SQLite
-fallback** in the product or in the tests. Schema is created with SQLModel
-`create_all` (no migrations) and reseeded by `make seed`.
+- [Getting a document in](#getting-a-document-in) · [Configuration](#configuration)
+- [Authoring](#authoring) — [blocks](#the-blocks-and-what-each-one-buys-you), [`graph`](#graph--the-architecture-map), [`steps`](#steps--the-lifecycle), [ASCII diagrams](#ascii-diagrams)
+- [Using it](#using-it) — [keyboard](#keyboard), [reading modes](#reading-modes)
+- [Deploying](#deploying) — [Vercel](#vercel), [any static host](#any-static-host), [analytics](#analytics)
+- [Commands](#commands) · [Quality gates](#quality-gates) · [What's in the box](#whats-in-the-box) · [v1 limits](#v1-limits)
 
 ---
+
+## Getting a document in
+
+`#/` **is** the front door, and `#/welcome` is the same view, permanently
+linkable. Arriving at the root loads nothing: the configured document is one click
+away, behind **Open the bundled document**. You are asked, rather than served a
+document you did not ask for.
+
+Two things still open a document directly, because both are requests for one:
+
+- A **deep link** — `#/graph`, `#/stepper/2`, `#some-section`. Someone sent you a
+  link to a place inside a document; you land in it.
+- A **reload** while reading. Unfold remembers, per tab, that you have a document
+  open, so refreshing at the top of a long document does not dump you back on the
+  front door.
+
+- **Drop** any `.md` onto the window, or use the file picker. The picker button is
+  the keyboard path and lives *inside* the drop zone: a drag target is unreachable
+  by keyboard, so the button is the contract and the dashed card is the affordance.
+- If a `docPath` is configured, `#/welcome` also offers **Open the bundled
+  document**; if a document is already in memory it is named as *Reading: …*.
+- Dropping onto a document that is already loaded replaces it.
+
+Opening `dist/index.html` from `file://` works too — that is the zero-setup path,
+because the host page itself catches the drop.
 
 ## Configuration
 
-`.env.example` is the source of truth for variable names; `.env` is gitignored.
-Nothing in the code hardcodes a model name, key, project ID or database URL.
+`unfold.config.json` at the repository root, copied into `dist/` by the build.
+**Every field is optional and zero-config works**: with no file at all the app falls
+back to `./document.md`, and a `docPath` that is not found drops you onto a screen
+where you can pick a file. Invalid JSON is never fatal — it logs one warning and
+runs on defaults.
 
-Key variables:
-
-```env
-SVC_PROXY_PATH=/argus          APP_PORT=9000   BACKEND_PORT=3001   FRONTEND_PORT=3000
-GCP_PROJECT=your-gcp-project-id                 # placeholder only
-REGION=us-central1
-AI_PROVIDER=vertex
-GEMINI_MODEL_1=…  GEMINI_MODEL_2=…  GEMINI_MODEL_3=…   # frozen by the bake-off
-RUNS_PER_PROMPT=5              SIMULATED_AGENT_MODE=true   DEMO_MODE=false
-SEED=42                        PROMPT_VERSION=v1
-SHORTCODE=argus  DB_USER=  DB_POSTGRES=  CUSTOM_DB_INSTANCE=
-HTTPS_PROXY=  HTTP_PROXY=  NO_PROXY=localhost,127.0.0.1,0.0.0.0
-REACT_APP_PROXY_PATH=/argus    REACT_APP_API_BASE=/argus/fastapi
+```json
+{
+  "docPath": "./testdocs/kitchen-sink.md",
+  "features": { "graph": "auto", "stepper": "auto", "diagrams": "auto" }
+}
 ```
 
-**Proxy rule:** outbound AI traffic honours `HTTPS_PROXY`; all internal traffic
-(journey engine → mock platform, webhook self-calls, tests) is loopback and must
-bypass it via `NO_PROXY`. This is asserted by a test, not by convention.
+| Field | Type | Default | Effect |
+|---|---|---|---|
+| `docPath` | path or URL | `./document.md` | The document to read. Relative paths resolve against the deployed root. |
+| `title` | string | the document's own | Overrides the parsed title (frontmatter → H1 → filename, and this beats all three). |
+| `accent` | any CSS colour | `--primary` | Overrides the accent at runtime. |
+| `features.graph` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | `"auto"` = capability-detected; `"off"` hides the graph view; `"on"` shows the nav item with an empty state if the document has no graph. |
+| `features.stepper` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | Same, for the stepper. |
+| `features.diagrams` | `"auto"` \| `"terminal"` | `"auto"` | How an untagged ASCII fence is presented. `"auto"` parses it and renders a real diagram as SVG, keeping the terminal window for a fence the parser will not vouch for; `"terminal"` never parses. The escape hatch. |
+| `fileExtensions` | string[] | a built-in list | Which extensions count as file paths for entity chips. |
+| `entityPatterns` | `{name, pattern}[]` | `[]` | Extra regexes, each with a global flag. An invalid pattern is warned about and skipped, never fatal. |
+| `descriptions` | `{path: string}` | `{}` | Text for an entity popover. Empty by default, so a popover shows backlinks only. |
 
-**Secrets:** ADC only. No API keys, no service-account files, no GCP project IDs
-committed anywhere.
+## Authoring
 
----
+Unfold reads **plain markdown that still reads correctly on GitHub**. Everything
+below is an opt-in convention in a fenced code block or a heading; there is no
+frontmatter required, no custom syntax to learn, and nothing that breaks if you
+paste the file somewhere else.
 
-## Model slots
+### The blocks, and what each one buys you
 
-Three env-driven slots, and the slot order **is** the fallback chain:
+| You write | You get |
+|---|---|
+| ` ```mermaid ` | A rendered diagram. Standard Mermaid, dark theme. |
+| ` ```loop ` | An animated cycle diagram. Comma- or newline-separated labels. |
+| ` ```graph ` | The **graph view** — an interactive architecture map. In the reader, a read-only mini-canvas with a link out to the full view. |
+| ` ```steps ` | The **stepper view** — a deep-linkable lifecycle. In the reader, the same stepper, inline. |
+| An untagged fence that draws boxes | A **diagram**: parsed and rendered as SVG, in the author's own layout. If it turns out not to be a diagram, a terminal window. |
+| A `## Glossary` section (or anything matching a glossary heading) | Glossary chips in the prose, and a Glossary group in the palette. |
+| A table | A horizontally scrollable, keyboard-reachable region. |
+| A `src/…`, `*.ts`, `test.ts::name` mention in prose or in backticks | An entity chip with backlinks. |
+| YAML frontmatter with `title` / `description` | Overrides the parsed title. |
+
+**A view appears only if the document provides what it needs.** A document with no
+`graph` block and too few cross-links has no graph view — not a broken one.
+
+A block that fails to parse degrades to a readable code block with a tooltip. Never
+an exception, never a blank space.
+
+### `graph` — the architecture map
+
+````
+```graph
+nodes:
+  shell: Client shell | entry point
+  ingest: Ingest worker
+  store: Index store | durable
+
+edges:
+  shell -> ingest | post
+  ingest -> store | write
+  store -.-> shell | backfill
+```
+````
+
+`node-id: Label | subtitle` and `from -> to | edge label`, with `-.->` for a
+dashed (back) edge. The graph renders as either an explicit **Architecture** or,
+when there is no block and enough internal cross-links, a derived **Document map**
+labelled *Auto-generated map*.
+
+### `steps` — the lifecycle
+
+````
+```steps
+1. Submit — the shell posts a query [@runtime-shape]
+2. Enrich — the worker resolves entities
+```
+````
+
+`N. Title — description [@section-slug]`, where `[@slug]` becomes a link to that
+heading. Each step is deep-linkable (`#/stepper/2`).
+
+### ASCII diagrams
+
+An untagged fence that draws boxes is treated as a **diagram candidate** and parsed:
 
 ```
-slot 1 → slot 2 → slot 3 → simulated mode
++------------------+        +-----------------+
+| Client shell     | -----> | Ingest worker   |
++------------------+        +-----------------+
+        |                            |
+        v                            v
++------------------+        +-----------------+
+| Query planner    | <----- | Index store     |
++------------------+        +-----------------+
 ```
 
-Every response is validated against the `AgentAnswer` Pydantic schema, cached by
-`sha256(model + prompt + temperature + prompt_version)`, and retried with backoff
-before falling back. `SIMULATED_AGENT_MODE=true` (the default) serves deterministic
-canned answers and makes **no API call at all** — that is the demo safety net and
-the development default.
+The result is drawn **in the layout the ASCII already had** — the columns above are
+the columns on screen. Unicode box-drawing (`┌ ─ │ ▼ ◀ ▶`) works identically and
+normalises to the same roles without moving a cell.
 
-`make bakeoff` decides the authoritative trio; `make probe` reports what the
-environment allows. Both write honest, committed reports.
+The parser is deliberately conservative: it needs at least two boxes *and* at least
+one connector whose both ends reach a real box, and anything it cannot vouch for
+stays a terminal window rather than becoming a wrong diagram. Set
+`features.diagrams: "terminal"` to turn the whole thing off.
 
----
+## Using it
 
-## Testing
+### Keyboard
+
+| Key | Does |
+|---|---|
+| `⌘K` / `Ctrl+K`, or `/` | Open the palette. Type to search sections, files and glossary terms; arrows and `Enter` to choose, `Esc` to close. |
+| `Tab` | A skip link is the very first stop — the header, the rail and the chrome are all one `Tab` away from bypassable. |
+| `←` `→` | Previous / next step, anywhere in the stepper. |
+| `Enter` on a graph node | Opens the inspector; `Esc` returns focus to the node. |
+| `Esc` | Closes the palette, the drawer, a popover or the graph panel — whichever is open. |
+
+### Reading modes
+
+**Two modes**, in the header and in the palette. *Reference* is the whole
+document. *Executive* gives each section its title, its lead paragraph, its tables
+and its blockquotes — code, diagrams and lists are hidden behind a per-section
+**Show all**. The mode is remembered between visits, and nothing is lost: turning it
+back off restores the document exactly.
+
+The layout adapts at 1280px and 768px. On a phone the nav rail becomes a drawer,
+the pane switch moves to its own row, and every control is at least 44px. **Reduced
+motion is honoured throughout** — the three signature animations become instant and
+the ambient loops stop.
+
+## Deploying
+
+**A deployment is `dist/` *plus the documents it is configured to read*.** The build
+copies the configured document into `dist/` and emits `<link rel="preload">` hints
+for the config and the document, so the first render is not two round trips behind.
+If `docPath` 404s, Unfold treats an HTML response as *not found* rather than
+rendering its own shell as content, and shows a drop screen naming the path to fix.
+
+### Vercel
 
 ```bash
-make test        # everything
-pytest -k proxy  # the NO_PROXY bypass assertion
+npm run build     # dist/ is the output directory
 ```
 
-96 backend tests cover the deterministic core: exact defect counts, resolver
-accuracy on the 30-pair gold set, fidelity maths including both planted claim
-cases, ARIS aggregation and banding, the gate override, the journey state machine,
-the baseline optimiser, cache keys, the retry→fallback→simulated chain, mock-API
-security, and the whole console API through a real ASGI client.
+Point the project at the repo root; the framework preset is Vite. The config and
+the document are copied into `dist/` at build time, so the document ships with the
+bundle and needs no separate hosting.
 
-Database-backed behaviour is marked `db` and skipped unless `ARGUS_TEST_DATABASE_URL`
-is exported, so the suite is honest about what it verified.
+### Any static host
+
+```bash
+npm run build
+npx serve dist            # or python3 -m http.server -d dist
+```
+
+Host `dist/` as the root. If you deploy under a sub-path, set the bundler `base` and
+rewrite asset paths to match; the app's own routing is hash-based (`#/…`), so it
+needs no server rewrite rules.
+
+### Analytics
+
+Web analytics is **on**, using
+[Vercel Web Analytics](https://vercel.com/docs/analytics) (`@vercel/analytics`):
+page views, the referrer, and coarse browser/device metadata. It is deliberately
+boring about privacy:
+
+- **No cookies, no cross-site identifier, no fingerprinting, no PII.**
+- **Nothing about the document.** The app never sends the markdown a reader is
+  looking at, a config path, or a query string.
+- The script is deferred, so it never blocks first paint, and it is not in the
+  preload graph.
+
+`src/test/analytics.test.tsx` and `tests/e2e/analytics.spec.ts` assert those claims
+rather than promising them, including that the cookie jar stays empty.
+
+**To remove it:** delete the single `<Analytics mode="production" />` element in
+`src/app/App.tsx` and drop the dependency. There is deliberately no config flag for
+this — the honest way not to send analytics is not to ship the code that sends it.
+Note that `/_vercel/insights/script.js` is served by the Vercel platform, not by
+this repository; the dev server and the test harness both answer it locally so that
+a correct request does not read as a 404.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server with HMR |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the built artifact — **this is a deployment** |
+| `npm test` | Vitest, once |
+| `npm run ci` | **typecheck → vitest → build → ui-smoke → e2e → Lighthouse** — what CI runs |
+| `npm run test:e2e` | Playwright against the built artifact |
+| `npm run lighthouse` | The performance gate: a11y ≥ 95 (worst of 3), and FCP ≤ 2s · LCP ≤ 2.5s · TBT ≤ 400ms · CLS ≤ 0.1 (median of 3) |
+| `npm run ui-smoke [-- --stranger]` | Boot the **built** bundle over HTTP and report console errors |
+| `npm run diagrams:coverage [-- --shots]` | Parse every terminal-candidate fence in `testdocs/` and report how many are real diagrams; `--shots` also screenshots each one as the served app renders it |
+| `npm run print-doc -- <file>` | Print a parsed document as JSON (dev only) |
+| `npm run stranger-test` | Parse every `node_modules` README (dev only) |
+| `npm run profile:perf` | Profile the mount, median of 3 at 4× CPU throttle |
+
+## Quality gates
+
+These run in `npm run ci`, and they are budgets rather than aspirations:
+
+| Gate | Threshold | Enforced by |
+|---|---|---|
+| Entry bundle | ≤ 200KB gzipped | `src/test/budget.test.ts` (it builds, then measures) |
+| Dependencies | every one justified in writing | `src/test/genericity.test.ts` |
+| Genericity | no demo-document term may appear in app code | `src/test/genericity.test.ts` + a denylist |
+| Accessibility | Lighthouse a11y ≥ 95 **and** zero axe violations on whole pages, at desktop and phone width | `npm run lighthouse`, `tests/e2e/a11y.spec.ts` |
+| Performance | FCP ≤ 2s · LCP ≤ 2.5s · TBT ≤ 400ms · CLS ≤ 0.1 (median of 3) | `npm run lighthouse` |
+| Motion | exactly three signature moments, everything else ≤ 250ms, ambient loops slow, all neutralised under reduced motion | `src/test/motion.test.ts` |
+| CLS in the reader | 0.000 | `tests/e2e/cls.spec.ts` |
+| Console | no errors or warnings on any page | every Playwright scenario |
+
+## What's in the box
+
+- **Reader** — hero with reading time and jump chips, metro-map contents rail,
+  scroll spy, progress bar, in-document links that flash where they land.
+- **Search** — the `⌘K` palette over sections, file paths and glossary aliases, with
+  highlighted matches and a snippet window.
+- **Entity chips** — file paths, `path::symbol` and test ids become chips with
+  backlinks. The description comes from `descriptions` in your config; a chip with no
+  description shows its backlinks only.
+- **Graph workbench** — React Flow on a grid canvas, with an inspector that slides in
+  and an "Open section" that returns you to the reader. Below 1280px it overlays
+  rather than reflowing, so the canvas never jumps.
+- **Stepper** — a deep-linkable lifecycle, vertical on a phone.
+- **Diagrams** — Mermaid, cycle loops, an inline read-only graph canvas, an inline
+  stepper, and parsed ASCII art drawn as SVG.
+- **Code** — Shiki highlighting in the `github-dark` theme, lazily, with a copy
+  button and a language label.
+
+## v1 limits
+
+These are decisions, not gaps in anyone's attention:
+
+- **Dark theme only.** A light theme is a design task, not a toggle.
+- **No remote-URL ingestion.** `docPath` is something the app can fetch from its own
+  origin, or a file you drop. Fetching an arbitrary URL means CORS, SSRF and a size
+  story.
+- **No editing.** Documents are read, never written.
+- **One document per load.** No doc switcher, no multi-document navigation.
+- **No MDX, no CMS, no auth, no server.** The document stays a plain `.md` that
+  reads correctly on GitHub, which is the point.
+- **Initial JS budget 200KB gzipped**, with the heavy renderers — React Flow,
+  mermaid, Shiki — in separate lazy chunks.
+- **A11y gate: Lighthouse ≥ 95 and zero axe violations on whole pages** at both
+  desktop and phone widths.
+- **Perf gate: four named metrics, not a score** — FCP ≤ 2.0s, LCP ≤ 2.5s,
+  TBT ≤ 400ms, CLS ≤ 0.1.
 
 ---
 
-## Documentation
+### Notes for anyone reading this repository
 
-| File | Purpose |
-|---|---|
-| `RUNBOOK.md` | **start here to run it** — ordered checklist to go from code-complete to running in the company environment, including the two known blockers to clear first |
-| `SPEC.md`, `PLAN.md` | the product contract and the build order |
-| `METHOD.md` | how every displayed number is produced, incl. the honest model-lineage statement |
-| `DEMO_SCRIPT.md` | the three acts, beat by beat, with per-beat fallbacks |
-| `PROBE_REPORT.md` | what the environment allows (and what remains unprobed) |
-| `reports/bakeoff.md` | the model bake-off table and the frozen trio |
-| `progress.md` | implementation status, decisions, known gaps, handoff notes |
-
-## Out of scope (frozen)
-
-No 3D/Three.js · no Next.js · no authentication or multi-user · no real retailer or
-client data · no second AI gateway (OpenRouter is a future option only) · no Model
-Garden endpoint deployments · no live LLM calls during the demo · no journey
-scripts beyond Penny/Dee/Nia.
+- **`ARCHITECTURE.md` at the root is a demo document**, not project documentation.
+  It is the same class of data as `testdocs/*.md` and exists so Unfold has a large,
+  link-dense document to render; `src/test/genericity.test.ts` reads it.
+- **`docs/` and `designs/` are local-only** and are not in this repository. The spec,
+  the decision log, the milestone plan and the design screenshots the work was
+  reviewed against live on the machine that built the thing. The section numbers the
+  code comments cite (`§6.9`, `§7.8`, `§9`, `§10.1`, and so on) are that spec's
+  numbering and still line up.

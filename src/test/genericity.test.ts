@@ -166,6 +166,7 @@ const ALLOWED_DEPS: Record<string, string> = {
   mermaid: '§4 Diagrams — lazy chunk, dark theme',
   cmdk: '§7.4 palette — headless combobox with the aria wiring §9 requires; hand-rolling it is how focus traps get subtly wrong',
   '@xyflow/react': '§4 Graph — React Flow, the library the spec names, as a lazy chunk. It owns pan/zoom, viewport transforms and node focusability, which are the three things M3.7 needs a real browser to verify; a hand-rolled canvas would be re-implementing them and would fail the keyboard walk',
+  '@vercel/analytics': 'Web analytics — the deployer asked for page views. Cookie-free and PII-free by construction (a ~1KB deferred script that posts to Vercel, no first-party identifier, no document content), mounted in one place in `App.tsx` so removing it is a one-line deletion. The `/react` entry point, not `/next`, because this is a Vite SPA and the Next entry imports `next/navigation.js`.',
 }
 
 /** Tooling; never shipped to the browser. */
