@@ -21,6 +21,14 @@ export const FIXTURES = [
   'crosslinked',
   'no-structure',
   'edge-cases',
+  /*
+   * M4.14a. Six untagged fences: four that the ASCII diagram parser must read
+   * (vertical flow, Unicode boxes, interior junctions, a vertical arrow) and two
+   * it must refuse (hostile prose, a dangling arrow). The document is a fixture
+   * rather than a set of inline strings for the same reason every other one is:
+   * the markdown a reader sees is the markdown the parser is tested against.
+   */
+  'ascii-diagrams',
 ] as const
 
 export type FixtureName = (typeof FIXTURES)[number]

@@ -39,6 +39,15 @@ const EXPECTED: Record<FixtureName, CapabilitySet> = {
   crosslinked: { ...OFF, graph: true },
   'kitchen-sink': ALL_ON,
   'edge-cases': OFF,
+  /*
+   * M4.14a. The ASCII diagram fixture is untagged fences only, so `terminal` is
+   * the one flag it turns on — no explicit DSL block, no glossary, no entity
+   * threshold. Four of its six fences render as SVG diagrams and two stay
+   * terminal windows, and *that* is a renderer decision, not a capability: the
+   * capability is "this document contains an untagged fence that looks like a
+   * diagram", which is true of all six.
+   */
+  'ascii-diagrams': { ...OFF, terminal: true },
 }
 
 describe('§11.3 capability matrix — the genericity contract', () => {

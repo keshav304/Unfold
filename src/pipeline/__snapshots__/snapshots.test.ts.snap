@@ -1,5 +1,119 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`§11.1 golden snapshots > ascii-diagrams 1`] = `
+{
+  "capabilities": {
+    "entities": false,
+    "glossary": false,
+    "graph": false,
+    "loop": false,
+    "mermaid": false,
+    "stepper": false,
+    "terminal": true,
+  },
+  "glossaryTerms": [],
+  "graphDerived": null,
+  "introKinds": {
+    "prose": 1,
+  },
+  "sections": [
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-a--vertical-flow",
+      "tests": [],
+      "title": "Fixture A — vertical flow",
+    },
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-b--unicode-boxes",
+      "tests": [],
+      "title": "Fixture B — Unicode boxes",
+    },
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-c--interior-junctions",
+      "tests": [],
+      "title": "Fixture C — interior junctions",
+    },
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-d--vertical-arrow",
+      "tests": [],
+      "title": "Fixture D — vertical arrow",
+    },
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-e--hostile-prose",
+      "tests": [],
+      "title": "Fixture E — hostile prose",
+    },
+    {
+      "cells": [],
+      "children": [],
+      "files": [],
+      "kinds": {
+        "prose": 1,
+        "terminal": 1,
+      },
+      "level": 2,
+      "linksTo": [],
+      "slug": "fixture-f--dangling-arrow",
+      "tests": [],
+      "title": "Fixture F — dangling arrow",
+    },
+  ],
+  "stats": {
+    "codeBlocks": 6,
+    "diagrams": 0,
+    "sections": 6,
+    "words": 354,
+  },
+  "stepCount": 0,
+  "title": "ASCII Diagram Fixtures",
+  "titleSource": "frontmatter",
+}
+`;
+
 exports[`§11.1 golden snapshots > crosslinked 1`] = `
 {
   "capabilities": {
