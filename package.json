@@ -17,7 +17,8 @@
     "ui-smoke:stranger": "vite-node scripts/ui-smoke.ts --stranger",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "lighthouse": "vite-node scripts/lighthouse.ts"
+    "lighthouse": "vite-node scripts/lighthouse.ts",
+    "profile:perf": "vite-node scripts/profile-long-tasks.ts"
   },
   "dependencies": {
     "@xyflow/react": "^12.12.0",

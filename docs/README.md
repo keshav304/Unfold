@@ -231,6 +231,9 @@ point `docPath` at an absolute URL.
 > rendering its own page as content, and shows a drop screen naming the path to
 > fix.
 
+*Documented but not yet exercised on a real host; expect to debug these on
+first deploy.* Deployment is not a release criterion.
+
 ---
 
 ## Using it

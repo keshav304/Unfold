@@ -1254,17 +1254,93 @@ in the unit tests; only a whole-page axe run against a long, unhighlighted fence
 surfaced it, which is the argument for the M4.3 sweep being whole-page in the
 first place.
 
-**The best next lever, named** / entry chunk and document mount / The two long
-tasks left are ~330ms of script evaluation for the 139KB entry and ~330ms of
-React mounting a real document. The lever is reducing or deferring entry work,
-and the obvious candidate is search: `minisearch` plus index construction runs at
-load, and the index is only ever read after the palette opens.
+**M4.8 status confirmation, read from `plan.md` and the specs, not from memory**
+/ M4.1, M4.2, M4.4, M4.5, R5 / Each was checked against the plan's own wording
+and against the file that implements it. M4.1 prints the §7.8 report for
+`kitchen-sink` and `crosslinked` on every unit run — **23→12 blocks, 91% of
+words** for `kitchen-sink`, and `crosslinked` reports 100% because each of its
+H2s is a single paragraph, which the test asserts as a *reason* rather than a
+fixed ratio. M4.2's two-row header with the 1px title stub at 375px is
+recorded with its collapse order. M4.4's inventory is a *printed table and a
+test* in `src/test/motion.test.ts`, six declarations: three signature moments,
+one reveal, two ambient loops, with `--motion-ambient: 6400ms`; the
+non-reduced-motion half is `tests/e2e/motion.spec.ts:95`, a
+`test.use({ contextOptions: { reducedMotion: 'no-preference' } })` block with
+five tests including the 250ms mode-flip ceiling. M4.5's off-switch is asserted
+twice from the browser: `delight.spec.ts:31` (flag off → chunk never
+requested) and `:71` (flag on, reduced motion → still never requested). The R5
+contrast-allowlist entry was deleted at **G4/R11b, commit `4193cef`** — not in
+M4, which is why M4.3's own entry says so rather than claiming the credit.
 
-**It is not a free win, and that is the point.** Splitting `minisearch` out
-means the palette's first keystroke waits on a chunk — which is precisely the
-latency M2's decision put `cmdk` in the entry to prevent. So the next attempt
-has to be measured the way font preloading was: index-build time before and
-after, *and* time-to-first-result in the palette, with the second number as a
-hard constraint rather than a nice-to-have. A change that buys four TBT points
-by making search feel slow has not fixed a performance problem, it has moved
-it somewhere a user can feel.
+**Deployment is not a release criterion** / `docs/README.md`, logged as a human
+decision / The deployment section now says plainly that it is documented but not
+yet exercised on a real host. The reasoning: §10 gates measurable properties of
+the artifact, and "a Netlify deploy works" is not one — it is true the first
+time and needs re-checking every time the host or the `base` path changes.
+Recording it as a known-unexercised contract is honest; making it a gate would
+mean a gate that only the human who owns the deploy account can satisfy.
+
+**M4.6b — profiling the two long tasks, and the profile overturneds the plan's
+hypothesis** / `scripts/profile-long-tasks.ts`, median of 3 / The standing
+suspicion since M4.6 was that search index construction was ~100ms of the
+entry's cost and could be deferred. **It is 0ms, because the index is never
+built on load.** `useSearchIndex` is called from `Palette`, and `App.tsx`
+renders `{paletteOpen ? <Palette/> : null}` — the palette is not mounted until
+someone presses `⌘K`. The MiniSearch index is therefore already deferred past
+every measurement Lighthouse takes; there is nothing to move. Measured
+*directly*, at the moment the palette opens, construction is **10.4ms at 4x
+throttle** (4.3ms unthrottled). The premise was wrong, and it was wrong in the
+cheapest possible way to discover.
+
+**Three measurement traps, each of which produced a confidently wrong report
+before it produced a right one** / profiler design / Worth more than the
+numbers, because all three would have been reported as findings:
+
+1. **A minified profile cannot name anything.** The production entry's hot
+   functions are `mk`, `Ol`, `lC`, `dc`. Profiling `dist/` yields "198 samples
+   went into a function called `<anon>`" and nothing further. The profiler
+   builds `dist-profile/` with `--minify false` and serves *that* through the
+   same static host, so names are readable. Absolute times are pessimistic
+   (unminified code evaluates slower); the *ranking* is the finding.
+2. **Unthrottled, this page has zero long tasks.** No CPU slowdown, no TBT, no
+   buckets — a clean sheet that reads like success. Lighthouse's mobile
+   simulation is a 4x slowdown, so the failing score only exists under
+   throttling; profiling without it measures a machine, not the app.
+3. **V8's pseudo-frames are the largest rows in the profile.** `(idle)` was
+   5.9s against 378ms of real work — the first report read "94% unattributed"
+   and the answer was invisible underneath it. `(idle)` means *the main thread
+   had nothing to do*, which is the good outcome. Idle, program and GC are now
+   reported in their own rows and excluded from the percentages, so the
+   denominators are work rather than waiting.
+
+**The actual breakdown of the ~330ms mount** / median of 3 at 4x CPU throttle,
+unminified / Real work totals ~800ms, of which: React render/reconcile 225ms
+(29%), markdown parse 191ms (24%), entity extraction 80ms (10%), and 285ms (36%)
+in leaf frames with no recognisable ancestor — of which the largest single slice
+is bare module evaluation at `(root)`, plus DOMPurify construction, js-yaml
+loading and `getRegex`. TBT median 348ms. Shiki appears at only 4ms here against
+100ms in an earlier run of this same script: it is idle-deferred, so whether it
+lands inside the 4s capture window is a race, and one run's shiki number is not
+a measurement.
+
+**The entry's 273ms of eval is one bundle, 100% `index.js`** / React is
+inlined / React and ReactDOM are inlined into the app entry rather than split
+into their own chunk, so "React eval vs our eval" has no answer at the URL
+level — they are the same file. Separating them means changing the bundler's
+chunking, which is a product decision this task is explicitly not allowed to
+make. It is also the one lever the profile does point at, and it is the reason
+the next step is a decision rather than a task.
+
+Two numbers in that run are **not** comparable to the Lighthouse gate and should
+not be read as regressions: LCP 4924ms and the 327KB entry, both artifacts of
+profiling an unminified bundle through 4x throttling. What survives is the
+ranking.
+
+**M4.6c is skipped: the gate's precondition is not met** / index construction
+0ms at load, 10.4ms at palette open, against a ≥100ms threshold / The brief
+said implement the deferral only if the profile shows ≥100ms *and* the
+first-keystroke cost is zero. The first condition fails by an order of
+magnitude, so the second was never tested and M4.6c does not exist. Reporting
+that plainly is the whole value of having profiled rather than assumed — the
+alternative was spending a milestone on an optimisation for work that was
+already off the critical path.

@@ -11,3 +11,4 @@ lighthouse*.html
 
 # Playwright + Lighthouse output: artifacts for review, never sources.
 artifacts/
+dist-profile

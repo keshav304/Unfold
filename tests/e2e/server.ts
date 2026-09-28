@@ -122,9 +122,17 @@ export function distDir(): string {
 export const MISSING_DOC = '/testdocs/definitely-not-deployed.md'
 export const STRANGER_PREFIX = '/node_modules/'
 
-/** Start the host. One per test run, shared by every worker. */
-export async function startServer(port = PREVIEW_PORT): Promise<Server> {
-  const root = distDir()
+/**
+ * Start the host. One per test run, shared by every worker.
+ *
+ * `root` is a parameter rather than a hardcoded `distDir()` because M4.6b
+ * profiles an **unminified** build: a minified entry names its functions `mk`,
+ * `Ol`, `lC`, so a profile of it cannot say what is costing 330ms, only that
+ * something called `mk` is. The same host serves both roots — one static-host
+ * implementation, two directories — because a profiler that served the app from
+ * a different kind of server would be measuring a different app.
+ */
+export async function startServer(port = PREVIEW_PORT, root = distDir()): Promise<Server> {
   const server = createServer((req, res) => {
     const url = req.url ?? '/'
     const requested = decodeURIComponent(url.split('?')[0] as string)

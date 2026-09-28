@@ -428,9 +428,21 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             weighted audits that cost the most, so the failure names itself.
             TBT is the cause (weight 30, score 0.46-0.65) — LCP is stable at
             2.0-2.5s, TBT is not, which is why the gate is a median of three.
-            The remaining levers all trade product behaviour for the metric;
-            see `DECISIONS.md` for the one worth taking deliberately, and the
-            measurement that must accompany it.
+      - [x] **M4.6b profiled the two long tasks** (`npm run profile:perf`, median
+            of 3, 4x CPU throttle, no product changes). Mount breaks down as
+            React render/reconcile 225ms (29%), markdown parse 191ms (24%),
+            entity extraction 80ms (10%), unattributed leaf frames 285ms (36%).
+            Entry eval 273ms is **one bundle** — React and ReactDOM are inlined
+            into `index.js`, so there is no URL-level split to measure and
+            splitting them is a bundler decision, not a profiling one.
+      - [x] **M4.6c NOT DONE, and deliberately: the profile killed its
+            premise.** Search index construction is **0ms at load** — the
+            palette is not mounted until `⌘K`, so the MiniSearch index is
+            already past every point Lighthouse measures. Measured at the
+            moment the palette opens it is 10.4ms at 4x throttle, against a
+            ≥100ms precondition. The first-keystroke constraint was therefore
+            never tested and no deferral was implemented, because there is no
+            ≥100ms of index work to defer.
 - [x] M4.7 Docs: `docs/README.md` written — what it is, the zero-setup path,
       full config reference (§1.4), authoring conventions (§1.2), deployment
       contract, keyboard, what's in the box, v1 limits (§15). The *deploy* half
