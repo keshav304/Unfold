@@ -319,6 +319,17 @@ export function Palette({
      */
     <div
       className="palette-overlay glass"
+      // M4.3: the overlay is a dialog, and saying so is what takes it out of
+      // axe's `region` rule — "all page content should be contained by
+      // landmarks", which has fired on this overlay, cmdk's own input label and
+      // its listbox in every scan since M2 without being seen, because the M2
+      // audit scopes its palette scan to `.palette` and stops at this element's
+      // edge. `aria-modal` is also simply true: nothing behind it is reachable
+      // while it is open, and that is what the palette's focus trap has been
+      // enforcing since M2.
+      role="dialog"
+      aria-modal="true"
+      aria-label={INPUT_LABEL}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onOpenChange(false)
       }}

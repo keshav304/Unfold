@@ -145,6 +145,91 @@ describe('§9 every header control has an accessible name of its own', () => {
   })
 })
 
+describe('§9 the skip link is before the landmark it names', () => {
+  it('is the app\'s first focusable element, not the header\'s', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    // It was the first child of `<main>` — the element it points at — so
+    // activating it moved focus nowhere. It then sat *after* `<header>`, which
+    // carries the menu button, the reading-mode toggle, the search trigger and
+    // the view switcher, so the first Tab landed in the header instead. A skip
+    // link that is not first does not skip the header, which is the main thing
+    // anyone uses it for.
+    const root = container.querySelector('.app') as HTMLElement
+    const skip = root.querySelector('.skip-link') as HTMLElement
+    expect(skip).not.toBeNull()
+    expect(skip.getAttribute('href')).toBe('#main')
+    // The first anchor or button *in document order*, which is the tab order.
+    const firstFocusable = root.querySelector('a[href], button:not([disabled])')
+    expect(firstFocusable, 'the skip link is not the first focusable element').toBe(skip)
+  })
+
+  it('lives outside <main>, so activating it moves focus', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    expect(container.querySelector('main .skip-link')).toBeNull()
+  })
+
+  it('and its target is programmatically focusable, or the skip only scrolls', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    // Without `tabindex="-1"` the fragment navigation scrolls but does not move
+    // focus, so the next Tab resumes from the top of the document and the skip
+    // achieves nothing at all.
+    const main = container.querySelector('main') as HTMLElement
+    expect(main.getAttribute('tabindex')).toBe('-1')
+  })
+
+  it('it is only in the reader, where there is content to skip to', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    expect(container.querySelectorAll('.skip-link')).toHaveLength(1)
+  })
+})
+
+describe('§9 every horizontal scroller is reachable by keyboard', () => {
+  // M2 gave the table scroller a `role="region"`, a name and a tab stop. The
+  // code and terminal scrollers were left out, and a box that scrolls sideways
+  // with no tab stop is a box a keyboard user cannot pan — axe calls it
+  // `scrollable-region-focusable`, and only reports it at a width where a line
+  // actually overflows, which is why it survived until M4.3 scanned at 375px.
+  it('the code block scroller is a named, focusable region', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    const scroller = container.querySelector('.code-content') as HTMLElement
+    expect(scroller).not.toBeNull()
+    expect(scroller.getAttribute('tabindex')).toBe('0')
+    expect(scroller.getAttribute('role')).toBe('region')
+    // Named from the document, the way the table's is named from its header
+    // row — so two code blocks in one section are distinguishable.
+    expect(scroller.getAttribute('aria-label')).toMatch(/^Code: .+/u)
+  })
+
+  it('the terminal scroller is a named, focusable region', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    const scroller = container.querySelector('.terminal-content') as HTMLElement
+    expect(scroller).not.toBeNull()
+    expect(scroller.getAttribute('tabindex')).toBe('0')
+    expect(scroller.getAttribute('role')).toBe('region')
+    expect(scroller.getAttribute('aria-label')).toBe('Terminal output')
+  })
+
+  it('and the table scroller M2 built is still one', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    const scroller = container.querySelector('.reader-table-scroll') as HTMLElement
+    expect(scroller.getAttribute('tabindex')).toBe('0')
+    expect(scroller.getAttribute('role')).toBe('region')
+  })
+})
+
+describe('§9 the palette is a dialog, and so the whole page scans clean', () => {
+  it('the overlay declares itself a modal dialog', async () => {
+    const { container } = await renderFixture('kitchen-sink')
+    fireEvent.click(container.querySelector('.app-search') as HTMLButtonElement)
+    const overlay = (await screen.findByRole('dialog')) as HTMLElement
+    // Without this, axe's `region` rule fires on the overlay, on cmdk's own
+    // input label and on its listbox — three findings that sat outside the
+    // `.palette` subtree the M2 scan covered, for four milestones.
+    expect(overlay.getAttribute('aria-modal')).toBe('true')
+    expect(overlay.getAttribute('aria-label')).toBeTruthy()
+  })
+})
+
 describe('§7.8 the per-section "show all" override', () => {
   it('appears only on a section that lost something', async () => {
     const { container } = await renderFixture('kitchen-sink')

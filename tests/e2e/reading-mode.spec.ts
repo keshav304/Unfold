@@ -112,11 +112,13 @@ test.describe('the reading modes in a real browser', () => {
     await expect(row).toContainText('Switch to executive mode')
     // A palette with a new group in it is a new listbox shape; the scan runs on
     // the open palette, which is where the M2 audit found its violations.
-    // Scoped to the palette, as M2's scan is: the overlay itself is not inside a
-    // landmark, which is a pre-existing `region` finding the M2 scope never saw.
-    // M4.3 owns that one — see `docs/DECISIONS.md` — and this file does not
-    // quietly widen a gate to hide it.
-    expect(await violations(page, '.palette')).toEqual([])
+    // Scoped to the palette's *dialog* rather than to `.palette`, because M4.3
+    // gave the overlay `role="dialog"` and the `region` findings it used to
+    // raise live on the overlay and cmdk's own wrappers — outside the subtree
+    // the M2 scope covered. The whole page is scanned with the palette closed in
+    // the scenario below, so this is a widening of what is *checked*, never a
+    // narrowing of what must pass.
+    expect(await violations(page, '.palette-overlay')).toEqual([])
     await snapshot(page, '12-palette-reading-mode-row')
 
     await row.click()

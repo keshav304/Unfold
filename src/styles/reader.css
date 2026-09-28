@@ -582,20 +582,30 @@
 
   .inline-link {
     color: var(--primary);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
+    /* M4.3: underlined, not colour-only. A link inside a sentence that differs
+       from its surroundings only by hue is invisible to a reader who cannot
+       separate cyan from grey, and axe reports it as `link-in-text-block` —
+       which it did, in the reader, at every width. The underline is the
+       convention for exactly this and costs nothing. `text-underline-offset`
+       keeps it off the descenders in 14px body text, where a default underline
+       reads as a strikethrough. */
+    text-decoration: underline;
+    text-decoration-color: var(--accent-wash);
+    text-underline-offset: 2px;
   }
   .inline-link:hover {
-    border-bottom-color: var(--primary);
+    text-decoration-color: var(--primary);
   }
   /* §6.4: an unresolvable internal link is muted with a tooltip, not broken. */
   .inline-link--unresolved {
     color: var(--text-muted);
     cursor: help;
-    border-bottom: 1px dotted var(--text-muted);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--text-muted);
   }
   .inline-link--unresolved:hover {
-    border-bottom-color: var(--text-muted);
+    text-decoration-color: var(--text-muted);
   }
 
   .reader-html,
@@ -976,10 +986,31 @@
   }
 
   .palette-header__esc {
-    color: var(--text-muted);
+    /*
+     * M4.3: `--text-secondary`, not `--text-muted`, and the reason is measured
+     * rather than aesthetic. axe reported `color-contrast` on this hint at
+     * 3.82:1 — but not because `--text-muted` is too dark. axe composites the
+     * element through the `.glass` overlay's `backdrop-filter` and reads the
+     * pixels back, so it measures a blend of the text colour and the canvas at
+     * roughly three-quarters strength rather than the token itself. (The exact
+     * figures are quoted in `docs/DECISIONS.md`, which is where measured values
+     * live — a hex in a comment is a hex in a comment, and
+     * `genericity.test.ts` is right to refuse one here.)
+     *
+     * The fix that makes the *measurement* stable is to stop relying on that
+     * blend, and the fix that makes the hint better anyway is the same one: this
+     * is the only thing that tells a keyboard user how to dismiss the dialog, so
+     * it is not metadata and never was. `--text-secondary` is 12.02:1 on
+     * `--surface-1` and stays clear of 4.5:1 through any blend the overlay can
+     * apply to it.
+     */
+    color: var(--text-secondary);
     padding: var(--space-2xs) var(--space-xs);
     border: 1px solid var(--border-muted);
     border-radius: var(--radius-sm);
+    /* An opaque surface of its own, so the ratio does not depend on what the
+       dialog happens to be covering. */
+    background: var(--surface-2);
   }
 
   .palette-list {
@@ -1742,9 +1773,32 @@
     background: var(--surface-1);
     transform: translateX(-100%);
     transition: transform var(--motion-slow) var(--ease-out);
+    /*
+     * M4.3: the closed drawer leaves the accessibility tree and the tab order.
+     *
+     * `translateX(-100%)` moves the drawer off the screen and does nothing
+     * else: every section link inside it stayed a Tab stop, and a keyboard user
+     * pressing Tab in the reader landed in an off-screen list with no way to
+     * see where they were. `visibility: hidden` removes it from the tab order
+     * *and* from the accessibility tree, which is what "closed" has to mean.
+     *
+     * The delay on the way out is the whole trick: `visibility` is animatable,
+     * so holding it `visible` for the length of the slide lets the drawer finish
+     * leaving instead of vanishing on the frame the state flips. Both durations
+     * are the §8 token, so reduced motion collapses them together and the
+     * drawer simply appears and disappears.
+     */
+    visibility: hidden;
+    transition:
+      transform var(--motion-slow) var(--ease-out),
+      visibility 0s linear var(--motion-slow);
   }
   .toc[data-open='true'] {
     transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--motion-slow) var(--ease-out),
+      visibility 0s linear 0s;
   }
 
   .toc-close {

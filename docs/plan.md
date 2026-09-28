@@ -276,7 +276,7 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
         375px — title width, touch-target bounding boxes, pane parity, the
         drawer's three exits, palette rows, graph legibility, the inspector
         sheet, and a Tier 0 document. The existing overflow assertions stand.
-- [ ] M4.3 A11y audit: §9 checklist, `:focus-visible` rings, AA on chips +
+- [x] M4.3 A11y audit: §9 checklist, `:focus-visible` rings, AA on chips +
       muted text (the usual failures).
       - [x] **Apply the `--text-subtle` contract decided at G3** (see
             `DECISIONS.md`): `--text-subtle` becomes inactive/decorative only,
@@ -295,8 +295,44 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             migration, not before it. **Done at G4/R11b** — a selector→reason
             map, with "no dead entries" and "would actually catch one" tests,
             scanning every stylesheet rather than only `reader.css`.
-      - [ ] Remaining §9 checklist items (focus-ring sweep, chip contrast at
-            every surface) are not yet done.
+      - [x] Remaining §9 checklist items (focus-ring sweep, chip contrast at
+            every surface) are not yet done. **Done at M4.3** — see below.
+      - [x] **Three findings the gate had been hiding, all real and all fixed.**
+        M4.1 recorded them and refused to assert around them; M4.3 fixed them
+        and widened the scan that revealed them.
+        - [x] `scrollable-region-focusable` — the code and terminal scrollers
+          got what M2 gave the *table*: `role="region"`, a document-derived
+          name, `tabindex="0"`. Only visible at 375px, where a line overflows.
+        - [x] `link-in-text-block` — `.inline-link` was colour-only inside a
+          sentence. Now underlined, with `text-underline-offset: 2px` so it
+          does not read as a strikethrough at 14px.
+        - [x] `region` on the palette overlay, cmdk's input label and its
+          listbox — the M2 scan stopped at `include('.palette')`. The overlay
+          is now `role="dialog" aria-modal="true"`, which is what it already
+          was in behaviour.
+      - [x] **Skip link was in the wrong place, twice.** It was the first child
+        of `<main>` — the element it points at — and then, once moved out,
+        *after* `<header>`, whose four controls are all Tab stops. It is now
+        the first focusable element, and `<main>` has `tabindex="-1"` so the
+        fragment navigation moves focus rather than only scrolling.
+      - [x] **The closed drawer was in the tab order.** `translateX(-100%)`
+        moved it off screen and did nothing else. Now `visibility: hidden`,
+        with the transition held visible for the length of the slide.
+      - [x] **Drawer focus: in, trapped, restored** — §9's drawer clause, which
+        M1–M3 had left as the missing half of the palette's.
+      - [x] **`<title>` is the document title.** `index.html` shipped a
+        hardcoded "Unfold", so tab strips, bookmarks, window titles and search
+        results all named the product.
+      - [x] The palette's Esc hint was reported failing at 3.82:1 — a
+        `backdrop-filter` compositing artifact, not the 6.96:1 the token has.
+        Fixed by giving it an opaque surface and `--text-secondary`, which is
+        also the right design: it is the only thing that says how to dismiss
+        the dialog.
+      - [x] **axe strict-zero on whole pages**, at 1440px and 375px, with the
+        palette open, the drawer open and the reader in executive mode —
+        `tests/e2e/a11y.spec.ts`, 14 scenarios. The scope was widened; **no
+        threshold moved and nothing was allowlisted.**
+      - [x] Lighthouse a11y: **100** (the §10 floor is 95).
 - [ ] M4.4 Motion audit (§8): exactly 3 signature moments; reveals fire once;
       reduced-motion → full static fallback verified.
 - [ ] M4.5 Delight behind `features.delight` (§7.10); off under

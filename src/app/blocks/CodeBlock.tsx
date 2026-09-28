@@ -74,6 +74,7 @@ export function CodeBlock({ code, lang, filePath }: CodeBlockProps): JSX.Element
   }, [code, lang])
 
   const lineCount = code.split('\n').length
+  const scrollerLabel = `Code: ${filePath ?? (lang || 'text')}`
 
   return (
     <figure className="code-block" data-lang={lang}>
@@ -93,7 +94,23 @@ export function CodeBlock({ code, lang, filePath }: CodeBlockProps): JSX.Element
             </span>
           ))}
         </div>
-        <div className="code-content">
+        {/*
+          M4.3: the scroller is a `role="region"` with a name and a tab stop,
+          exactly as M2 did for the table scroller — and the reason is the same
+          one, noticed four milestones later. A horizontally scrollable box with
+          no focusable child and no tab stop is unreachable by keyboard: a reader
+          who cannot pan it cannot read the right-hand end of a wide line. axe's
+          `scrollable-region-focusable` reports it at 375px, where a code line
+          actually overflows, and not at 1440px, where it does not — so the
+          finding only exists on the width nobody had scanned.
+
+          The name is derived from the document, the same way the table's is from
+          its own header row, so two code blocks in a section are distinguishable
+          and nothing is invented. `Code:` rather than the bare path, because
+          §6.5 turns a path in prose into an entity chip and an unprefixed
+          "src/pipeline/parse.ts" would announce as if it were the only one.
+        */}
+        <div className="code-content" tabIndex={0} role="region" aria-label={scrollerLabel}>
           {html === null ? (
             <pre className="code-plain">
               <code>{code}</code>

@@ -26,7 +26,19 @@ export function Terminal({ code }: TerminalProps): JSX.Element {
             </span>
           ))}
         </div>
-        <pre className="terminal-content">
+        {/*
+          M4.3: the same treatment the code block and the table scroller already
+          have — a named `role="region"` with a tab stop. An ASCII diagram is the
+          one block kind that *always* overflows on a phone, because its lines
+          are drawn to a fixed width rather than to the prose column, so this is
+          the block most in need of being pannable and the one axe flags first.
+
+          "Terminal output" rather than the figure's visible "output": the region
+          name is what a screen reader announces when focus lands here, and it
+          needs to say what the region *is* without relying on the reader having
+          just read the caption above it.
+        */}
+        <pre className="terminal-content" tabIndex={0} role="region" aria-label="Terminal output">
           <code>{code}</code>
         </pre>
         <span className="terminal-scanline" aria-hidden="true" />

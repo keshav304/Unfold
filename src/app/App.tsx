@@ -141,6 +141,26 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
 
   const doc = state.status === 'ready' ? state.doc : undefined
 
+  /*
+   * §9: "title = doc title". The document title is the one thing about a page
+   * that is true before anything renders, in a tab strip, in a bookmark, in a
+   * screen-reader window title and in a search result — and `index.html` ships
+   * a hardcoded "Unfold", so all four have been showing the product's name
+   * rather than the document's. The fallback matters too: §7.2's chain is
+   * frontmatter > H1 > filename, and `doc.title` is the end of it, so this can
+   * never be empty.
+   */
+  useEffect(() => {
+    if (doc === undefined || typeof document === 'undefined') return
+    const previous = document.title
+    document.title = doc.title
+    // Restored on unmount so a second App in the same document — which the unit
+    // suite does, dozens of times — does not inherit the last fixture's title.
+    return () => {
+      document.title = previous
+    }
+  }, [doc])
+
   const slugs = useMemo(
     () => (doc === undefined ? new Set<string>() : new Set(flattenSections(doc.sections).map((s) => s.slug))),
     [doc],
@@ -155,6 +175,70 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
     // Let the hash change land before scrolling to the new target.
     window.setTimeout(() => scrollToSlug(slug), 0)
   }, [])
+
+  /*
+   * M4.3: Esc, focus in, focus out, and Tab stays inside — §9's drawer clause.
+   *
+   * Esc arrived in M4.2. The rest is here, and the first half of it is a
+   * defect rather than a feature: the closed drawer was `translateX(-100%)`,
+   * which moves it off the screen and does **nothing** to the tab order. Every
+   * section link inside a closed drawer was a Tab stop a keyboard user could
+   * reach and focus, with no way to see what they had focused. The CSS fix
+   * (`visibility: hidden`, which does remove it from both the tab order and the
+   * accessibility tree) is in the M4.3 stylesheet block; what is left here is
+   * the behaviour the CSS cannot express.
+   *
+   * Focus goes in on open and comes back on close, for the same reason the
+   * palette's does (M2's `restoreFocusTo`): a drawer that swallows focus and
+   * does not give it back strands a keyboard user at the top of the document,
+   * and a drawer that opens without moving focus leaves the next keypress
+   * acting on the page behind it.
+   */
+  const menuRef = useRef<HTMLButtonElement>(null)
+  const drawerWasOpen = useRef(false)
+
+  useEffect(() => {
+    if (tocOpen) {
+      const drawer = document.getElementById('toc')
+      // The close button, not the first link: it is the one control whose
+      // meaning does not depend on reading the list, so it is a usable landing
+      // spot for a reader who opened the drawer by accident.
+      const first = drawer?.querySelector<HTMLElement>('.toc-close, .toc-link') ?? null
+      first?.focus()
+    } else if (drawerWasOpen.current) {
+      // Only on the way *out*. Mounting with the drawer closed must not steal
+      // focus from the document on every route change.
+      menuRef.current?.focus()
+    }
+    drawerWasOpen.current = tocOpen
+  }, [tocOpen])
+
+  useEffect(() => {
+    if (!tocOpen) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Tab') return
+      const drawer = document.getElementById('toc')
+      if (drawer === null) return
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null)
+      if (focusable.length === 0) return
+      const first = focusable[0] as HTMLElement
+      const last = focusable[focusable.length - 1] as HTMLElement
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || !drawer.contains(active))) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [tocOpen])
 
   const goTo = useCallback((view: ViewName) => {
     const next: Route = view === 'reader' ? { name: 'reader' } : { name: view }
@@ -240,11 +324,40 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
 
   return (
     <div className="app" data-view={active.name}>
+      {/*
+        §9: skip-to-content. Three things it had wrong, and only the last is
+        visible in the markup.
+
+        It was rendered *inside* `<main>`, as the first child of the very element
+        it points at — so a keyboard user activated it and focus did not move,
+        because it was already there. A skip link is the one control whose entire
+        job is to move focus somewhere it is not.
+
+        It then sat *after* `<header>`, which is its own kind of wrong: the
+        header carries the menu button, the reading-mode toggle, the search
+        trigger and the view switcher, so the first Tab press landed in the
+        header rather than on the link. A skip link that is not the *first*
+        focusable element does not skip the header, which is the main thing
+        anyone uses it for. So it is the first thing in the app.
+
+        And `<main>` had no `tabindex`, so even correctly placed it would have
+        scrolled without moving focus: the next Tab would resume from the top of
+        the document and the skip would have achieved nothing. `tabIndex={-1}`
+        makes the target programmatically focusable without adding it to the tab
+        order, which is the standard treatment.
+      */}
+      {active.name === 'reader' ? (
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
+      ) : null}
+
       <div className="progress-bar" style={{ ['--progress' as string]: `${progress * 100}%` }} aria-hidden="true" />
 
       <header className="app-header">
         <button
           type="button"
+          ref={menuRef}
           className="app-menu"
           aria-label="Open contents"
           aria-expanded={tocOpen}
@@ -408,7 +521,7 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           onClose={() => setTocOpen(false)}
         />
 
-        <main className="app-main" id="main">
+        <main className="app-main" id="main" tabIndex={-1}>
           {/*
             M3.5 workbench. The three zones are grid columns, not conditional
             wrappers, so opening the inspector never reflows the canvas — the
@@ -419,9 +532,6 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           */}
           {active.name === 'reader' ? (
             <>
-              <a className="skip-link" href="#main">
-                Skip to content
-              </a>
               <Hero doc={doc} onNavigate={onNavigate} />
               <Reader
                 doc={doc}

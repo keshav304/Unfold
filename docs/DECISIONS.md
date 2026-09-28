@@ -880,3 +880,98 @@ it, so this is a one-line change that only bites where fitting is the wrong
 answer. The trade is deliberate and is the one every map on a phone makes: a
 graph wider than the screen and readable, rather than a graph that fits and
 cannot be read. Panning is already bound and the zoom controls are on screen.
+
+---
+
+## M4.3 — the §9 sweep
+
+**The axe gate is scoped to whole pages at both widths, and the two findings it
+had been hiding are fixed** / `scrollable-region-focusable`, `link-in-text-block`
+and the palette's `region` / M4.3 widened the scan rather than the threshold /
+The M2 audit scanned the open palette with `include('.palette')`, which stops at
+the overlay's edge — so the overlay itself, cmdk's own input label and its
+listbox were never in the gate. And nothing had ever run axe at 375px, which is
+where a code line actually overflows. All three findings were in the product
+since M1; the contrast migration and the R5 deletion made "zero violations" true
+only for the surfaces that happened to be scanned, which is a weaker claim than
+it sounds. Nothing was allowlisted and no threshold moved: the three were fixed,
+and the scan was widened to cover them.
+
+**The code and terminal scrollers get what M2 gave the table** / `role="region"`,
+a document-derived name, `tabindex="0"` / A box that scrolls sideways with no tab
+stop is a box a keyboard user cannot pan, and axe only reports it at a width
+where a line actually overflows. The name is `Code: <path or lang>` and
+`Terminal output` — derived, never invented, and prefixed so two code blocks in
+one section announce differently, exactly as M2 named the table regions after
+their own header rows.
+
+**Inline links are underlined** / `link-in-text-block`, serious, at every width /
+A link inside a sentence that differs from its surroundings only by hue is
+invisible to a reader who cannot separate cyan from grey. The underline is the
+convention for exactly this and costs nothing; `text-underline-offset: 2px`
+keeps it off the descenders in 14px body text, where the default reads as a
+strikethrough.
+
+**The palette overlay is `role="dialog" aria-modal="true"`** / Clears `region`,
+and is true anyway / Nothing behind the palette is reachable while it is open —
+that is what M2's focus trap has been enforcing — so `aria-modal` describes the
+behaviour rather than adding one. This is the smallest change in the milestone
+and it removed three violations at once.
+
+**The skip link was in the wrong place, twice** / Moved to the first child of
+`.app`, and `<main>` given `tabindex="-1"` / It was the first child of the very
+element it points at, so activating it moved focus nowhere; moved out, it then
+sat *after* `<header>`, whose menu button, reading-mode toggle, search trigger
+and view switcher are all Tab stops, so the first Tab landed in the header. And
+`<main>` had no `tabindex`, so even correctly placed the fragment navigation
+would have scrolled without moving focus. All three are the same defect wearing
+different hats: a skip link is the one control whose entire job is to move focus
+somewhere it is not, and it has to be the *first* focusable element to do it.
+
+**The closed drawer was in the tab order** / `visibility: hidden`, not
+`translateX(-100%)` / Every section link in a closed drawer was a Tab stop a
+keyboard user could reach and focus, with no way to see what they had focused.
+`transform` moves an element off the screen and does nothing to the tab order;
+`visibility: hidden` removes it from the tab order *and* the accessibility tree,
+which is what "closed" has to mean. `visibility` is animatable, so holding it
+visible for the length of the slide lets the drawer finish leaving.
+
+**The drawer now takes focus, keeps it, and gives it back** / §9's drawer clause,
+which M1–M3 had left as the missing half of the palette's / Focus goes to the
+close button on open (the one control whose meaning does not depend on having
+read the list), Tab cycles in both directions while open, and Esc or a link
+returns it to the menu button. A drawer that swallows focus and does not give it
+back strands a keyboard user at the top of the document — the exact defect the
+palette's `restoreFocusTo` was written to avoid, in a different component.
+
+**The document title is the document title** / §9 says so; `index.html` shipped a
+hardcoded "Unfold" / The tab strip, the bookmark, the screen-reader window title
+and the search result all named the *product* rather than the document being
+read. `doc.title` is the end of §7.2's fallback chain, so it can never be empty,
+and it is restored on unmount so a second App in the same document does not
+inherit the last fixture's title.
+
+**The palette's Esc hint is `--text-secondary`, and the reason is a compositing
+artifact** / axe measured 3.82:1, not the 6.96:1 the token actually has / The
+`.glass` overlay's `backdrop-filter` leaves axe reading composited pixels, so it
+measured the text colour at roughly three-quarters strength against a blended
+surface — a failure that appeared in one CI-shaped run and not in others on the
+same build. A gate that fails on a compositing artifact is worse than no gate,
+because the next person to see it widens something. Two changes make the
+measurement deterministic and happen to be the right design anyway: the hint gets
+an opaque surface of its own, and it moves from `--text-muted` to
+`--text-secondary` (12.02:1 on `--surface-1`) because it is the only thing that
+tells a keyboard user how to dismiss the dialog. It is not metadata and never
+was.
+
+**The R5 contrast allowlist entry was already gone, and the axe gate is
+strict-zero on every surface CI can reach** / Deleted at G4/R11b; M4.3 widened
+the scope / The M4 brief lists the R5 deletion as this session's one permitted
+gate change, and `docs/plan.md` records it as applied at G4/R11b — so the commit
+for it is `4193cef`, not one of M4's. What M4.3 did is make sure the
+zero-violation claim covers the surfaces the old scope left out, which is the
+half of "delete the allowlist" that a scoped scan quietly skips. The
+`genericity.test.ts` colour guard proved its own worth during this task by
+refusing two hex literals that appeared in a *comment* explaining a contrast
+measurement; a guard that reads comments is a guard that has to be obeyed by the
+person writing the explanation.
