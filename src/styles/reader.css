@@ -1855,6 +1855,123 @@
 }
 
 /* ==========================================================================
+   ASCII diagram → SVG (M4.14c). One diagram block, two presentations: the
+   reader shows the parsed picture, and the terminal window (§6.9) is what a
+   fence the parser declined gets instead.
+
+   Every value below is a token. The node is the graph view's metro node in
+   outline form — same `--surface-1` shell, same 1.5px `--border-strong`, same
+   inset hairline — and the edge is the graph view's track: 2px `--border-muted`,
+   `--primary` with a glow on hover, and the shared `edge-trace` keyframes for
+   anything animated. There is one design language here on purpose: a diagram in
+   the reader and a diagram in the graph workbench are the same object.
+   ========================================================================== */
+
+.ascii-diagram {
+  position: relative;
+  margin: var(--space-lg) 0;
+}
+
+/*
+ * The diagram's own natural width is the cap, set inline from the fence's grid
+ * (`--ascii-diagram-width`). `width: 100%` with that cap means the drawing is
+ * never scaled up past its own size and never scaled sideways off a phone.
+ */
+.ascii-diagram__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: var(--ascii-diagram-width, 100%);
+}
+
+.ascii-node__box {
+  fill: var(--surface-1);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.ascii-node__hairline {
+  fill: none;
+  stroke: var(--border-muted);
+  stroke-width: 1;
+}
+
+.ascii-node__label {
+  fill: var(--text-high);
+  font-family: var(--font-mono);
+  font-size: var(--text-code-md-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.ascii-edge__path {
+  fill: none;
+  stroke: var(--border-muted);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: stroke var(--motion-fast) var(--ease-out);
+}
+
+.ascii-edge__arrowhead {
+  fill: var(--border-muted);
+  transition: fill var(--motion-fast) var(--ease-out);
+}
+
+.ascii-edge__label {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-code-sm-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.ascii-note {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-code-md-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Hover is the graph canvas's edge treatment (§7.6): the track lights up with
+ * `--primary`, picks up the shared `edge-trace` crawl, and glows. The keyframes
+ * and the `--motion-ambient` tier are the graph's own — this is the same motion
+ * language, not a second one.
+ *
+ * §14 of the milestone asks for `--gradient` here. An SVG `stroke` cannot be a
+ * CSS gradient — the graph canvas's own `stroke: var(--gradient)` declaration is
+ * dropped by the browser for exactly that reason, so applying it literally would
+ * be applying nothing. The gradient's component tokens do the same job through
+ * a declaration that survives: `--primary` for the live stroke, and the shared
+ * crawl animation over it.
+ */
+.ascii-edge:hover .ascii-edge__path {
+  stroke: var(--primary);
+  stroke-dasharray: 6 4;
+  animation: edge-trace var(--motion-ambient) linear infinite;
+  filter: drop-shadow(0 0 4px var(--primary));
+}
+
+.ascii-edge:hover .ascii-edge__arrowhead {
+  fill: var(--primary);
+}
+
+/*
+ * A connector drawn with gaps in the source is dashed here, and `--secondary`
+ * rather than the resting `--border-muted`, so the two states are visibly
+ * different at a glance. Reduced motion leaves the dash and drops the crawl:
+ * tokens.css zeroes `--motion-ambient`, which is the static treatment §14
+ * requires rather than a missing animation.
+ */
+.ascii-edge--dashed .ascii-edge__path {
+  stroke: var(--secondary);
+  stroke-dasharray: 6 4;
+  animation: edge-trace var(--motion-ambient) linear infinite;
+}
+
+.ascii-edge--dashed .ascii-edge__arrowhead {
+  fill: var(--secondary);
+}
+
+/* ==========================================================================
    Breakpoints (DESIGN.md §5.3, spec §5.3). Outside @layer so the media query
    wins over the component layer without needing specificity tricks.
    ========================================================================== */
