@@ -11,6 +11,13 @@ export type Route =
   | { name: 'reader'; slug?: string }
   | { name: 'graph' }
   | { name: 'stepper'; step?: number }
+  /**
+   * The welcome view (M4.12). It is a route rather than a special case in the
+   * shell because it has to be *linkable*: the header wordmark goes to it, so a
+   * reader can be sent back to the front door from anywhere, and that has to
+   * survive a reload and a shared link.
+   */
+  | { name: 'welcome' }
 
 /** `#/stepper` — the stepper, at whatever step the reader was last on. */
 export const STEPPER_HASH = '#/stepper'
@@ -23,6 +30,9 @@ export function stepperHash(step: number): string {
 }
 
 export const READER_HASH = '#/'
+
+/** `#/welcome` — the front door (M4.12). */
+export const WELCOME_HASH = '#/welcome'
 
 /** Decode a hash fragment without ever throwing on a malformed escape. */
 function safeDecode(value: string): string {
@@ -37,6 +47,7 @@ function safeDecode(value: string): string {
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#+/u, '')
   if (raw === '' || raw === '/') return { name: 'reader' }
+  if (raw === '/welcome') return { name: 'welcome' }
   if (raw === '/graph') return { name: 'graph' }
   if (raw === '/stepper') return { name: 'stepper' }
   // `#/stepper/3` — the deep link for one step (§7.7). Only digits: a
@@ -54,6 +65,7 @@ export function parseHash(hash: string): Route {
 
 /** The hash a route should be written to. */
 export function hashFor(route: Route): string {
+  if (route.name === 'welcome') return WELCOME_HASH
   if (route.name === 'graph') return '#/graph'
   if (route.name === 'stepper') {
     return route.step === undefined ? STEPPER_HASH : stepperHash(route.step)

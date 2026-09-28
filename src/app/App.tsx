@@ -15,14 +15,16 @@ import { Hero } from './components/Hero'
 import { Toc } from './components/Toc'
 import { Palette, isPaletteShortcut, isTypingTarget } from './palette/Palette'
 import { Reader } from './views/Reader'
+import { Welcome } from './views/Welcome'
 import { Stepper, clampStep } from './stepper/Stepper'
-import { hashFor, parseHash, resolveRoute, stepperHash, type Route, type ViewName } from './routing'
+import { hashFor, parseHash, resolveRoute, stepperHash, WELCOME_HASH, type Route, type ViewName } from './routing'
 import { scrollToSlug } from './navigate'
 import { useDocument } from './useDocument'
 import { useScrollProgress } from './useScrollProgress'
 import { useScrollSpy } from './useScrollSpy'
 import { useReadingMode } from './modes/useReadingMode'
 import { createDelight } from './delight/delight'
+import type { MarkdownFile } from './components/useMarkdownFile'
 
 /**
  * The graph view is a lazy chunk and nothing else may import it statically
@@ -330,6 +332,44 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
   )
   const activeSlug = useScrollSpy(h2Slugs)
 
+  /*
+   * The app-wide drop handler (M4.12, closing M4.11b).
+   *
+   * The requirement is that dropping a file onto a **loaded** document swaps
+   * documents. That cannot live in the drop screen, because the drop screen is
+   * not mounted when a document is loaded — which is precisely the case the
+   * requirement is about, and the reason the human could not confirm it.
+   *
+   * It is a `window` listener rather than a React `onDrop` on a wrapper, for
+   * two reasons: the reader's own area is a grid with a rail, and a drop
+   * anywhere on it should count; and React's synthetic events would need a
+   * handler on every ancestor, which is a way of saying "there is no handler
+   * for the gaps".
+   */
+  const loadFile = useCallback((file: MarkdownFile) => state.loadText(file.text, file.name), [state.loadText])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onDragOver = (event: DragEvent): void => {
+      // Without preventDefault the browser navigates to the dropped file and
+      // the app is simply gone. This is the whole reason a drop target works.
+      event.preventDefault()
+    }
+    const onDrop = (event: DragEvent): void => {
+      event.preventDefault()
+      const file = event.dataTransfer?.files[0]
+      if (file === undefined) return
+      const reader = new FileReader()
+      reader.onload = () => loadFile({ text: String(reader.result ?? ''), name: file.name })
+      reader.readAsText(file)
+    }
+    window.addEventListener('dragover', onDragOver)
+    window.addEventListener('drop', onDrop)
+    return () => {
+      window.removeEventListener('dragover', onDragOver)
+      window.removeEventListener('drop', onDrop)
+    }
+  }, [loadFile])
+
   if (state.status === 'loading') {
     return (
       <div className="boot" role="status" aria-live="polite">
@@ -354,6 +394,31 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
   const views: ViewName[] = ['reader']
   if (doc.capabilities.graph) views.push('graph')
   if (doc.capabilities.stepper) views.push('stepper')
+
+  /*
+   * The welcome view (M4.12). It renders *instead of* the shell, not inside
+   * it: the header's controls are all document-scoped (the mode toggle, the
+   * view switcher, search), and showing them over a document that is not being
+   * read is exactly the dead UI §1.1 forbids. The document stays in memory, so
+   * the "Reading:" chip can name it and the wordmark is not the only way back.
+   */
+  if (active.name === 'welcome') {
+    return (
+      <div className="app app--welcome" data-view="welcome">
+        <header className="app-header">
+          <a className="app-brand" href={WELCOME_HASH}>
+            UNFOLD
+          </a>
+          <div className="app-header__spacer" />
+        </header>
+        <Welcome
+          reading={doc.title}
+          onFile={loadFile}
+          {...(state.config.docPath.trim() !== '' ? { onOpenBundled: state.reload } : {})}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="app" data-view={active.name}>
@@ -400,6 +465,18 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
           ☰
         </button>
 
+        {/*
+          M4.12 — the wordmark is the leftmost element and is the way home.
+          It is an `<a>`, not a `<button>`: `#/welcome` is a real, shareable
+          location, and a link is what makes it one. The document title follows
+          after a 1px divider so the reader can always tell *which* document
+          they are in, and the divider is a real element rather than a border on
+          the title so it cannot collapse when the title truncates.
+        */}
+        <a className="app-brand" href={WELCOME_HASH}>
+          UNFOLD
+        </a>
+        <span className="app-brand__divider" aria-hidden="true" />
         <span className="app-title t-headline-sm" title={doc.title}>
           {doc.title}
         </span>

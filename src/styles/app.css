@@ -17,3 +17,190 @@ body {
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: var(--grid-pitch) var(--grid-pitch);
 }
+
+/* ------------------------------------------------------------------ *
+ * M4.12 — the brand and the welcome view.
+ *
+ * Tokens only (§5.2). The wordmark uses `--font-display` at weight 600 and
+ * `--text-high`; the welcome column reuses `--reading-column` (already 70ch,
+ * so the front door and the reader share one measure); the cards use `elev-1`.
+ * Nothing here can drift from the rest of the app because nothing here
+ * chooses a value.
+ * ------------------------------------------------------------------ */
+
+.app-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  /* The wordmark is the product's name, not a heading: tracking it open is what
+     makes a 6-character name read as a wordmark rather than as shouting. */
+  letter-spacing: 0.16em;
+  color: var(--text-high);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.app-brand:hover {
+  color: var(--text-high);
+}
+
+/*
+ * A 1px divider, as its own element rather than a left border on the title.
+ * A border is inside the element it belongs to, so the first character of a
+ * truncated title would sit on the rule; an element puts the space between them
+ * and keeps it there whatever the title does.
+ */
+.app-brand__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border-muted);
+}
+
+.welcome {
+  padding: var(--space-2xl) var(--margin) var(--space-2xl);
+}
+.welcome__col {
+  max-width: var(--reading-column);
+  margin: 0 auto;
+}
+.welcome__title {
+  color: var(--text-high);
+  margin: 0;
+}
+.welcome__tagline {
+  color: var(--text-muted);
+  margin: var(--space-2xs) 0 0;
+}
+.welcome__about {
+  color: var(--text-muted);
+  margin: var(--space-lg) 0 0;
+}
+
+.welcome__steps {
+  list-style: none;
+  margin: var(--space-xl) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+.welcome__step {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+.welcome__step-n {
+  color: var(--border-focus);
+  flex: none;
+}
+.welcome__step-title {
+  color: var(--text-high);
+  font-weight: 600;
+}
+
+.welcome__features-head {
+  color: var(--text-muted);
+  margin: var(--space-2xl) 0 var(--space-sm);
+}
+.welcome__features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-sm);
+}
+.welcome__feature {
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+}
+.welcome__feature-name {
+  color: var(--text-high);
+  margin: 0 0 var(--space-3xs);
+}
+.welcome__feature-body {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.welcome__drop {
+  margin-top: var(--space-2xl);
+  padding: var(--space-2xl) var(--space-lg);
+  /*
+   * 2px, not the 1.5px the brief asked for, and the reason is the browser
+   * rather than taste: **Chrome snaps a dashed border to whole pixels.** A
+   * `1.5px dashed` declaration computes to `1px` — verified with
+   * `getComputedStyle` — so the brief's number would have been written into the
+   * stylesheet, read as a chunkier rule by everyone reviewing it, and painted as
+   * the same hairline as every 1px divider in the app.
+   *
+   * The brief's *intent* — visibly heavier than the 1px rules — is kept, and the
+   * closest value that survives the snap is 2px.
+   */
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast);
+}
+.welcome__drop:hover,
+.welcome__drop[data-dragging='true'] {
+  border-color: var(--border-focus);
+  background: var(--accent-wash);
+}
+.welcome__drop-hint {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-md);
+}
+.welcome__drop-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.welcome__button {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  color: var(--text-high);
+}
+.welcome__button--ghost {
+  border-color: transparent;
+  color: var(--text-muted);
+}
+.welcome__reading,
+.welcome__error {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-muted);
+}
+.welcome__error {
+  color: var(--danger, var(--text-muted));
+}
+
+/*
+ * M4.12 at <768px — the wordmark stays, the document title drops.
+ *
+ * The M4.2 collapse order was: the title grew into the leftover space and
+ * truncated with an ellipsis. M4.12 changes the priority at the top of that
+ * order, and deliberately:
+ *
+ *   was: [menu] [title……………………………] [search] [mode] [switcher]
+ *   now: [menu] [UNFOLD] [switcher] / [title……………………] [search] [mode]
+ *
+ * The wordmark **stays on row one** because it is the only element that says
+ * which product this is and the way home, and a brand that disappears at the
+ * width most people read at is not a brand. The title moves to row two and
+ * still truncates. The alternative — truncating UNFOLD to fit the title —
+ * would be a 1px stub again, which is the exact defect M4.2 was written to
+ * kill, so it is not an option.
+ */
+@media (max-width: 767px) {
+  .app-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding-block: var(--space-2xs);
+  }
+  .app-brand__divider {
+    display: none;
+  }
+  .app-title {
+    order: 10;
+    flex-basis: 100%;
+  }
+}
