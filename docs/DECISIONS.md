@@ -1402,3 +1402,26 @@ that is not invoked is a gate that always passes, and no amount of correct logic
 in a function nobody calls will catch that. `src/test/perf-gate.test.ts` now
 asserts the call site exists, with a comment saying why.
 
+**A second pre-existing race, found while verifying the first** /
+`motion.spec.ts:172` / The first G5 CI run failed at Playwright 62/63 — the
+mode-flip test, `Expected /^mode-flip-[ab]$/`, `Received "none"` — and CI never
+reached the Lighthouse stage. It is **not** caused by M4.9: that commit's entire
+`src/` diff is one new test file, and the same scenario passed in the run twenty
+minutes earlier.
+
+The cause is that the test races the animation it asserts. It clicks the mode
+toggle, then `await expect(...).toHaveAttribute('data-reading-mode', …)`, which
+polls, and only then reads the computed `animation-name` on `.reader`. The
+transition is **250ms**. On a machine carrying nine orphaned Chromium processes
+(load average 7.18) the attribute poll alone outlasts the transition, the
+computed style has already reverted to `none`, and the assertion fails on a
+correct implementation. `pkill` the strays and the same spec is **9/9 green**.
+
+So it is a latent test defect that load exposes, not a regression, and it is
+recorded rather than quietly re-run until green. The fix is not "add a wait" —
+it is to assert the animation from a `getAnimations()` read taken *before* the
+attribute poll, or to have the app set the animation-name and the test read it
+synchronously in the same tick as the click. Both are test-side changes and
+neither was in M4.9's scope.
+
+

@@ -432,9 +432,10 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             three, hard fail. Composite recorded, not gated. Executable in
             `src/test/perf-gate.test.ts` (15 tests), which also pins the
             ceilings to §10.1 so the spec and the gate cannot drift.
-      - [x] **⚠ THE NEW GATE FAILS ON CLS: median 0.133 against a ceiling of
-            0.1.** FCP 486ms, LCP 569ms and TBT 7ms all pass, two of them by an
-            order of magnitude. Cause located: at t=1352ms the document fetch
+      - [x] **⚠ THE NEW GATE FAILS ON CLS: median 0.148 against a ceiling of
+            0.1** (runs 0.148 / 0.133 / 0.148; composite 93, recorded only).
+            FCP 461ms, LCP 562ms and TBT 2ms all pass, two of them by two orders
+            of magnitude. Cause located: at t=1352ms the document fetch
             resolves, `.reader` reflows 582px → 706px, and the hero jump chips
             re-wrap. Not a font swap and not a lazy chunk. **Not fixed here** —
             it is a first-paint layout change, not a gate change, and the
