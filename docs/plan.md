@@ -432,14 +432,29 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             three, hard fail. Composite recorded, not gated. Executable in
             `src/test/perf-gate.test.ts` (15 tests), which also pins the
             ceilings to §10.1 so the spec and the gate cannot drift.
-      - [x] **⚠ THE NEW GATE FAILS ON CLS: median 0.148 against a ceiling of
-            0.1** (runs 0.148 / 0.133 / 0.148; composite 93, recorded only).
-            FCP 461ms, LCP 562ms and TBT 2ms all pass, two of them by two orders
-            of magnitude. Cause located: at t=1352ms the document fetch
-            resolves, `.reader` reflows 582px → 706px, and the hero jump chips
-            re-wrap. Not a font swap and not a lazy chunk. **Not fixed here** —
-            it is a first-paint layout change, not a gate change, and the
-            ceiling has not been widened to hide it.
+      - [x] **M4.10: CLS FIXED. Median 0.148 → 0.000, composite 93 → 99.**
+            Cause: the **font swap**. A `layout-shift` observer put the single
+            shift at t=1352ms; the resource timeline put Geist's and Inter's
+            woff2 completing at t=1352ms. The reading column is content-sized up
+            to `--reading-column`, so a re-wrap changes its width (582px → 707px,
+            measured) and moves everything below. M4.6's `size-adjust`
+            fallbacks reduce this but cannot remove it — Inter is matched to
+            93.43% and 6.6% moves wrap points. Fix: the latin font preloads
+            M4.6 deleted, which it measured under the **mobile** preset and
+            which A14 does not use. `tests/e2e/cls.spec.ts` asserts zero shift
+            and that the faces land before 1000ms; verified to fail without the
+            fix. **Two consecutive green CI runs** (875 unit, 65 Playwright,
+            a11y 100, CLS 0.000, composite 99).
+      - [x] **M4.11: the reported cadence defect DOES NOT REPRODUCE.** The
+            cadence test — scroll the whole document, ≤4 bursts; click six rail
+            sections, zero additional — **passes on the current build.** No fix
+            invented for a bug that is not there. Recorded instead: the
+            milestones **under**-fire (one burst across a full scroll, at ~65%),
+            the opposite of the report, probably because `scrollHeight` grows
+            as M4.6's idle-deferred mermaid/Shiki land, so an early fraction is
+            measured against a smaller page.
+      - [ ] **M4.12 NOT STARTED.** Brand wordmark and the welcome view. No code
+            written; the session ended on the M4.10 gate and M4.11's finding.
       - [x] **M4.6b profiled the two long tasks** (`npm run profile:perf`, median
             of 3, 4x CPU throttle, no product changes). Mount breaks down as
             React render/reconcile 225ms (29%), markdown parse 191ms (24%),
@@ -464,13 +479,17 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
       full-`kitchen-sink` renders including the lazy mermaid chunk. Not urgent —
       CI is 2m16s — but it is the lever if the suite keeps growing.
 
-**Gate G5 = release — NOT SIGNED. Blocked on one thing.** Everything in §11 is
-green: **875 unit tests, 63 Playwright scenarios, a11y 100**, zero whole-page
-axe violations, entry 139.2KB gz of 200. The one red light is A14's CLS
-ceiling — median **0.148** against 0.1 — cause located at the document-load
-reflow, fix understood, not applied. G5 signs when that is fixed, not when the
-number is moved. Composite performance 93 and a11y 100 are both above the old
-composite floor, which is the point: the composite was never the problem.
+**Gate G5 = release — performance is now GREEN, but G5 is still unsigned.**
+Every §10.1 metric passes on the desktop preset, median of three, on **two
+consecutive CI runs**: FCP 437–498ms, LCP 598–671ms, TBT 0–10ms, **CLS 0.000**,
+a11y 100, composite 99, 875 unit tests, 65 Playwright scenarios, entry 139.2KB
+gz of 200. The composite would have passed the old gate at 93 while CLS was
+0.148 — which is the argument for A14, now demonstrated rather than predicted.
+
+What still stands between this and a release is **not** performance: it is the
+human's release walkthrough, the deploy half of M4.7 (no static `dist/` has
+been pushed, so the `base` subpath and the deployed-URL stranger test are
+untested in anger), M4.12, and the un-reproduced M4.11 report.
 
 Full §11 suite green on CI; §13 M4 criteria checked;
 README with: what it is, config reference (§1.4), authoring conventions
