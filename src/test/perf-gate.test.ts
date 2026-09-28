@@ -22,7 +22,7 @@
  * changes, these cases say whether the change was intended.
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -38,7 +38,25 @@ const EXPECTED = [
 ] as const
 
 const script = readFileSync(join(repoRoot, 'scripts', 'lighthouse.ts'), 'utf8')
-const spec = readFileSync(join(repoRoot, 'docs', 'spec.md'), 'utf8')
+
+/**
+ * The spec, if this checkout has one.
+ *
+ * `docs/` is a **local-only** directory: it is not published to the repository,
+ * so a fresh clone does not contain it. The spec-agreement test below is the only
+ * place in the suite that reads the spec, and it is worth keeping where the spec
+ * exists — it is the check that a threshold cannot be changed in the script
+ * without changing the spec in the same commit. So it reads the file when it is
+ * there and *skips with a reason* when it is not, rather than failing a clone
+ * that did nothing wrong, and rather than deleting the check to make the failure
+ * go away.
+ *
+ * Nothing else in the suite, the app or the scripts reads `docs/` or
+ * `designs/`; the remaining `docs/…` strings in the tests are *document content*
+ * (a demo file that mentions a path), not file access.
+ */
+const specPath = join(repoRoot, 'docs', 'spec.md')
+const spec = existsSync(specPath) ? readFileSync(specPath, 'utf8') : undefined
 
 // ── the mirror of the gate, for behaviour ─────────────────────────────────
 
@@ -72,14 +90,37 @@ describe('§10.1 A14 — the four gated metrics are the gate', () => {
     }
   })
 
-  it('docs/spec.md §10.1 states the same four ceilings', () => {
+  it.skipIf(
+    spec === undefined,
+  )('docs/spec.md §10.1 states the same four ceilings', () => {
+    // `skipIf` rather than an early `return`, and that is the whole point of this
+    // line: a test that returns without asserting **reports as a pass**, so a
+    // checkout without the spec would print the same "15 passed" as one with it.
+    // A skip is a skip in the count, which is the only thing that makes the
+    // difference visible to whoever reads the output.
+    //
     // Matched on the metric's full name, because that is how §10.1 spells it.
     // `FCP` appears in the spec only in the ratio line about Composite Layout
     // Shift, which is a different acronym entirely.
     for (const { key, ceiling, label } of EXPECTED) {
-      const row = spec.split('\n').find((line) => line.includes(label))
+      const row = spec?.split('\n').find((line) => line.includes(label))
       expect(row, `no §10.1 table row for ${label}`).toBeDefined()
       expect(row, `${key} ceiling in the spec must be ${ceiling}`).toContain(`≤ ${ceiling}`)
+    }
+  })
+
+  it('and the skip decision itself is asserted, so it cannot drift into a quiet pass', () => {
+    // Always runs. Whether the spec is here is a fact about the checkout, and
+    // this pins the two together: present ⇒ read, absent ⇒ skipped, with no
+    // third possibility in which a missing file turns into a green test.
+    expect(typeof spec === 'string').toBe(existsSync(specPath))
+    if (spec === undefined) {
+      // …and the message a reader sees when they wonder what the missing test
+      // was. The count alone does not say why.
+      expect(
+        'docs/spec.md is local-only; the spec-agreement check needs it',
+        'a skipped check should say what it skipped for',
+      ).toContain('local-only')
     }
   })
 

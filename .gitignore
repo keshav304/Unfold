@@ -12,3 +12,13 @@ lighthouse*.html
 # Playwright + Lighthouse output: artifacts for review, never sources.
 artifacts/
 dist-profile
+
+# Project documentation and design references: local-only.
+#
+# These are working documents — the spec, the decision log, the milestone plan
+# and the design screenshots the work was reviewed against. They are not part of
+# the published repository: the code, the tests and the demo documents are, and
+# the one test that cross-checks a threshold against the spec skips when the spec
+# is absent (see `src/test/perf-gate.test.ts`).
+docs/
+designs/
