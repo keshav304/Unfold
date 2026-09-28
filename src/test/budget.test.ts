@@ -110,13 +110,76 @@ describe('§10 bundle budgets', () => {
   it('the still-deferred milestone libraries are absent from the whole build', () => {
     if (!available) return
     const names = allJs.join(' ')
-    // `cmdk` left this list in M2, and `xyflow` in M3 — each promoted in the
-    // milestone that actually shipped it, with its reason in the genericity
-    // allowlist. Framer Motion is M4.4's motion work and confetti is M4.5's
-    // delight; neither has a written reason yet, so neither may be installed.
-    for (const deferred of ['framer-motion', 'canvas-confetti']) {
-      expect(names).not.toContain(deferred)
+    // `cmdk` left this list in M2, and `xyflow` in M3. **Framer Motion stays on
+    // it** — M4.4 audited the motion budget and found one misfiled tier, not a
+    // shortage; the three signature moments are CSS keyframes, and the spec's
+    // §4 "Framer Motion" line was a stack choice that the audit showed to be
+    // unnecessary. M4.5 promoted `canvas-confetti` with a reason in the
+    // genericity allowlist, and the test below proves it is a lazy chunk.
+    expect(names).not.toContain('framer-motion')
+  })
+
+  it('confetti is a lazy chunk and never part of the entry (M4.5, spec §10)', () => {
+    if (!available) return
+    // §10 names confetti as a lazy chunk explicitly, and the M4.5 brief adds the
+    // sharper requirement: with `features.delight: false` the chunk must never be
+    // *requested*. Two halves, and the second is the one that is easy to get
+    // wrong — a `React.lazy` or a dynamic `import()` in a module that is itself
+    // statically imported still emits the chunk, and still ships it in the
+    // entry's preload graph.
+    //
+    // The marker is a string from the library's **own code**, not its name. The
+    // first draft used `'confetti'`, which failed immediately and for an
+    // instructive reason: a dynamic import has to *name* its chunk, so the entry
+    // legitimately contains `import("./confetti.module-….js")`. Asserting on the
+    // package name therefore proves nothing — the reference to the chunk is not
+    // the chunk. `OffscreenCanvasRenderingContext2D` appears in confetti's
+    // OffscreenCanvas feature detection and nowhere in this app, and minification
+    // does not touch it because it is a platform API name.
+    const MARKER = 'OffscreenCanvasRenderingContext2D'
+    const entry = entryChunks
+      .map((name) => readFileSync(join(distDir, 'assets', name), 'utf8'))
+      .join('')
+    expect(entry, 'confetti leaked into the entry chunk').not.toContain(MARKER)
+
+    const lazy = allJs
+      .filter((name) => !entryChunks.includes(name))
+      .map((name) => readFileSync(join(distDir, 'assets', name), 'utf8'))
+      .join('')
+    expect(lazy, 'confetti is in no chunk at all — delight may not be built').toContain(MARKER)
+  })
+
+  it('the entry reaches it only through a dynamic import', () => {
+    if (!available) return
+    const MARKER = 'OffscreenCanvasRenderingContext2D'
+    // The chunk being separate is necessary and not sufficient: `index.html`
+    // preloading it, or a *static* import of the delight module, would put it
+    // back in the first-load graph while every other assertion here still passed.
+    // "Lazily imported" and "requested on every page load" are different claims
+    // and only the second one costs a reader bytes.
+    const html = readFileSync(join(distDir, 'index.html'), 'utf8')
+    const entryNames = entryChunks
+    for (const chunk of allJs) {
+      if (entryNames.includes(chunk)) continue
+      // Vite emits preload hints for the entry's own static imports only, so a
+      // dynamic chunk should never be named in the HTML. Asserted by file name
+      // rather than by the word "confetti", because the name is hashed.
+      expect(html, `${chunk} is preloaded from index.html`).not.toContain(chunk)
     }
+
+    // And the only path to that chunk is a dynamic import. The delight *module*
+    // is statically imported by the shell — correctly, and that is exactly why
+    // the gate has to be on the library rather than on the module: a reader with
+    // `features.delight: false` still downloads the code that decides not to ask
+    // for confetti, and must not download the confetti.
+    const confettiChunk = allJs.find((name) =>
+      readFileSync(join(distDir, 'assets', name), 'utf8').includes(MARKER),
+    )
+    expect(confettiChunk, 'the confetti chunk could not be identified').toBeDefined()
+    const entry = entryChunks.map((name) => readFileSync(join(distDir, 'assets', name), 'utf8')).join('')
+    // A static import is a bare `from"./chunk.js"` at the top; a dynamic one is
+    // `import("./chunk.js")` inside a call. Only the second defers the fetch.
+    expect(entry, 'the confetti chunk is reached some other way').toContain(`import("./${confettiChunk}")`)
   })
 
   it('React Flow is a lazy chunk and never part of the entry (M3.1, spec §10)', () => {

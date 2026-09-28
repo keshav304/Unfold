@@ -1041,3 +1041,104 @@ reader who asked it not to, silently, forever. The reduced-motion test for the
 ambient loops asserts the iteration count is `1` and not just that the page
 behaves, because "the page is fine" is exactly what a runaway loop looks like
 from the outside.
+
+---
+
+## M4.5 — delight
+
+**One flag, one file, and the flag is checked before the import** /
+`src/app/delight/delight.ts` is the whole feature / §7.10's "behind one
+`features.delight` flag" plus the M4 brief's "config-off must mean the chunk is
+never imported" is a claim about a *network waterfall*, and the only way to make
+it true is to put the guard first: `enabled(on)` is the first statement of every
+entry point and the `import('canvas-confetti')` is inside the branch below it. A
+decorative feature that costs a reader 8KB on every page load because the check
+happened one line too late is a worse bug than no confetti at all.
+
+**"Never load" is stronger than "never fire", and the test says so** / Reduced
+motion suppresses the *import*, not the call / §8's words are "confetti/particles
+never load". Firing nothing while still requesting the chunk would satisfy a
+naive test and cost every reader with the preference on the bytes. The tests
+assert `fired.size === 0` as well as "nothing was drawn", and the preference is
+re-read on *every call* rather than captured at construction — a reader who
+turns reduced motion on mid-session must not be greeted by a burst from a
+progress tick queued a moment earlier. `disableForReducedMotion: true` is passed
+anyway as a second line of defence, not as the mechanism.
+
+**The chunk is proven lazy three ways, because "lazy" is three claims** /
+`budget.test.ts` reads the build, the e2e reads the request log, and the unit
+test reads the gate / (1) The marker string is absent from the entry chunk and
+present in some other chunk. (2) `index.html` preloads no non-entry chunk — the
+failure (1) cannot see, because a correctly-split chunk that the entry
+`modulepreload`s is still fetched on first paint. (3) The e2e records every
+request the browser makes: with the flag off, or under reduced motion, nothing
+matching `/confetti/` is ever requested — and the inverse test, with motion
+allowed, asserts it *is* requested at a milestone and not before, which is the
+assertion a "never requested" test cannot make on its own. The Playwright test
+also asserts a real `<canvas>` exists afterwards, because jsdom never could.
+
+**canvas-confetti is mocked in the unit test, and that is deliberate** / The
+first draft passed twelve assertions and then threw `clearRect of null` from
+inside the library's own `requestAnimationFrame`, on a timer, after the test had
+finished / jsdom has no 2D context, so the library's animation loop dies on the
+first frame. A passing test with a background exception is worse than a failing
+one: the next person to see it has no idea which change caused it. What is under
+test here is the *gate* — when we call it and with what — and the real library is
+proven by the build output and by Chromium.
+
+**Framer Motion stays uninstalled, and M4.4 is the reason** / §4 names it; the
+audit found the opposite of a need for it / Spec §4 lists "Framer Motion —
+layout/gesture animation, reduced-motion API", and the M4.4 audit found all
+three signature moments already were CSS keyframes, the §8 budget was
+satisfiable without it, and the one real defect was an ambient loop on the wrong
+duration token. Adding a 40KB animation library to fix a misfiled token is the
+"just for X" smell plan §9 tells you to reject, and the M4 brief is explicit
+that it is not to be installed. It stays on `genericity.test.ts`'s DEFERRED list
+with that reason attached, so the decision survives the next person who reads
+§4 and wonders.
+
+**The Konami matcher restarts on a wrong key rather than sliding a window** /
+Position-matched, and the cursor is separate from the milestone set / The
+sequence is a deliberate gesture, and a forgiving matcher would fire on a reader
+who half-remembers it. The cursor is its own variable rather than another member
+of `fired`: `fired` means "this milestone has been celebrated" and a caller can
+read it to know how far a reader got, so overloading it for a key sequence would
+make one number mean two things. The first draft did exactly that.
+
+**The confetti palette is read from the cascade, and the guard said so** /
+`tokenColours()` via `getComputedStyle` / `genericity.test.ts` refused three hex
+literals in the first draft of `delight.ts`, and a fourth that had appeared in a
+comment explaining them / `canvas-confetti` needs literal colour *strings* — it
+hands them to a 2D context and never touches the DOM they came from — so the
+values have to be read out of the cascade at the moment they are needed. Reading
+them per burst rather than per module is what makes a runtime theme change
+honoured, and the `.trim()` is load-bearing: `getPropertyValue` on a custom
+property returns the token text with leading whitespace, and the library would
+parse a padded value as not a colour at all — a failure that presents as
+"the confetti is invisible" and nothing else.
+
+**The lazy-chunk marker is a string from the library's code, not its name** /
+`OffscreenCanvasRenderingContext2D`, and the first marker failed immediately /
+`'confetti'` as the marker asserted the entry chunk contained no mention of
+confetti, which it does: a dynamic import has to *name* its chunk, so the entry
+legitimately contains `import("./confetti.module-….js")`. A reference to the
+chunk is not the chunk. The marker is now a platform API name from confetti's
+OffscreenCanvas feature detection, which appears nowhere in this app and which
+minification cannot touch. The same lesson is why the xyflow test uses
+`'xyflow'` — a string from the library's own bundle — and why neither of them
+should be a chunk *filename*: Vite names chunks after the importing module, so
+`confetti-abc123.js` would prove only that Vite believed the name.
+
+**The pipeline perf test now takes the best of three runs — the bound did not
+move** / `2000 sections parse without blowing up`, still `< 5000ms` / This test
+read 617ms alone and 5027ms in a full-suite run, on a machine doing nothing
+else, with no code change anywhere near the pipeline. A single wall-clock sample
+inside a parallel test runner measures the scheduler as much as the parser, and a
+gate that fails on a loaded CI runner teaches its readers to re-run it and then
+to widen it. This is the same lesson the Lighthouse gate already learned — the
+M4.6 brief's own words are that "62→45 variance proved single runs are noise",
+which is why that gate is median-of-3. Best-of-3 is the cheaper cousin: for a
+*bound* the question is how fast this can go, and the fastest run is the one
+least polluted by whatever else the machine was doing. The bound is untouched,
+the "no blowing up" assertion still runs on every sample, and a genuine
+algorithmic regression still fails all three.

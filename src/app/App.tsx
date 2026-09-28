@@ -22,6 +22,7 @@ import { useDocument } from './useDocument'
 import { useScrollProgress } from './useScrollProgress'
 import { useScrollSpy } from './useScrollSpy'
 import { useReadingMode } from './modes/useReadingMode'
+import { createDelight } from './delight/delight'
 
 /**
  * The graph view is a lazy chunk and nothing else may import it statically
@@ -88,6 +89,38 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
    * rendered mode can never disagree.
    */
   const reading = useReadingMode()
+
+  /**
+   * §7.10 delight. One flag, and the module that reads it is inert when the flag
+   * is off — so `features.delight: false` means the confetti chunk is never
+   * *requested*, not merely that nothing is drawn.
+   *
+   * The progress is the shell's existing scroll progress rather than a new
+   * observer: the bar at the top of the screen is already computing exactly the
+   * number the milestones are defined against, and a second listener on the same
+   * scroll would be a second source of truth for "how far through is this".
+   *
+   * `reset()` on the document's identity because a new document is a new reading
+   * session — the milestones belong to a document, not to a session.
+   */
+  const delight = useMemo(() => createDelight(config.features.delight), [config.features.delight])
+  useEffect(() => {
+    delight.progress(progress)
+  }, [delight, progress])
+  useEffect(() => {
+    delight.reset()
+  }, [delight, config.docPath])
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      // Never while the reader is typing: a `b` in a search box is a letter,
+      // not half of a konami code.
+      if (isTypingTarget(event.target)) return
+      delight.key(event.key)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [delight])
 
   /* ---------------- palette triggers and focus restore (M2.2) ------------- */
 

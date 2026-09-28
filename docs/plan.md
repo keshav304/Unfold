@@ -359,8 +359,31 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
   - [x] **No new animations.** The audit found one misfiled tier, not a
     shortage. Framer Motion stays uninstalled — `budget.test.ts` still asserts
     it is absent from the whole build.
-- [ ] M4.5 Delight behind `features.delight` (§7.10); off under
+- [x] M4.5 Delight behind `features.delight` (§7.10); off under
       reduced-motion.
+  - [x] `canvas-confetti` installed — **the only new dependency of the
+    milestone**, authorised by the M4 brief, with its reason in
+    `genericity.test.ts`'s allowlist. Framer Motion stays uninstalled and stays
+    on the DEFERRED list; M4.4 is why (all three signature moments were already
+    CSS, and the one real defect was a misfiled duration token).
+  - [x] One flag, one file (`src/app/delight/delight.ts`). The flag is checked
+    *before* the `import()`, so `features.delight: false` means the chunk is
+    never **requested** — not that nothing is drawn.
+  - [x] Milestones at 25/50/75%, an end celebration, and the Konami code. Each
+    milestone fires once however many times a non-monotonic scroll crosses it.
+  - [x] **All suppressed under reduced motion, and "never load" is asserted
+    rather than "never fire"** — the preference is re-read on every call, so a
+    reader who turns it on mid-session gets no burst from a tick queued earlier.
+  - [x] **"Lazy" is proven three ways**: the library's code is absent from the
+    entry chunk and present in another; `index.html` preloads no non-entry
+    chunk; and the Playwright spec records every request the browser makes,
+    asserting with the flag off and under reduced motion that nothing matching
+    `/confetti/` is fetched — and, inversely, that it *is* fetched at a
+    milestone and not before.
+  - [x] **Two guards caught real mistakes in this task**: the colour-literal
+    guard refused three hexes in the delight module (the palette is now read
+    from the cascade at burst time) and a fourth in a comment; and the
+    best-of-3 change to the pipeline perf test is recorded in `DECISIONS.md`.
 - [ ] M4.6 Perf pass (§10): lazy chunks verified in build output; ≤200KB
       initial gz; Lighthouse re-run.
       - [ ] **TBT 520ms** (G3 CI baseline) and LCP 4.3s. Likely initial render
