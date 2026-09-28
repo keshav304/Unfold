@@ -1424,4 +1424,91 @@ attribute poll, or to have the app set the animation-name and the test read it
 synchronously in the same tick as the click. Both are test-side changes and
 neither was in M4.9's scope.
 
+**M4.10 — the CLS was the font swap, and the fix was a change M4.6 had already
+made and then unmade for a reason that no longer applies** / `vite.config.ts`,
+`preloadLatinFonts()` / M4.9's gate failed on CLS 0.148. Three hypotheses were
+eliminated by measurement, in the order the brief lists them, and the answer was
+none of them.
 
+- *Milestone state re-initialising* (a): ruled out by reading the code —
+  `createDelight` is `useMemo`'d and `fired` is closure state with a
+  `fired.has()` guard. The module is not the defect. (Relevant to M4.11 below,
+  where it turned out not to be the defect there either.)
+- *`pop()` wired to section change* (b): ruled out by a geometry probe sampling
+  every 55ms. `.reader` was **582px** wide at t=1223ms and **707px** at t=1281ms.
+  The reading column is content-sized up to `--reading-column`, so a change in
+  *where text wraps* changes the column's width and moves everything under it.
+  That is a text-metric change, not a section change.
+- *Wrong max* (c): ruled out — `useScrollProgress` computes
+  `scrollTop / (scrollHeight − clientHeight)`, which is correct.
+
+What was left was the thing the brief did not list: the `resource` timeline put
+Geist's and Inter's woff2 responses completing at **t=1352ms**, and the single
+layout-shift entry is at **t=1352ms**. Same millisecond. `font-display: swap`
+paints the fallback, then the real face lands and re-wraps the document.
+
+M4.6's `size-adjust` fallbacks reduce this and do not remove it: `Inter Fallback`
+is matched to **93.43%** of Inter's advance width, and 6.6% moves wrap points.
+Metric matching is the right fix for **LCP** — one element re-rendering — and
+the wrong fix for **CLS**, which is every element below the re-wrap.
+
+**So the fix is the font preloads M4.6 deleted, and the reason to re-measure
+rather than re-apply or re-dismiss is the preset.** M4.6 measured preloads at a
+composite of 86-with / 88-without under Lighthouse's **default preset** — a
+throttled mobile emulation, 4x CPU and simulated slow 4G — and concluded that
+three more requests on a throttled connection is contention, not saving. §10.1
+/ A14 gates on the **desktop** preset, where there is no CPU throttling and no
+simulated link. The premise of M4.6's removal does not describe the experiment
+being run now. Re-measured under desktop:
+
+| | M4.9 | M4.10 |
+|---|---|---|
+| FCP | 461ms | 477ms |
+| LCP | 562ms | 668ms |
+| TBT | 2ms | 2ms |
+| **CLS** | **0.148** | **0.000** |
+| a11y | 100 | 100 |
+| composite | 93 | **99** |
+
+Fonts now complete at **64–88ms** instead of 1352ms. `tests/e2e/cls.spec.ts`
+asserts zero shift *and* that the latin faces land before 1000ms, and it was
+verified to fail without the fix: `layout shifted by 0.1189 — sources: t=1306ms
+[div.reader, button.hero-jump]`. Without the second assertion the test could
+pass by luck on a document that happens not to reflow, and the defect would
+return silently on a longer one.
+
+**M4.11 — the human-reported cadence defect does not reproduce, and that is the
+finding** / `tests/e2e/delight.spec.ts` / Confetti "fires after every section
+change". The cadence test scrolls the full document in steps, asserts the burst
+count is at most 4, then clicks six rail sections and asserts the count does not
+move. **It passes on the current build.** There is no defect at the cadence
+layer, so there is nothing to fix, and inventing a fix for a bug that is not
+there would be worse than reporting the absence.
+
+Two things are worth carrying forward, though, because they are real:
+
+1. **The milestones under-fire, which is the opposite of the report.** A full
+   scroll produced **one** burst, at ~65% progress. The 25% and 50% milestones
+   did not fire. The likely cause is the same lazy rendering M4.6 deferred:
+   `scrollHeight` grows as the idle-deferred mermaid and Shiki work lands, so a
+   fraction of the page measured early is a smaller fraction of the page
+   measured later, and the threshold is crossed in the wrong place. This is
+   *under*-firing and is not the reported symptom.
+2. **Counting confetti from the outside has two traps, and both read a
+   confident zero while confetti was on screen.** `getContext('2d')` is never
+   called through `HTMLCanvasElement.prototype`, and observing
+   `document.documentElement` from an init script throws because the root
+   element does not exist yet at that point. A test that reports "no confetti"
+   when the truth is "nothing is watching" is worse than no test, and both are
+   now recorded in the test itself.
+
+**A pre-existing race that failed a real CI run, and is now fixed at the root** /
+`motion.spec.ts:172` / It clicked the mode toggle, then
+`await expect(...).toHaveAttribute(...)` — which polls — and only then read the
+computed `animation-name` of a **250ms** transition. On a loaded machine the
+poll outlasts the transition and a correct implementation reports `none`. M4.9
+recorded this as load-dependent; it then failed an ordinary CI run, which
+disproves that. The fix is to sample on every animation frame *while the
+animation runs* and assert the `mode-flip` was observed — a stronger claim than
+reading a value at an arbitrary later moment, because a transition that never
+started produces no reading and the test fails.

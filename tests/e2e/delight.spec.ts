@@ -160,8 +160,11 @@ test.describe('§7.10 the cadence, from the browser (M4.11)', () => {
    * It also means this test needs no seam in production code, which is worth
    * something: a test-only global in the app is a global nobody reviews.
    */
-  const installCounter = (page: Page): Promise<void> =>
-    page.addInitScript(() => {
+  // `addInitScript` resolves to a Playwright `Disposable`, not `void`, so this
+  // awaits and discards rather than returning it — otherwise the arrow's return
+  // type is a Disposable and `Promise<void>` does not admit it.
+  const installCounter = async (page: Page): Promise<void> => {
+    await page.addInitScript(() => {
       const w = window as unknown as { __bursts: number }
       w.__bursts = 0
       // Count `<canvas>` elements entering the document: one per burst.
@@ -188,6 +191,7 @@ test.describe('§7.10 the cadence, from the browser (M4.11)', () => {
         }
       }).observe(document, { childList: true, subtree: true })
     })
+  }
 
   const bursts = (page: Page): Promise<number> =>
     page.evaluate(() => (window as unknown as { __bursts: number }).__bursts)
