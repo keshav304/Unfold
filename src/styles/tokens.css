@@ -148,11 +148,30 @@
   --text-label-caps-line: 14px;
   --text-label-caps-tracking: 0.08em;
 
-  /* ---------- Motion (spec §8) ---------- */
+  /* ---------- Motion (spec §8) ----------
+     Four tiers, and the tier is the decision: what kind of motion this is
+     determines which number it gets, not what looks nice.
+
+       --motion-fast      120ms  hovers, colour and border changes
+       --motion-base      200ms  (spare; the one mid-tier value)
+       --motion-slow      250ms  everything non-signature, and the §8 ceiling
+       --motion-reveal    560ms  one-shot reveals: fires once, never loops
+       --motion-ambient   6.4s   ambient loops: slow, and low-opacity
+
+     `--motion-ambient` is new in M4.4. The two infinite animations in the app
+     — the loop diagram's closing dash and the graph's dashed-edge trace — were
+     both borrowing `--motion-reveal`, which is the *one-shot* token: 560ms is
+     correct for a flash that happens once and absurd for a dash crawl that never
+     stops. The M4.4 audit is a budget, and borrowing the wrong tier is how a
+     budget stops meaning anything; §8 asks for ambient loops to be "slow" and
+     this is the number that says so. 6.4s is one full dash cycle at a drift
+     nobody can track, and it is zeroed by the reduced-motion block below along
+     with every other tier. */
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 250ms; /* everything non-signature */
-  --motion-reveal: 560ms; /* scroll reveals, fire once */
+  --motion-reveal: 560ms; /* one-shot reveals, fire once */
+  --motion-ambient: 6400ms; /* ambient loops: slow and low-opacity */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /*
    * The spring curve, for the palette's signature moment (spec §8, M2.2).
@@ -317,6 +336,7 @@
     --motion-base: 0ms;
     --motion-slow: 0ms;
     --motion-reveal: 0ms;
+    --motion-ambient: 0ms;
   }
   *,
   *::before,

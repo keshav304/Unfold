@@ -39,6 +39,15 @@ export default defineConfig({
      * Spec §8: the app's own a11y feature zeroes every animation, so the suite
      * never has to wait for one. This is a *browser context* option, which is
      * why it lives here rather than at the top level of `use`.
+     *
+     * M4.4 checked whether this could be Playwright's own `reducedMotion` test
+     * option, which would be cleaner. It cannot: in `@playwright/test` 1.61
+     * `reducedMotion` lives on `BrowserContextOptions`, not on
+     * `PlaywrightTestOptions` — so `contextOptions` is the documented form *and*
+     * the only one. What matters for M4.4 is that it is overridable per test,
+     * which it is, and `tests/e2e/motion.spec.ts` overrides it to prove the
+     * three signature moments exist: a suite that only ever runs reduced can
+     * pass with no animation at all and still call itself green.
      */
     contextOptions: { reducedMotion: 'reduce' },
   },

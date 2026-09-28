@@ -833,7 +833,10 @@
   .loop-edge--closing {
     stroke: var(--primary);
     stroke-dasharray: 4 4;
-    animation: loop-dash var(--motion-reveal) linear infinite;
+    /* M4.4: `--motion-ambient`, not `--motion-reveal`. The reveal tier is for
+       things that happen once; this dash crawls forever, and at 560ms a
+       "forever" looked like a flicker. §8 asks ambient loops to be slow. */
+    animation: loop-dash var(--motion-ambient) linear infinite;
   }
 
   @keyframes loop-dash {
@@ -1418,7 +1421,8 @@
 .graph-canvas .react-flow__edge.graph-edge--dashed .react-flow__edge-path {
   stroke-dasharray: 6 4;
   stroke: var(--gradient);
-  animation: edge-trace var(--motion-reveal) linear infinite;
+  /* M4.4: `--motion-ambient`, for the same reason as `loop-dash` above. */
+  animation: edge-trace var(--motion-ambient) linear infinite;
 }
 
 @keyframes edge-trace {

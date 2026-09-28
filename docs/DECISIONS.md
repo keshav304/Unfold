@@ -975,3 +975,69 @@ half of "delete the allowlist" that a scoped scan quietly skips. The
 refusing two hex literals that appeared in a *comment* explaining a contrast
 measurement; a guard that reads comments is a guard that has to be obeyed by the
 person writing the explanation.
+
+---
+
+## M4.4 — the motion audit
+
+**The inventory is a printed table and a test, not a paragraph** /
+`src/test/motion.test.ts`, and it is the whole deliverable / §8 is a budget, and
+a budget that is only written down stops being true the day someone adds a
+fourth signature moment. The file parses the stylesheet — a grep would also
+match prose in comments — and prints every animation on every run:
+
+    animation              tier              iteration  signature
+    section-flash          --motion-reveal    1          —
+    loop-dash              --motion-ambient   infinite   —
+    palette-spring         --motion-slow      1          yes
+    edge-trace             --motion-ambient   infinite   —
+    panel-in               --motion-slow      1          yes
+    step-in                --motion-slow      1          yes
+
+Six declarations, three signature moments, one reveal, two ambient loops. The
+test that makes "three" mean three is the *unclassified* one: an animation that
+appears that is in none of the three lists fails, so adding a fourth signature
+moment is a deliberate act rather than an accident. The near miss is M4.1's mode
+flip — a whole-document reflow, which is exactly the kind of thing that tempts
+signature treatment — and it is asserted at 250ms in both the unit test and a
+browser.
+
+**Ambient loops get their own tier, because they were borrowing the reveal's** /
+New `--motion-ambient: 6400ms` / `loop-dash` and `edge-trace` were both on
+`--motion-reveal` — 560ms, which is right for a flash that happens once and
+absurd for a dash crawl that never stops. Nothing about them looked *wrong*;
+they were simply fast, and §8's word for that is "not slow". Borrowing a tier is
+how a budget stops meaning anything, because the number no longer says what kind
+of motion it is. The new tier is one full dash cycle at a drift nobody can track,
+and it is zeroed by the reduced-motion block along with the other four.
+
+**`section-flash` is classified as a reveal, and that is the reading** /
+560ms, one-shot, and it is the only classification available / §8 allows 500–600ms
+for reveals and ≤250ms for everything else, so a 560ms one-shot has to be one or
+the other. It is: the flash fires when a navigation arrives at a section, it
+never repeats, and it is a wash of `--accent-wash` at 8% alpha — an attention cue,
+not a transition between two states. The test asserts it is one-shot and inside
+the band, so "it is a reveal" is a claim with a number attached rather than a
+rationalisation. Shortening it to 250ms would have made a full-width background
+fade visibly snap.
+
+**One Playwright describe runs with motion on, and it exists for one reason** /
+`tests/e2e/motion.spec.ts`, `contextOptions: { reducedMotion: 'no-preference' }` /
+The whole suite runs reduced, which is what lets it "assert on state, never on
+sleeps" — and which also means a suite like that can pass with **no animation at
+all** and still call itself green. "Reduced motion → everything is instant" is a
+claim about a product that does not move unless something checks that it moves.
+The four reduced-motion tests assert `animation-duration: 0s` and
+`iteration-count: 1` on each signature element and on the ambient loops; the five
+non-reduced ones assert the three moments are named, timed and curved. The
+per-test override is `contextOptions` rather than a bare `reducedMotion` because
+in `@playwright/test` 1.61 that option lives on `BrowserContextOptions`, not on
+`PlaywrightTestOptions` — the documented form and the only one that type-checks.
+
+**An infinite loop under reduced motion is the failure that never fails a test**
+/ Asserted explicitly, at both tiers / An animation that keeps running while
+reduced motion is requested does not time anything out; it just burns frames on a
+reader who asked it not to, silently, forever. The reduced-motion test for the
+ambient loops asserts the iteration count is `1` and not just that the page
+behaves, because "the page is fine" is exactly what a runaway loop looks like
+from the outside.

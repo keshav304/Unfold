@@ -333,8 +333,32 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
         `tests/e2e/a11y.spec.ts`, 14 scenarios. The scope was widened; **no
         threshold moved and nothing was allowlisted.**
       - [x] Lighthouse a11y: **100** (the §10 floor is 95).
-- [ ] M4.4 Motion audit (§8): exactly 3 signature moments; reveals fire once;
+- [x] M4.4 Motion audit (§8): exactly 3 signature moments; reveals fire once;
       reduced-motion → full static fallback verified.
+  - [x] **The inventory is a printed table and a test** —
+    `src/test/motion.test.ts` parses the stylesheet (a grep would also match
+    prose in comments) and prints every animation on every run. Six
+    declarations: three signature moments with their per-breakpoint variants,
+    one reveal, two ambient loops.
+  - [x] **"Three signature moments" is enforced by the *unclassified* test**:
+    an animation appearing in none of the three lists fails, so adding a fourth
+    is deliberate rather than accidental. The near miss is M4.1's mode flip —
+    a whole-document reflow, the exact kind of thing that tempts signature
+    treatment — asserted at 250ms in the unit test *and* in a browser.
+  - [x] **Ambient loops were borrowing the reveal tier and were not slow.**
+    New `--motion-ambient: 6400ms`; `loop-dash` and `edge-trace` moved onto it.
+    560ms is right for a flash that happens once and absurd for a dash crawl
+    that never stops. Zeroed by the reduced-motion block like the other four.
+  - [x] `section-flash` classified as a one-shot reveal (500–600ms band),
+    asserted as such rather than argued about.
+  - [x] **One Playwright describe runs with motion on**, and it exists for one
+    reason: a suite that only ever runs reduced can pass with *no animation at
+    all* and still call itself green. Four reduced-motion tests assert
+    `animation-duration: 0s` and `iteration-count: 1`; five non-reduced ones
+    assert the three moments are named, timed and curved.
+  - [x] **No new animations.** The audit found one misfiled tier, not a
+    shortage. Framer Motion stays uninstalled — `budget.test.ts` still asserts
+    it is absent from the whole build.
 - [ ] M4.5 Delight behind `features.delight` (§7.10); off under
       reduced-motion.
 - [ ] M4.6 Perf pass (§10): lazy chunks verified in build output; ≤200KB
