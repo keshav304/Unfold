@@ -46,6 +46,47 @@ export const KONAMI = [
   'a',
 ] as const
 
+/**
+ * The event every celebration announces on `window` (M4.11c).
+ *
+ * ## Why this exists
+ *
+ * M4.11's first attempt counted `<canvas>` elements entering the document, and
+ * the count was wrong in a way that looked like a product defect. Two facts,
+ * both found by measurement:
+ *
+ *  1. `scrollHeight` genuinely grows while the reader scrolls — 4173 → 4323 →
+ *     4601 → 4827 over ~2.8s, as M4.6's idle-deferred mermaid and Shiki land —
+ *     so a scroll fraction measured early *is* a fraction of a smaller page.
+ *  2. But even scrolling to 50%, 75% and 100% of the **final** geometry
+ *     produced no further counted bursts. The reason is the counter:
+ *     `canvas-confetti` reuses a single canvas across bursts, so only the first
+ *     burst ever *inserts* one.
+ *
+ * So the "milestones under-fire" finding was an artifact of the measurement,
+ * not a defect in the app. A test that cannot distinguish "no confetti" from
+ * "no new canvas element" is not a test, and canvas sniffing is now banned
+ * here permanently: it cannot see the second firing of anything, ever.
+ *
+ * The event is the honest signal. It is dispatched by the *app*, at the moment
+ * it decides to celebrate, carrying which milestone — so a test asserts on what
+ * the app did rather than on what a library happened to put in the DOM.
+ */
+export const CELEBRATE_EVENT = 'unfold:celebrate'
+
+/** What a `unfold:celebrate` event carries: which milestone, 0–1. */
+export type CelebrateDetail = { milestone: number }
+
+/**
+ * Announce a celebration. Separate from `burst` on purpose: `burst` is async
+ * and does the drawing, and a subscriber should hear about the decision
+ * immediately rather than after a dynamic import resolves.
+ */
+function announce(milestone: number): void {
+  if (typeof window === 'undefined' || typeof CustomEvent !== 'function') return
+  window.dispatchEvent(new CustomEvent<CelebrateDetail>(CELEBRATE_EVENT, { detail: { milestone } }))
+}
+
 export type Delight = {
   /** Milestone fractions already celebrated, so "fire once" is a fact. */
   fired: Set<number>
@@ -150,12 +191,14 @@ export function createDelight(on: boolean): Delight {
         // scrolled to 98% and one scrolled to 100% are the same event.
         if (fired.has(1)) return
         fired.add(1)
+        announce(1)
         void burst(2.5)
         return
       }
       for (const milestone of MILESTONES) {
         if (fraction < milestone || fired.has(milestone)) continue
         fired.add(milestone)
+        announce(milestone)
         void burst(1)
       }
     },
@@ -172,6 +215,9 @@ export function createDelight(on: boolean): Delight {
       konamiAt += 1
       if (konamiAt < KONAMI.length) return
       konamiAt = 0
+      // 0 is not a milestone — it says "celebrated by hand", so a cadence test
+      // counting milestones cannot mistake the Konami code for one.
+      announce(0)
       void burst(3)
     },
     reset(): void {

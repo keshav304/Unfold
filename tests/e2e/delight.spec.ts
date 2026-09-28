@@ -122,124 +122,130 @@ test.describe('§7.10 delight on and motion allowed', () => {
   })
 })
 
+/** Record every `unfold:celebrate` the app announces. */
+const recordCelebrations = (page: Page): Promise<void> =>
+  page.addInitScript(() => {
+    const w = window as unknown as { __ev: number[] }
+    w.__ev = []
+    window.addEventListener('unfold:celebrate', (e) => {
+      w.__ev.push((e as CustomEvent<{ milestone: number }>).detail.milestone)
+    })
+  })
+
+const celebrations = (page: Page): Promise<number[]> =>
+  page.evaluate(() => (window as unknown as { __ev: number[] }).__ev)
+
 /**
- * M4.11 — the cadence. §7.10 allows at most four firings per page load: the
- * 25/50/75 milestones and the end. The human walkthrough reported confetti
- * firing after *every section change*, which is a defect in the trigger, not a
- * matter of taste.
+ * M4.11c — the cadence, asserted on the app's own events.
  *
- * ## What is measured
+ * ## Why events and not canvases
  *
- * `canvas-confetti` is a single lazy chunk and the browser fetches it once, so
- * counting *requests* counts *first* firings and nothing after. The honest
- * signal for "how many times did it fire" is the app's own counter, which
- * `Delight.count()` exposes for exactly this purpose. Both are read: the
- * counter is the assertion, and the request log proves the chunk was not
- * re-fetched (which would be a different bug with the same symptom).
+ * M4.11 counted `<canvas>` elements entering the document and concluded the
+ * milestones under-fired (one burst across a full scroll, at ~65%). That
+ * conclusion was **wrong**, and the reason it was wrong is the reason this file
+ * no longer sniffs the DOM at all.
  *
- * The second half is the regression that matters: **navigating the table of
- * contents across sections must add zero firings.** Section changes are what the
- * human saw, so that is the thing asserted directly.
+ * `canvas-confetti` reuses a single canvas across bursts, so only the *first*
+ * burst ever inserts one. The counter could not see the second firing of
+ * anything. Measured on `unfold:celebrate` instead, the truth is
+ * `[0.25, 0.5, 0.75, 1]` — four events, once each, in order, and nothing
+ * further when the reader scrolls back up and down again.
+ *
+ * The scroll geometry *does* grow while reading (`scrollHeight` 4173 → 4827 over
+ * ~2.8s as M4.6's idle-deferred mermaid and Shiki land), so a fraction measured
+ * early is a fraction of a smaller page. That is real, and it is also not a
+ * defect: `progress()` is recomputed from the live geometry on every scroll, and
+ * `fired` is a set, so a late threshold is reached late rather than missed.
+ * **No ResizeObserver was added**, because adding machinery to fix a defect that
+ * measurement says is not there is the failure mode this whole rewrite exists to
+ * avoid.
+ *
+ * ## The assertion that matters
+ *
+ * The old test said "at most 4". That is exactly the assertion that let the
+ * under-fire look like a pass. This one says **exactly 4, in this order**.
  */
-test.describe('§7.10 the cadence, from the browser (M4.11)', () => {
-  // Its own describe: the suite default is `reduce`, and confetti must load to
-  // be counted at all.
+test.describe('§7.10 the cadence, from the browser (M4.11c)', () => {
+  // Its own describe: the suite default is `reduce`, and the celebration is
+  // suppressed there by design.
   test.use({ contextOptions: { reducedMotion: 'no-preference' } })
 
-  /**
-   * The number of bursts, counted from the outside.
-   *
-   * `canvas-confetti` creates one `<canvas>` per burst and removes it when the
-   * particles finish, so a MutationObserver on added nodes counts real bursts.
-   *
-   * This is deliberately *not* the app's own `Delight.count()`. A counter the
-   * app increments is a report about what the app believes it did; a canvas in
-   * the document is a report about what actually happened. The M4.11 defect was
-   * reported by a human watching the screen, and this measures the screen.
-   *
-   * It also means this test needs no seam in production code, which is worth
-   * something: a test-only global in the app is a global nobody reviews.
-   */
-  // `addInitScript` resolves to a Playwright `Disposable`, not `void`, so this
-  // awaits and discards rather than returning it — otherwise the arrow's return
-  // type is a Disposable and `Promise<void>` does not admit it.
-  const installCounter = async (page: Page): Promise<void> => {
-    await page.addInitScript(() => {
-      const w = window as unknown as { __bursts: number }
-      w.__bursts = 0
-      // Count `<canvas>` elements entering the document: one per burst.
-      //
-      // Two wrong signals were tried first and both read a confident **zero**
-      // while confetti was plainly on screen, which is why this comment exists:
-      //
-      //  - Counting `getContext('2d')` calls: the library never makes one
-      //    through `HTMLCanvasElement.prototype`, so the count stays 0.
-      //  - Observing `document.documentElement`: an init script runs before the
-      //    parser has produced the root element, so `observe()` throws, the
-      //    observer is never installed, and the test reports "no confetti"
-      //    when the truth is "nothing is watching".
-      //
-      // `document` itself always exists at init-script time, and the burst
-      // canvas is appended under it. Verified: `after {"ca":1}` on a
-      // scroll-to-bottom, which is what the existing §7.10 milestone test
-      // already relies on when it asserts `canvas` has count 1.
-      new MutationObserver((records) => {
-        for (const r of records) {
-          for (const n of r.addedNodes) {
-            if (n instanceof HTMLElement && n.tagName === 'CANVAS') w.__bursts += 1
-          }
-        }
-      }).observe(document, { childList: true, subtree: true })
-    })
-  }
-
-  const bursts = (page: Page): Promise<number> =>
-    page.evaluate(() => (window as unknown as { __bursts: number }).__bursts)
-
-  test('scrolling the whole document fires at most four times, and TOC navigation fires none', async ({ page }) => {
+  test('a full scroll fires exactly four celebrations, in order, and TOC navigation adds none', async ({ page }) => {
     const console_ = watchConsole(page)
-    const urls = recordRequests(page)
-    await installCounter(page)
+    await recordCelebrations(page)
     await page.goto('/')
     await waitForDocument(page)
-    await page.waitForTimeout(400)
-    const atLoad = await bursts(page)
-    expect(atLoad, 'nothing should fire before the reader has scrolled').toBe(0)
 
-    // Scroll the full document in steps, as a reader does.
-    for (const fraction of [0.1, 0.25, 0.4, 0.5, 0.65, 0.75, 0.9, 1]) {
+    expect(await celebrations(page), 'nothing may fire before the reader scrolls').toEqual([])
+
+    // Walk the document the way a reader does. Small steps, so a threshold
+    // cannot be stepped over between two samples.
+    const steps = 40
+    for (let i = 1; i <= steps; i += 1) {
       await page.evaluate((f) => {
         const doc = document.documentElement
-        const scrollable = doc.scrollHeight - doc.clientHeight
-        window.scrollTo(0, scrollable * f)
-      }, fraction)
-      await page.waitForTimeout(150)
+        window.scrollTo(0, (doc.scrollHeight - doc.clientHeight) * f)
+      }, i / steps)
+      await page.waitForTimeout(40)
     }
-    const afterScroll = await bursts(page)
-    expect(afterScroll, 'scrolling the whole document must fire at most 4 times (§7.10)').toBeLessThanOrEqual(4)
-    expect(afterScroll, 'confetti should actually have fired at the milestones').toBeGreaterThan(0)
+    await page.waitForTimeout(300)
 
-    // Now the regression: jump around by section, which is what the human did.
-    // The rail's entries are `<button>`, not `<a>`: the route is a hash the app
-    // navigates to, and a real anchor would be a second navigation mechanism
-    // with its own history semantics (§7.1). `.toc-close` is the drawer's own
-    // close button and is excluded so this counts sections, not chrome.
-    const sections = await page.evaluate(() =>
-      [...document.querySelectorAll('.toc button:not(.toc-close)')].slice(0, 6).map((_, i) => i),
-    )
-    expect(sections.length, 'the rail should have section buttons to click').toBeGreaterThan(2)
-    for (const index of sections) {
-      await page.locator('.toc button:not(.toc-close)').nth(index).click()
-      await page.waitForTimeout(250)
-    }
-    const afterToc = await bursts(page)
+    const afterScroll = await celebrations(page)
     expect(
-      afterToc,
-      `TOC navigation fired ${afterToc - afterScroll} extra time(s) — §7.10 says never on a section change`,
-    ).toBe(afterScroll)
+      afterScroll,
+      `expected exactly the four milestones in order, got ${JSON.stringify(afterScroll)}`,
+    ).toEqual([0.25, 0.5, 0.75, 1])
 
-    // And the chunk is fetched at most once, ever.
-    expect(urls.filter((u) => /confetti/iu.test(u)).length, 'the confetti chunk must be fetched at most once').toBeLessThanOrEqual(1)
+    // Monotonic: back to the top and down again changes nothing.
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(150)
+    await page.evaluate(() => {
+      const doc = document.documentElement
+      window.scrollTo(0, doc.scrollHeight)
+    })
+    await page.waitForTimeout(250)
+    expect(await celebrations(page), 're-reading must not re-fire a milestone').toEqual(afterScroll)
+
+    // The regression the human reported: section changes are not milestones.
+    const sections = await page.evaluate(
+      () => document.querySelectorAll('.toc button:not(.toc-close)').length,
+    )
+    expect(sections, 'the rail should have section buttons to click').toBeGreaterThan(2)
+    for (let i = 0; i < Math.min(6, sections); i += 1) {
+      await page.locator('.toc button:not(.toc-close)').nth(i).click()
+      await page.waitForTimeout(200)
+    }
+    expect(
+      await celebrations(page),
+      'navigating the rail fired extra celebrations — §7.10 says never on a section change',
+    ).toEqual(afterScroll)
+
     console_.assertQuiet()
+  })
+})
+
+test.describe('§8 reduced motion: the celebration is silent', () => {
+  // Its own describe, and deliberately NOT inheriting the
+  // `no-preference` above. `test.use` applies to a whole describe block, so
+  // putting this test inside it meant it ran with motion *allowed* and failed
+  // for the right reason at the wrong layer — a reduced-motion test that is not
+  // running reduced motion is worse than no test.
+  test.use({ contextOptions: { reducedMotion: 'reduce' } })
+
+  test('reduced motion announces nothing at all', async ({ page }) => {
+    // The suite default is already `reduce`; this states the expectation at the
+    // layer that matters, so the reduced-motion contract has its own test rather
+    // than being implied by another one passing.
+    await recordCelebrations(page)
+    await page.goto('/')
+    await waitForDocument(page)
+    for (const f of [0.25, 0.5, 0.75, 1]) {
+      await page.evaluate((fr) => {
+        const doc = document.documentElement
+        window.scrollTo(0, (doc.scrollHeight - doc.clientHeight) * fr)
+      }, f)
+      await page.waitForTimeout(80)
+    }
+    expect(await celebrations(page), 'reduced motion must announce no celebrations (§8)').toEqual([])
   })
 })
