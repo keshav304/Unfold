@@ -5,6 +5,20 @@ document and get a reader: auto-generated navigation, hero statistics, a
 metro-map table of contents, and — only when the document actually provides the
 data — a graph view, a stepper, a glossary and entity chips.
 
+## Getting a document in
+
+`#/` is the front door and `#/welcome` is the same view, permanently linkable.
+
+- **Drop** any `.md`/`.mdx` onto the window, or use the file picker.
+- The drop handler is **app-wide**: dropping onto a document that is already
+  loaded replaces it, so you never have to go back to `#/welcome` first.
+- The file picker button is the keyboard path and lives *inside* the drop zone.
+  A drag target is unreachable by keyboard, so the button is the contract and
+  the dashed card is only the affordance.
+- If a `docPath` is configured, `#/welcome` also offers **Open the bundled
+  document**; if a document is already in memory it is named as
+  *Reading: …*.
+
 > **Note on this file's location.** The repository root `README.md` is a
 > *read-only demo document* (the same class of data as `ARCHITECTURE.md`), not
 > the project's README, so the project README lives here. Nothing in `src/` may

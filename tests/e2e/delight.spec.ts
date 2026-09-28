@@ -123,14 +123,15 @@ test.describe('§7.10 delight on and motion allowed', () => {
 })
 
 /** Record every `unfold:celebrate` the app announces. */
-const recordCelebrations = (page: Page): Promise<void> =>
-  page.addInitScript(() => {
+const recordCelebrations = async (page: Page): Promise<void> => {
+  await page.addInitScript(() => {
     const w = window as unknown as { __ev: number[] }
     w.__ev = []
     window.addEventListener('unfold:celebrate', (e) => {
       w.__ev.push((e as CustomEvent<{ milestone: number }>).detail.milestone)
     })
   })
+}
 
 const celebrations = (page: Page): Promise<number[]> =>
   page.evaluate(() => (window as unknown as { __ev: number[] }).__ev)

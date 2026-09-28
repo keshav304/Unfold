@@ -1272,6 +1272,38 @@ requested) and `:71` (flag on, reduced motion → still never requested). The R5
 contrast-allowlist entry was deleted at **G4/R11b, commit `4193cef`** — not in
 M4, which is why M4.3's own entry says so rather than claiming the credit.
 
+**M4.2's mobile collapse order is amended by M4.12** / the header at 375px
+puts the wordmark first and the document title on a second row. M4.2 recorded
+the order as "the title grows into the leftover space and truncates with an
+ellipsis"; that rule was about *how the title behaves*, and M4.12 changes
+*which element wins the top row*.
+
+The wordmark stays on row one because it is the only element that says which
+product this is and provides the way home, and a brand that disappears at the
+width most people read at is not a brand. The title drops to row two and still
+truncates. The rejected alternative is the one worth recording: truncating
+UNFOLD to fit the title alongside it would reproduce a 1px stub at the far left
+of the header — the precise defect M4.2 was written to eliminate — and a stub
+where the brand goes is worse than a title one row down.
+
+**The drop handler is on `window`, not on the drop screen** / M4.12, closing
+M4.11b. The brief required that dropping onto a *loaded* document swap
+documents, and the handler could not live in `DropScreen`, because that screen
+is not mounted when a document is loaded — the one case the requirement is
+about. The human's inability to confirm the behaviour was not a missing test
+alone; the capability was not there. The `FileReader` and accept-check are
+extracted to `useMarkdownFile` so the welcome view and the app-wide handler
+cannot drift, since a second copy of that logic is the one nobody tests.
+
+**The drop zone's border is 2px, not 1.5px** / M4.12. Chrome snaps a *dashed*
+border to whole pixels: `1.5px dashed` computes to `1px`, confirmed with
+`getComputedStyle`. The brief's value would have been written into the
+stylesheet and read by every reviewer as a deliberate heavier rule, while
+painting identically to the 1px dividers it is meant to out-weigh. The intent
+is preserved; the value is the nearest that survives the snap. This is the same
+shape as the M4.10 instrument lesson: the number in the brief was measured under
+a different experiment than the one it was written for.
+
 **Deployment is not a release criterion** / `docs/README.md`, logged as a human
 decision / The deployment section now says plainly that it is documented but not
 yet exercised on a real host. The reasoning: §10 gates measurable properties of

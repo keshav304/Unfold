@@ -26,7 +26,9 @@ test.describe('§7 the front door', () => {
     const first = await page.evaluate(() => {
       const header = document.querySelector('.app-header')
       if (header === null) return null
-      const items = [...header.children].filter((el) => el.offsetParent !== null || el.classList.contains('app-brand'))
+      const items = [...header.children].filter(
+        (el) => el instanceof HTMLElement && (el.offsetParent !== null || el.classList.contains('app-brand')),
+      )
       return items[0]?.className ?? null
     })
     expect(first, 'the wordmark must be the first thing in the header').toContain('app-brand')
@@ -84,7 +86,13 @@ test.describe('§7 the front door', () => {
     const console_ = watchConsole(page)
     await page.goto('/')
     await waitForDocument(page)
-    await expect(page.locator('.app-title')).toHaveText('Kitchen Sink Fixture')
+    // The *current* title, captured rather than hardcoded. The default fixture
+    // is not one this test should name: hardcoding it made the assertion depend
+    // on the e2e config's docPath instead of on the behaviour, and it passed
+    // standalone while failing in the full run. What matters is that the title
+    // *changes to the dropped document*, not which document was there first.
+    const before = (await page.locator('.app-title').textContent())?.trim()
+    expect(before, 'a document must be loaded before the swap is meaningful').toBeTruthy()
 
     // The reader is up, so the drop screen is NOT mounted. If the handler still
     // works, it is app-wide; if it does not, the handler was in the drop screen.
@@ -106,7 +114,8 @@ test.describe('§7 the front door', () => {
     await page.waitForTimeout(600)
 
     // The document was replaced, and the app is still the app.
-    await expect(page.locator('.app-title')).toHaveText('Dropped')
+    await expect(page.locator('.app-title')).toHaveText('Dropped', { timeout: 10_000 })
+    await expect(page.locator('.app-title')).not.toHaveText(before ?? '')
     await expect(page.locator('body')).toContainText('A different document entirely')
     console_.assertQuiet()
   })

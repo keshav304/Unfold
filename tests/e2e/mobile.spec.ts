@@ -228,20 +228,51 @@ test.describe('the graph workbench at 375px', () => {
 })
 
 test.describe('a document with no capabilities at 375px', () => {
-  test('the header is one row, because there is no pane switch to move', async ({ page }) => {
+  test('the second row is the document title, not a pane switch (M4.12)', async ({ page }) => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/minimal.md')
     await page.setViewportSize(PHONE)
     await page.goto('/')
     await waitForDocument(page)
 
-    // `minimal` is Tier 0: no switcher above 768px and no pane switch below it,
-    // so the second row never appears and the header is not needlessly tall. A
-    // fixed two-row height here would waste 40px of every Tier 0 document.
+    // `minimal` is Tier 0: no switcher above 768px and no pane switch below it.
+    // That half of the original M4.2 assertion still holds, and it is asserted
+    // first because it is the one that cannot be bought back by raising a
+    // number.
     await expect(page.locator('.workbench-tabs')).toHaveCount(0)
+
+    /*
+     * What changed, and why the "one row" assertion is not merely relaxed.
+     *
+     * The original test asserted the header was a single row, reasoning that a
+     * fixed second row would "waste 40px of every Tier 0 document". M4.12
+     * amends the collapse order: the wordmark keeps the top row and the
+     * document title moves to a second. So the header is two rows here too.
+     *
+     * The *concern* is unchanged and is now what this test measures: a Tier 0
+     * document must not pay for a switch it does not have. The second row is
+     * one line of truncated title — about 19px — and not the ~40px switcher
+     * row. 96 = one row (~56) + a title row, with a little slack. Raising this
+     * to "any height" would be the thing M4.10 warned about, so the number
+     * stands and the *reason* for it is now the title.
+     */
     const header = await page.locator('.app-header').boundingBox()
-    expect(header?.height ?? 0).toBeLessThan(70)
-    expect(await overflow(page)).toBeLessThanOrEqual(0)
+    expect(header?.height ?? 0, 'a Tier 0 header is one row plus one title row').toBeLessThan(96)
+
+    // The wordmark is on the first row: that is the point of the amendment, and
+    // a height assertion cannot tell a brand on row one from a brand on row
+    // two.
+    const brand = await page.locator('.app-brand').boundingBox()
+    expect(brand, 'the wordmark is always rendered at 375px').not.toBeNull()
+    expect(brand?.y ?? 0).toBeLessThan(30)
+    await expect(page.locator('.app-brand')).toHaveText('UNFOLD')
+
+    // The title is on the second row and still truncates rather than stubbing.
+    const title = await page.locator('.app-title').boundingBox()
+    expect(title?.y ?? 0, 'the title drops below the wordmark').toBeGreaterThan(brand?.y ?? 0)
+    await expect(page.locator('.app-brand__divider')).toBeHidden()
+
+    expect(await overflow(page), 'no horizontal overflow at 375px').toBeLessThanOrEqual(0)
     console_.assertQuiet()
   })
 })

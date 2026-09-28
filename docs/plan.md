@@ -516,6 +516,55 @@ budgets, reduced-motion.
 | Ref HTML copy-paste growing | Refactor to component + tokens |
 | Feature rendered for missing data | Violates §1.3; hide it |
 
+## 9a. M4.11c + M4.12 — what was verified, and what was not
+
+**The M4.11 under-firing finding was the measurement, not the app.** The finding
+recorded in M4.11 was that milestones under-fire (one burst, at ~65%). Verified
+before coding, per the brief's own instruction to check the mechanism first:
+
+| Claim | Verdict |
+|---|---|
+| `scrollHeight` grows while reading (4173 → 4323 → 4601 → 4827 over ~2.8s, as M4.6's idle-deferred mermaid and Shiki land) | **True** |
+| That growth makes milestones miss | **False.** `progress()` recomputes from live geometry on every scroll; `fired` is a set, so a late threshold is reached late, not missed |
+| Only one burst happens | **False — the counter could not see the second firing.** `canvas-confetti` *reuses* one canvas across bursts; only the first inserts one |
+
+On `unfold:celebrate` the truth is `[0.25, 0.5, 0.75, 1]` — four, once each, in
+order, and nothing further on re-reading. **No ResizeObserver was added**, because
+the brief asked for one to fix a defect that measurement says is not there.
+Canvas sniffing is now banned permanently; the comment in `delight.ts` records
+both wrong signals so the next person does not lose an hour to them.
+
+The cadence test asserts **exactly** `[0.25, 0.5, 0.75, 1]` in order, not
+"at most 4". The weak assertion is what let the misreading look like a pass.
+Verified it fails without the fix: `got [1]`.
+
+**M4.11b is closed, and the capability was missing rather than the test.** The
+brief required dropping onto a *loaded* document to swap it. That handler could
+not live in `DropScreen` — not mounted when a document is loaded, i.e. never in
+the case the requirement is about. It is on `window` now, asserted with a real
+`DataTransfer`.
+
+**M4.12** ships the wordmark (`#/welcome`), the welcome view, and the app-wide
+drop. Three things changed from the brief, each because the browser or the test
+said so:
+
+- **The drop zone is 2px dashed, not 1.5px.** Chrome snaps a *dashed* border to
+  whole pixels; `1.5px dashed` computes to `1px` (verified with
+  `getComputedStyle`) and would paint identically to the 1px rules it is meant to
+  out-weigh. Same shape as the M4.10 instrument lesson: the brief's number was
+  written under a different experiment than the one it describes.
+- **M4.2's mobile collapse order is amended.** The wordmark stays on row one at
+  375px and the document title drops to row two. Truncating UNFOLD instead would
+  reproduce a 1px stub — the exact defect M4.2 was written to kill.
+- **A hooks-order bug caught by the browser, not by a test.** The drop effect was
+  written below the `state.status` early returns, and the app died with React
+  #310 — invisible in a single-state unit test, fatal in a browser that starts
+  in `loading`.
+
+Two test-quality defects were also found and fixed while writing these:
+`test.use` applies to a whole `describe`, so M4.11c's reduced-motion test was
+silently running with motion *allowed*; and the `<canvas>` counter above.
+
 ## 10. Backlog (post-v1, from spec §15)
 
 - Light theme design + `[data-theme]` activation
