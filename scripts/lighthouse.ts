@@ -274,7 +274,17 @@ async function main() {
   }
 
   const server = await startServer(PREVIEW_PORT)
-  const url = `http://127.0.0.1:${PREVIEW_PORT}/`
+  /*
+   * `#/`, not `/` (M4.12). `/` is now the welcome view: no document, no
+   * highlights, no mermaid, no diagrams. Auditing it would produce a spectacular
+   * number for a page that does almost nothing, and the gate would stop
+   * measuring the thing it exists to protect — which is document rendering.
+   *
+   * A gate that silently changes what it measures is worse than a slow gate,
+   * because the number keeps moving up while the workload it names quietly
+   * leaves. The hash addresses the reader, which is a real URL the app serves.
+   */
+  const url = `http://127.0.0.1:${PREVIEW_PORT}/#/`
   process.stdout.write(
     `lighthouse: auditing ${url} — ${PRESET} preset, ${RUNS} runs, every metric gated on the median\n`,
   )
