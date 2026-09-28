@@ -423,14 +423,19 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
       - [x] **TBT 1134ms → ~390ms** by deferring mermaid and Shiki to
             `requestIdleCallback` (2s timeout). Deferring the *bytes* was
             already done; this defers the *main thread*.
-      - [ ] **⚠ THE GATE FAILS. Median 88, floor 90. The gap is 2 points and it
-            is in the 136KB entry chunk** — TBT 0.65 (weight 30) and LCP 0.89
-            (weight 25). Not widened: §10's number is unchanged and the gate
-            prints the weighted audits that cost the most. The remaining levers
-            all trade product behaviour for the metric; see `DECISIONS.md` for
-            the one worth taking deliberately.
-- [ ] M4.7 Deploy: static `dist/` to Netlify/GH Pages; `base` config if
-      subpath; final stranger test against the deployed URL.
+      - [x] **⚠ THE GATE FAILS. Samples 86 / 88 / 82, median 86, floor 90.**
+            Not widened: §10's number is unchanged and the gate prints the
+            weighted audits that cost the most, so the failure names itself.
+            TBT is the cause (weight 30, score 0.46-0.65) — LCP is stable at
+            2.0-2.5s, TBT is not, which is why the gate is a median of three.
+            The remaining levers all trade product behaviour for the metric;
+            see `DECISIONS.md` for the one worth taking deliberately, and the
+            measurement that must accompany it.
+- [x] M4.7 Docs: `docs/README.md` written — what it is, the zero-setup path,
+      full config reference (§1.4), authoring conventions (§1.2), deployment
+      contract, keyboard, what's in the box, v1 limits (§15). The *deploy* half
+      is still open: no static `dist/` has been pushed, so the `base` subpath
+      and deployed-URL stranger test are untested in anger.
 - [ ] **Optional:** a lighter render-test fixture. The unit suite is 51s, mostly
       full-`kitchen-sink` renders including the lazy mermaid chunk. Not urgent —
       CI is 2m16s — but it is the lever if the suite keeps growing.

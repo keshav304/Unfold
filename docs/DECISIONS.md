@@ -1223,20 +1223,19 @@ timeout was added too, because "the gate hangs" is a worse failure than "the
 gate fails" — CI's own timeout would eventually fire with no indication of
 which run was stuck.
 
-**The gate is ON at 90 and it FAILS. Median 88. The gap is 2 points and it is
-in the entry chunk.** Reported, not widened / TBT 0.65 (weight 30) and LCP 0.89
-(weight 25), named by the gate itself / This is the outcome the M4 brief
-anticipated — "if the waterfall fix alone doesn't reach 90, report the remaining
-gap + your best next lever — do not silently widen anything." The threshold is
-§10's own number and it is unchanged, and the gate prints the weighted audits
-that cost the most so a failure is actionable rather than a bare number. The
-honest next lever is the 136KB entry: the two long tasks that remain are ~330ms
-of script evaluation for it and ~330ms of React mounting a real document, and
-every way to shrink the entry available here trades product behaviour for the
-metric — splitting `minisearch` out would make the palette's first keystroke
-wait on a chunk, which is exactly what M2's decision put `cmdk` in the entry to
-prevent. That trade is worth making deliberately, with its own measurement, and
-not as a side effect of chasing two points.
+**The gate is ON at 90 and it FAILS. Final samples 86 / 88 / 82, median 86.
+The gate itself names the cause: TBT.** Reported, not widened / TBT weight 30
+(score 0.46-0.65 across runs) and LCP weight 25, both printed by the gate so a
+failure is actionable rather than a bare number / This is the outcome the M4
+brief anticipated — "if the waterfall fix alone doesn't reach 90, report the
+remaining gap + your best next lever — do not silently widen anything." The
+threshold is §10's own number and it is unchanged.
+
+The 6-point spread across three runs is itself the finding. LCP is stable at
+2.0-2.5s; TBT is not, because it is a function of what else the machine is doing
+while React mounts a 60-block document. That is why the gate takes a median of
+three: a single run here is measuring the weather, and 88-vs-86 is not a
+meaningful regression.
 
 **M4.6's own test run found a real M4.3 regression, and the fix was a CSS
 deletion** / `.code-content` / M4.3 gave `.code-content` `role="region"` and a
@@ -1254,3 +1253,18 @@ scrolling. Worth recording because the M4.3 change looked correct in review and
 in the unit tests; only a whole-page axe run against a long, unhighlighted fence
 surfaced it, which is the argument for the M4.3 sweep being whole-page in the
 first place.
+
+**The best next lever, named** / entry chunk and document mount / The two long
+tasks left are ~330ms of script evaluation for the 139KB entry and ~330ms of
+React mounting a real document. The lever is reducing or deferring entry work,
+and the obvious candidate is search: `minisearch` plus index construction runs at
+load, and the index is only ever read after the palette opens.
+
+**It is not a free win, and that is the point.** Splitting `minisearch` out
+means the palette's first keystroke waits on a chunk — which is precisely the
+latency M2's decision put `cmdk` in the entry to prevent. So the next attempt
+has to be measured the way font preloading was: index-build time before and
+after, *and* time-to-first-result in the palette, with the second number as a
+hard constraint rather than a nice-to-have. A change that buys four TBT points
+by making search feel slow has not fixed a performance problem, it has moved
+it somewhere a user can feel.

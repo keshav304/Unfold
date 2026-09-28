@@ -185,12 +185,14 @@ Aliases are **never inferred** — only an explicit `Aliases:` line counts, so a
 search for `MR` finds "Measurement Run" and a search for a word that merely
 appears near it does not.
 
-### What is *not* available
+### What a document cannot ask for
 
-- **No light theme.** v1 is dark only.
-- **No remote URLs.** `docPath` is a path the app can fetch, or a file you drop.
-- **No editing.** Documents are authored in a text editor; the app only reads.
-- **One document per load.** There is no doc switcher in v1.
+- **A light theme.** Not per-document, not per-config. v1 is dark, and the
+  tokens file says so once.
+- **A remote URL.** `docPath` is a path the app can fetch from its own origin,
+  or a file you drop. See [v1 limits](#v1-limits) for why.
+- **Editing.** Documents are read, never written.
+- **More than one document per load.** No doc switcher, no multi-doc navigation.
 
 ---
 
