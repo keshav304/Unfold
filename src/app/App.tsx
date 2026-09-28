@@ -334,6 +334,17 @@ export function App({ config, fetcher, autoLoad: autoLoadProp }: AppProps): JSX.
     setRoute(next)
   }, [])
 
+  /**
+   * The reader's "Open in graph view" link (M4.13.1).
+   *
+   * A stable identity, because the reader memoises the block options it passes
+   * down and a fresh closure per render would undo that memoisation — the exact
+   * mistake the `onNavigate` handlers above are written to avoid. It is passed
+   * only when `capabilities.graph` is on (§1.1), so a document that cannot show
+   * the graph view never offers a link to it.
+   */
+  const openGraph = useCallback(() => goTo('graph'), [goTo])
+
   /* ---------------- stepper step (M3.6) ---------------- */
 
   const stepCount = doc?.steps?.length ?? 0
@@ -707,6 +718,7 @@ export function App({ config, fetcher, autoLoad: autoLoadProp }: AppProps): JSX.
                 mode={reading.mode}
                 isExpanded={reading.isExpanded}
                 onToggleSection={reading.toggleSection}
+                onOpenGraph={doc.capabilities.graph ? openGraph : undefined}
               />
             </>
           ) : null}

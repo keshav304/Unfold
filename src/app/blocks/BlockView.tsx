@@ -1,9 +1,16 @@
 /**
  * Block dispatch (spec §6.3). One `Block` in, one component out.
  *
- * `graph` and `steps` are **deferred**: their views belong to M3, so in the
- * reader they render as their source. That is the §1.3 degrade path — the
- * content is fully visible and nothing is faked or dropped.
+ * Two block kinds used to be *deferred* — `graph` and `steps` rendered as their
+ * own source, because their views belonged to a later milestone. M4.13 closed
+ * that: both now render inline, as a read-only mini-canvas and as the stepper
+ * respectively, and the source is gone from the reader. The §1.3 degrade path
+ * did not change — a `graph`/`steps`/`loop` block that failed to parse *at
+ * classification time* is already a plain `code` block by the time it reaches
+ * this file, so nothing here can degrade.
+ *
+ * The terminal window is the one block kind still waiting on its own
+ * milestone; it is unchanged by this one.
  */
 
 import type { ReactNode } from 'react'
@@ -15,8 +22,15 @@ import { CodeBlock } from './CodeBlock'
 import { Terminal } from './Terminal'
 import { Loop } from './Loop'
 import { Mermaid } from './Mermaid'
+import { GraphBlock } from './GraphBlock'
+import { StepsBlock } from './StepsBlock'
 
-export type BlockProps = { block: Block; context: InlineContext }
+export type BlockProps = {
+  block: Block
+  context: InlineContext
+  /** Passed only when the shell can show the graph view (§1.1). */
+  onOpenGraph?: (() => void) | undefined
+}
 
 function inline(node: Paragraph, context: InlineContext, key: string): ReactNode {
   return <span key={key}>{node.children.map((child, index) => renderInline(child, index, context))}</span>
@@ -73,7 +87,7 @@ function listItems(items: readonly unknown[], context: InlineContext, ordered: b
   )
 }
 
-export function BlockView({ block, context }: BlockProps): ReactNode {
+export function BlockView({ block, context, onOpenGraph }: BlockProps): ReactNode {
   switch (block.kind) {
     case 'prose':
       return <p className="reader-prose">{inline(block.node, context, block.kind)}</p>
@@ -133,14 +147,19 @@ export function BlockView({ block, context }: BlockProps): ReactNode {
       return <pre className="reader-html">{block.value}</pre>
 
     case 'graph':
-    case 'steps':
+      // M4.13.1: the diagram, not its source. `onOpenGraph` is undefined when
+      // the shell cannot offer the full view, and then there is no link.
       return (
-        <CodeBlock
-          code={deferredSource(block)}
-          lang={block.kind}
-          filePath={`${block.kind} (view arrives in a later milestone)`}
+        <GraphBlock
+          spec={block.spec}
+          slugs={context.slugs}
+          {...(onOpenGraph === undefined ? {} : { onOpenGraph })}
         />
       )
+
+    case 'steps':
+      // M4.13.2: the stepper itself, embedded. The reader owns its navigation.
+      return <StepsBlock steps={block.spec} onNavigate={context.onNavigate} />
 
     default:
       return null
@@ -150,22 +169,4 @@ export function BlockView({ block, context }: BlockProps): ReactNode {
 function alignOf(align: string | null | undefined): { textAlign: 'left' | 'right' | 'center' } | undefined {
   if (align === 'right' || align === 'center') return { textAlign: align }
   return undefined
-}
-
-/** The DSL source for a block whose view has not shipped yet. */
-function deferredSource(block: Extract<Block, { kind: 'graph' | 'steps' }>): string {
-  if (block.kind === 'graph') {
-    const nodes = block.spec.nodes.map((node) => `  ${node.id}: ${node.label}${node.sub === undefined ? '' : ` | ${node.sub}`}`)
-    const edges = block.spec.edges.map(
-      (edge) => `  ${edge.from} ${edge.dashed === true ? '-.-' : '->'} ${edge.to}${edge.label === undefined ? '' : ` | ${edge.label}`}`,
-    )
-    return ['nodes:', ...nodes, 'edges:', ...edges].join('\n')
-  }
-  return block.spec
-    .map((step) => {
-      const description = step.description === undefined ? '' : ` — ${step.description}`
-      const source = step.sourceRef === undefined ? '' : ` [@${step.sourceRef}]`
-      return `${step.index}. ${step.title}${description}${source}`
-    })
-    .join('\n')
 }

@@ -43,7 +43,7 @@ import { firstProseOf } from '../views/Reader'
 import { BlockView } from '../blocks/BlockView'
 import type { InlineContext } from '../blocks/Inline'
 import { navigate } from '../navigate'
-import { layoutGraph, NODE_HEIGHT, NODE_WIDTH } from './layout'
+import { layoutBounds, layoutGraph, NODE_HEIGHT, NODE_WIDTH } from './layout'
 import { MetroNodeMemo } from './MetroNode'
 import { sectionsBySlug, targetForNode, unresolvedNodeIds } from './graph-targets'
 
@@ -495,6 +495,154 @@ function GraphWorkbench({
     </div>
   )
 }
+
+/**
+ * The reader's inline mini-canvas for a ` ```graph ` block (M4.13.1).
+ *
+ * ## What this is, and what it deliberately is not
+ *
+ * It is the same canvas: `layoutGraph`, `MetroNodeMemo`, the `graph-canvas`
+ * styling, the `edge-trace` dashed-edge treatment, `fitView` — all imported from
+ * the module above, which is also why it costs nothing extra on the critical
+ * path. This module is the only thing that imports `@xyflow/react`, so loading
+ * it here lands the library in the chunk it was always going to land in.
+ *
+ * It is not a second graph view: no workbench, no inspector, no panel, no
+ * switcher, no dragging, no zoom controls, no keyboard affordances. The reader's
+ * job is reading, and a diagram embedded in prose should behave like a picture in
+ * a document — it is there to be looked at. Hover still lights a node (that is
+ * CSS, and it is the same CSS the workbench uses), and the full experience is one
+ * click away through the link the caller renders beside it.
+ *
+ * The `slugs` prop is optional on purpose: without it a node simply is not
+ * marked as resolving to a section, which affects a data attribute and nothing
+ * else. Nothing here navigates, so nothing here can navigate wrongly.
+ */
+export type GraphInlineProps = {
+  spec: GraphSpec
+  /** Section slugs, so a node whose id *is* a section can be marked as one. */
+  slugs?: ReadonlySet<string>
+}
+
+/** The band the inline canvas sizes itself within, and the padding around it. */
+const CANVAS_MIN = 168
+const CANVAS_MAX = 360
+const CANVAS_PADDING = 72
+/** A wide reading column, in px — the worst case for a graph that wants width. */
+const COLUMN_ESTIMATE = 700
+
+export function GraphInline({ spec, slugs }: GraphInlineProps): JSX.Element {
+  const placed = useMemo(() => layoutGraph(spec), [spec])
+  const bounds = useMemo(() => layoutBounds(placed), [placed])
+
+  /**
+   * The canvas is sized to the graph it holds, not to a fixed 360px.
+   *
+   * A four-column chain laid out left-to-right is 1056 units wide and **64** tall.
+   * `fitView` fits that into a reading column at the workbench's own
+   * `MIN_FIT_ZOOM` of 0.6, so the graph is 634×38 — and a 360px box around a 38px
+   * graph is 300px of nothing above and below it, which is exactly what the
+   * M4.13 screenshot showed: a thin row of nodes adrift in an empty field.
+   *
+   * So the height is derived from the *layout*, in three steps, every one of them
+   * a pure function of the spec the pipeline gave us:
+   *
+   *   1. the zoom `fitView` will choose at the reading column's width, computed
+   *      with `FIT`'s own padding and the same `MIN_FIT_ZOOM` clamp the workbench
+   *      uses — so this is not a second guess at the fit;
+   *   2. the fitted content's height, plus a band of padding;
+   *   3. a floor and a ceiling, because a diagram in a document has a size range
+   *      and neither end of it is interesting.
+   *
+   * The column width is an estimate, and being wrong costs a little more or less
+   * padding. The reason it is an estimate and *not* a measurement is layout
+   * shift: a height that arrives after a `ResizeObserver` fires moves everything
+   * below it, and M4.10 spent a milestone driving document CLS to 0.000. A number
+   * computed from the spec is known on the first paint.
+   */
+  const height = useMemo(() => {
+    const usable = COLUMN_ESTIMATE * (1 - 2 * FIT.padding)
+    const zoom = Math.max(MIN_FIT_ZOOM, Math.min(1, usable / Math.max(bounds.width, 1)))
+    const fitted = Math.round(bounds.height * zoom) + CANVAS_PADDING
+    return Math.min(CANVAS_MAX, Math.max(CANVAS_MIN, fitted))
+  }, [bounds.height, bounds.width])
+
+  const { nodes, edges } = useMemo(() => {
+    const declared = new Map(spec.nodes.map((node) => [node.id, node]))
+    const nodes: Node[] = []
+    for (const position of placed) {
+      const node = declared.get(position.id)
+      if (node === undefined) continue
+      nodes.push({
+        id: position.id,
+        type: 'metro',
+        position: { x: position.x + NODE_WIDTH / 2, y: position.y + NODE_HEIGHT / 2 },
+        data: {
+          node,
+          hasSection: slugs?.has(position.id) ?? false,
+        },
+        draggable: false,
+        connectable: false,
+        selectable: false,
+        focusable: false,
+      })
+    }
+
+    const edges: Edge[] = []
+    spec.edges.forEach((edge, index) => {
+      if (!declared.has(edge.from) || !declared.has(edge.to)) return
+      edges.push({
+        id: `inline-${index}`,
+        source: edge.from,
+        target: edge.to,
+        ...(edge.dashed === true ? { className: 'graph-edge--dashed' } : {}),
+        ...(edge.label === undefined ? {} : { label: edge.label }),
+        selectable: false,
+        focusable: false,
+      })
+    })
+    return { nodes, edges }
+  }, [spec, placed, slugs])
+
+  return (
+    <div
+      className="graph-canvas graph-inline"
+      data-read-only="true"
+      style={{ height: `${height}px` }}
+    >
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={FIT}
+        minZoom={0.2}
+        maxZoom={2}
+        // Read-only, end to end: nothing drags, nothing connects, nothing is
+        // selected, and neither wheel nor double-click zooms — a diagram in a
+        // document is looked at, not operated on. Panning is off for the same
+        // reason: the reader scrolls this page, and a canvas that swallows the
+        // scroll wheel is a canvas that traps the reader mid-paragraph.
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        panOnDrag={false}
+        panOnScroll={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
+        preventScrolling={false}
+        proOptions={{ hideAttribution: true }}
+      >
+        {/* The grid is `--grid-line` on a 24px pitch (spec §5.2/§7.2). */}
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="var(--grid-line)" />
+      </ReactFlow>
+    </div>
+  )
+}
+
 
 export default function GraphView(props: GraphViewProps): JSX.Element {
   return (

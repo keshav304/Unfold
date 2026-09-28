@@ -13,6 +13,14 @@ import { navigate, prefersReducedMotion } from '../navigate'
 import { filterBlocksForMode, sectionIsReduced, type ReadingMode } from '../modes/reading-mode'
 import type { InlineContext } from '../blocks/Inline'
 
+/**
+ * The one block-view option that is the *view's* rather than the block's:
+ * whether the shell can open the graph view.
+ */
+type ViewOptions = {
+  onOpenGraph: (() => void) | undefined
+}
+
 export type ReaderProps = {
   doc: Doc
   slugs: ReadonlySet<string>
@@ -35,6 +43,11 @@ export type ReaderProps = {
   /** §7.8's per-section override: slugs the reader has expanded. */
   isExpanded?: (slug: string) => boolean
   onToggleSection?: (slug: string) => void
+  /**
+   * Opens the graph view from an inline `graph` block (M4.13.1). Absent when the
+   * document is not graph-capable, and then no link is offered (§1.1).
+   */
+  onOpenGraph?: (() => void) | undefined
 }
 
 /** The first paragraph of a section, for the inspector later (§7.6). */
@@ -42,9 +55,19 @@ export function firstProseOf(blocks: readonly Block[]): Block | undefined {
   return blocks.find((block) => block.kind === 'prose' || block.kind === 'quote')
 }
 
-function renderBlocks(blocks: readonly Block[], context: InlineContext, keyPrefix: string): ReactNode {
+function renderBlocks(
+  blocks: readonly Block[],
+  context: InlineContext,
+  keyPrefix: string,
+  view: ViewOptions,
+): ReactNode {
   return blocks.map((block, index) => (
-    <BlockView key={`${keyPrefix}-${index}`} block={block} context={context} />
+    <BlockView
+      key={`${keyPrefix}-${index}`}
+      block={block}
+      context={context}
+      onOpenGraph={view.onOpenGraph}
+    />
   ))
 }
 
@@ -66,6 +89,7 @@ function renderSection(
   mode: ReadingMode,
   isExpanded: (slug: string) => boolean,
   onToggleSection: ((slug: string) => void) | undefined,
+  view: ViewOptions,
 ): ReactNode {
   const Heading = level === 2 ? 'h2' : 'h3'
   // §7.8: the per-section "show all" override outranks the mode for this one
@@ -101,7 +125,7 @@ function renderSection(
           {section.title}
         </a>
       </Heading>
-      {renderBlocks(shown, context, section.slug)}
+      {renderBlocks(shown, context, section.slug, view)}
       {canExpand ? (
         <button
           type="button"
@@ -113,7 +137,7 @@ function renderSection(
         </button>
       ) : null}
       {section.children.map((child) =>
-        renderSection(child, context, flash, 3, mode, isExpanded, onToggleSection),
+        renderSection(child, context, flash, 3, mode, isExpanded, onToggleSection, view),
       )}
     </section>
   )
@@ -129,7 +153,17 @@ export function Reader({
   mode = 'reference',
   isExpanded = () => false,
   onToggleSection,
+  onOpenGraph,
 }: ReaderProps): JSX.Element {
+  /*
+   * One object for the block view's options, memoised so a re-render of the
+   * reader does not rebuild a new function identity per block — `onNavigate` in
+   * the context above has the same discipline, and for the same reason: a block
+   * that re-renders because a *new* callback appeared is a block that re-renders
+   * for no reason at all.
+   */
+  const view = useMemo<ViewOptions>(() => ({ onOpenGraph }), [onOpenGraph])
+
   const context: InlineContext = useMemo(() => {
     const titles = new Map<string, string>()
     for (const section of flattenSections(doc.sections)) titles.set(section.slug, section.title)
@@ -187,10 +221,19 @@ export function Reader({
         exists) the part a skimming reader loses. See `modes/reading-mode.ts`.
       */}
       <div id={`section-${INTRO_SLUG}`} className="reader-intro" tabIndex={-1} data-slug={INTRO_SLUG}>
-        {renderBlocks(doc.intro, { ...context, sectionSlug: INTRO_SLUG }, 'intro')}
+        {renderBlocks(doc.intro, { ...context, sectionSlug: INTRO_SLUG }, 'intro', view)}
       </div>
       {doc.sections.map((section) =>
-        renderSection(section, contextFor(context, section.slug), flash, 2, mode, isExpanded, onToggleSection),
+        renderSection(
+          section,
+          contextFor(context, section.slug),
+          flash,
+          2,
+          mode,
+          isExpanded,
+          onToggleSection,
+          view,
+        ),
       )}
       {doc.sections.length === 0 && doc.intro.length === 0 ? (
         <p className="reader-empty">This document has no readable content.</p>

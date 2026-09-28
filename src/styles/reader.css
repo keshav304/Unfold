@@ -1768,6 +1768,92 @@
 }
 
 
+/* ---------- the reader's inline mini-canvas (M4.13.1) ---------- */
+/*
+ * A diagram embedded in a document, not a workbench: the same `--canvas`
+ * substrate and `--border-muted` edge as the graph stage, at a fixed height
+ * rather than a viewport's worth of it, and a single link out to the full view
+ * beneath it.
+ */
+.reader-graph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+  background: var(--canvas);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/*
+ * The height is set inline from the graph's own layout bounds (see
+ * `GraphInline`), between 200px and 360px. This rule is the first-paint default
+ * for the frame that has to exist before the component measures anything, and it
+ * is the same 360px the milestone asks for on a graph that fills its box.
+ */
+.graph-inline {
+  flex: none;
+  height: 360px;
+}
+
+.graph-inline-boot {
+  display: grid;
+  place-items: center;
+  height: 360px;
+  background: var(--canvas);
+  color: var(--text-muted);
+}
+
+/* Read-only means read-only: no pointer affordance on a node that does nothing. */
+.graph-inline .metro-node {
+  cursor: default;
+}
+
+/*
+ * The link out. The same pill shape the stepper's source link uses, because it
+ * is the same kind of thing — a way out of this block and into a view — and
+ * DESIGN.md's badge shape is the only pill shape here.
+ */
+.graph-open {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-xs);
+  margin: 0 var(--space-lg) var(--space-lg);
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out);
+}
+.graph-open:hover {
+  color: var(--primary);
+  border-color: var(--border-focus);
+}
+
+/* ---------- the embedded stepper (M4.13.2) ---------- */
+/*
+ * The reader's block takes the prose column's own rhythm, not a viewport's. The
+ * workbench pads itself with `space-2xl` because the view *is* the page; an
+ * inline block with that much air around it reads as a section break rather than
+ * as a diagram in the text.
+ */
+.stepper--embedded {
+  padding: var(--space-lg) 0;
+  max-width: none;
+}
+
+.stepper--embedded .stepper-panel {
+  padding: var(--space-lg);
+}
+
+.step-title--inline {
+  margin: 0;
+}
+
 /* ==========================================================================
    Breakpoints (DESIGN.md §5.3, spec §5.3). Outside @layer so the media query
    wins over the component layer without needing specificity tricks.
