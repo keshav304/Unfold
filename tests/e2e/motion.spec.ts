@@ -37,6 +37,59 @@ async function motionOf(page: import('@playwright/test').Page, selector: string)
   }, selector)
 }
 
+/**
+ * Record every distinct `animation-name`/duration/iteration a selector shows
+ * over a window, sampled on every animation frame.
+ *
+ * ## Why this exists
+ *
+ * The mode-flip test used to click, then `await expect(...).toHaveAttribute(...)`
+ * — which polls — and only then read the computed style. The transition is
+ * **250ms**. On a loaded machine the poll outlasts the transition, the computed
+ * style has already reverted to `none`, and the test failed on a correct
+ * implementation with `Received: "none"`. That is not a flake in the app; it is
+ * a test that measures its own subject after the subject is gone.
+ *
+ * The fix is not to sleep longer. It is to **sample while the animation is
+ * running** and assert that the expected value was *observed*, which is a
+ * stronger claim than "the value is there at some arbitrary later moment": a
+ * transition that never started produces no reading, and this fails.
+ */
+async function motionDuring(
+  page: import('@playwright/test').Page,
+  selector: string,
+  act: () => Promise<void>,
+  windowMs = 1200,
+): Promise<{ name: string; duration: string; iteration: string }[]> {
+  await page.evaluate((target) => {
+    const w = window as unknown as { __samples: { name: string; duration: string; iteration: string }[] }
+    w.__samples = []
+    const until = performance.now() + 3000
+    const tick = (): void => {
+      const el = document.querySelector(target)
+      if (el !== null) {
+        const style = window.getComputedStyle(el)
+        const last = w.__samples[w.__samples.length - 1]
+        const reading = {
+          name: style.animationName,
+          duration: style.animationDuration,
+          iteration: style.animationIterationCount,
+        }
+        // Only keep transitions in the *recorded* set, but sample continuously so
+        // a later change is still caught.
+        if (last === undefined || last.name !== reading.name || last.duration !== reading.duration) {
+          w.__samples.push(reading)
+        }
+      }
+      if (performance.now() < until) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, selector)
+  await act()
+  await page.waitForTimeout(windowMs)
+  return page.evaluate(() => (window as unknown as { __samples: { name: string; duration: string; iteration: string }[] }).__samples)
+}
+
 test.describe('§8 reduced motion: the suite default, everything instant', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
@@ -174,10 +227,19 @@ test.describe('§8 the signature moments, with motion actually allowed', () => {
     // §8 says exactly three. The mode flip is a whole-document reflow and the
     // tempting move is to give it signature treatment; it stays at 250ms, and
     // this is the assertion that says so in a browser.
-    await page.getByRole('button', { name: 'Executive mode' }).click()
+    const samples = await motionDuring(page, '.reader', async () => {
+      await page.getByRole('button', { name: 'Executive mode' }).click()
+    })
+
+    // The mode actually changed...
     await expect(page.locator('.reader')).toHaveAttribute('data-reading-mode', 'executive')
-    const flip = await motionOf(page, '.reader')
-    expect(flip?.name).toMatch(/^mode-flip-[ab]$/u)
+
+    // ...and the flip was *observed* while it ran, at the §8 ceiling.
+    const flip = samples.find((s) => /^mode-flip-[ab]$/u.test(s.name))
+    expect(
+      flip,
+      `no mode-flip animation was observed; saw ${JSON.stringify(samples.map((s) => `${s.name}@${s.duration}`))}`,
+    ).toBeDefined()
     expect(flip?.duration).toBe('0.25s')
     console_.assertQuiet()
   })
