@@ -484,7 +484,43 @@ Initial JS ≤ 200KB gz; React Flow, mermaid, confetti lazy chunks. Parse +
 indexes in-memory; docs up to ~100k words parse <300ms on a mid laptop —
 beyond that, stay functional (no worker in v1, but no regression). Fonts:
 self-hosted subsets of Geist, Inter, JetBrains Mono, `font-display: swap`.
-Lighthouse (reader, desktop, dark): perf ≥ 90, a11y ≥ 95.
+Lighthouse (reader, dark): **a11y ≥ 95**, and the four named metrics below.
+
+### 10.1 Amendment A14 — the performance gate is four metrics, not a composite
+
+**Ratified at M4.9.** Lighthouse (reader, **desktop** preset, dark), three
+runs, every metric gated on the **median of the three**, hard fail:
+
+| Metric | Ceiling |
+|---|---|
+| First Contentful Paint | ≤ 2000ms |
+| Largest Contentful Paint | ≤ 2500ms |
+| Total Blocking Time | ≤ 400ms |
+| Cumulative Layout Shift | ≤ 0.1 |
+
+**The composite performance score is still computed and still recorded** in
+`artifacts/lighthouse.json` and in the CI log, for trend. It is **no longer the
+gate.**
+
+**Why the composite was replaced.** The composite is a weighted blend in which
+TBT carries weight 30 and LCP weight 25 out of 100, so a real TBT regression is
+diluted by FCP and CLS passing, and a real CLS regression is diluted by all
+three passing. During M4.6 the app scored a stable **86, 88 and 82** on three
+consecutive runs of one build — a 6-point spread on an unchanged artifact —
+while the thing actually wrong, TBT, moved between 0.46 and 0.65. A gate on that
+number is a gate on the weather. The four ceilings have the property the
+composite lacks: each is a **measured quantity with an absolute meaning**, and
+each moves only when that quantity moves.
+
+**What this does not do.** It does not make the app faster. M4.9 changed a
+threshold, not a byte. The measured numbers at ratification were FCP
+1.6–1.8s, LCP 2.0–2.5s, TBT ~348ms, CLS 0 — three of the four already inside
+their ceilings, with **LCP the binding constraint** and TBT close behind.
+
+**The a11y gate is unchanged and independent**: ≥ 95, on the **worst** of the
+three runs rather than the median, because an accessibility score does not vary
+with machine load and averaging a real finding away would be the wrong instinct.
+
 
 ## 11. Testing — fixture-based (this enforces genericity)
 

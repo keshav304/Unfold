@@ -51,7 +51,7 @@ Opening `dist/index.html` from `file://` is the designed third option: drag any
 | `npm test` | Vitest, once |
 | `npm run ci` | **typecheck → vitest → build → ui-smoke → e2e → Lighthouse** — what CI runs |
 | `npm run test:e2e` | Playwright against the built artifact |
-| `npm run lighthouse` | The §10 gate: a11y ≥ 95 (worst of 3) and perf ≥ 90 (median of 3) |
+| `npm run lighthouse` | The §10 gate: a11y ≥ 95 (worst of 3), and FCP ≤ 2s · LCP ≤ 2.5s · TBT ≤ 400ms · CLS ≤ 0.1 (median of 3) |
 | `npm run print-doc -- <file>` | Print a parsed document as JSON (dev only) |
 | `npm run stranger-test` | Parse every `node_modules` README (dev only) |
 | `npm run ui-smoke [-- --stranger]` | Boot the **built** bundle over HTTP and report console errors |
@@ -291,7 +291,12 @@ These are decisions, not gaps in anyone's attention:
 - **Initial JS budget 200KB gzipped** (§10, enforced in CI), with the heavy
   renderers — React Flow, mermaid, Shiki, confetti — in separate lazy chunks.
 - **A11y gate: Lighthouse ≥ 95 and zero axe violations on whole pages** at both
-  desktop and phone widths. **Perf gate: Lighthouse ≥ 90**, median of three runs.
+  desktop and phone widths.
+- **Perf gate: four named metrics, not a score** — FCP ≤ 2.0s, LCP ≤ 2.5s,
+  TBT ≤ 400ms, CLS ≤ 0.1, each the median of three Lighthouse runs on the
+  desktop preset, each a hard fail. The composite performance score is still
+  computed and recorded in `artifacts/lighthouse.json`, for trend. It is not
+  the gate, because a composite lets a fast FCP buy off a layout shift.
 
 ## Project layout
 

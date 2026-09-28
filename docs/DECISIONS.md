@@ -1344,3 +1344,61 @@ magnitude, so the second was never tested and M4.6c does not exist. Reporting
 that plainly is the whole value of having profiled rather than assumed — the
 alternative was spending a milestone on an optimisation for work that was
 already off the critical path.
+
+**M4.9 / A14 — the perf gate is four named metrics, and it immediately found a
+defect the composite was scoring 94 on** / `scripts/lighthouse.ts`, desktop
+preset, median of 3 / The ratified amendment: **FCP ≤ 2000ms, LCP ≤ 2500ms, TBT
+≤ 400ms, CLS ≤ 0.1**, each gated on the median of three, hard fail. The
+composite is still computed and still recorded; it is no longer the gate.
+
+The finding is the argument for the amendment, and it is a good one. Under
+Lighthouse's **default mobile preset** the composite was 86/88/82 and the old
+gate correctly failed. Under the **desktop preset A14 specifies**, the same
+unchanged artifact scores a composite of **94, 94, 93** — which would have
+*passed* the old ≥ 90 gate outright. And with the four ceilings:
+
+| Metric | Median | Ceiling | |
+|---|---|---|---|
+| FCP | 486ms | 2000ms | ✓ |
+| LCP | 569ms | 2500ms | ✓ |
+| TBT | 7ms | 400ms | ✓ |
+| **CLS** | **0.133** | **0.1** | **✗** |
+
+**A composite of 94 was hiding a cumulative layout shift of 0.133.** Three
+metrics of four are not merely meeting their ceilings, two of them by an order
+of magnitude — and the app still shifts under the reader, because the composite
+gives CLS weight 25 out of 100 and lets FCP's 486ms pay for it. That is exactly
+the dilution the amendment exists to end, demonstrated on this app rather than
+argued in the abstract.
+
+**The CLS is one defect with one cause, and it is located** / `layout-shift`
+PerformanceObserver, 3 sources, one instant / At **t=1352ms** — when the
+document fetch resolves and replaces the loading state — `.reader` goes from
+582px to 706px wide, the **hero jump chips re-wrap**, and the first H3 section
+arrives 524px lower than it was. One shift, three attributed nodes, all
+downstream of the same reflow. It is not font swap (the `size-adjust` fallbacks
+landed in M4.6 and CLS was not measured then) and not a lazy chunk (those are
+idle-deferred past 2s, and the shift is at 1.35s).
+
+**What is deliberately *not* being done about it here.** M4.9's brief is the
+gate, not a layout fix, and a fix means changing the loading state's layout so
+the reader column has its final width before the document arrives — a visible
+product change on the first-paint path, which is the wrong thing to smuggle into
+a commit that is supposed to be "implement the ratified gate". So the gate ships
+failing, with the cause named and the fix understood, rather than passing.
+
+**And the ceiling is not being touched.** 0.133 against 0.1 is 33% over. Widening
+to 0.15 would turn CI green in one edit and would be the exact move the
+amendment was ratified to prevent — a threshold that is moved to fit the
+artifact is not a threshold. The honest state is a red gate with a diagnosed
+cause, which is more useful than a green gate with an undocumented one.
+
+**A gate that did not run, and passed** / `void main()` / Rewriting
+`lighthouse.ts` at M4.9 dropped the `void main()` call at the bottom of the
+file. The result was the worst outcome a gate can have: **full `npm run ci`
+exited 0**, the Lighthouse stage printed nothing, and nothing failed. Typecheck
+passed, all 874 unit tests passed, all 63 Playwright scenarios passed. A gate
+that is not invoked is a gate that always passes, and no amount of correct logic
+in a function nobody calls will catch that. `src/test/perf-gate.test.ts` now
+asserts the call site exists, with a comment saying why.
+

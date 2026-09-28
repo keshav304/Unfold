@@ -423,11 +423,22 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
       - [x] **TBT 1134ms → ~390ms** by deferring mermaid and Shiki to
             `requestIdleCallback` (2s timeout). Deferring the *bytes* was
             already done; this defers the *main thread*.
-      - [x] **⚠ THE GATE FAILS. Samples 86 / 88 / 82, median 86, floor 90.**
-            Not widened: §10's number is unchanged and the gate prints the
-            weighted audits that cost the most, so the failure names itself.
-            TBT is the cause (weight 30, score 0.46-0.65) — LCP is stable at
-            2.0-2.5s, TBT is not, which is why the gate is a median of three.
+      - [x] **THE COMPOSITE GATE IS SUPERSEDED BY A14.** Under Lighthouse's
+            default mobile preset: samples 86 / 88 / 82, median 86, floor 90 —
+            not widened, and the weighted audits were printed so the failure
+            named itself. A14 replaces it (see M4.9 below).
+      - [x] **M4.9: the ratified gate, implemented.** §10.1 / A14 — FCP ≤ 2000ms,
+            LCP ≤ 2500ms, TBT ≤ 400ms, CLS ≤ 0.1, desktop preset, median of
+            three, hard fail. Composite recorded, not gated. Executable in
+            `src/test/perf-gate.test.ts` (15 tests), which also pins the
+            ceilings to §10.1 so the spec and the gate cannot drift.
+      - [x] **⚠ THE NEW GATE FAILS ON CLS: median 0.133 against a ceiling of
+            0.1.** FCP 486ms, LCP 569ms and TBT 7ms all pass, two of them by an
+            order of magnitude. Cause located: at t=1352ms the document fetch
+            resolves, `.reader` reflows 582px → 706px, and the hero jump chips
+            re-wrap. Not a font swap and not a lazy chunk. **Not fixed here** —
+            it is a first-paint layout change, not a gate change, and the
+            ceiling has not been widened to hide it.
       - [x] **M4.6b profiled the two long tasks** (`npm run profile:perf`, median
             of 3, 4x CPU throttle, no product changes). Mount breaks down as
             React render/reconcile 225ms (29%), markdown parse 191ms (24%),
@@ -452,7 +463,13 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
       full-`kitchen-sink` renders including the lazy mermaid chunk. Not urgent —
       CI is 2m16s — but it is the lever if the suite keeps growing.
 
-**Gate G5 = release.** Full §11 suite green on CI; §13 M4 criteria checked;
+**Gate G5 = release — NOT SIGNED. Blocked on one thing.** Everything in §11 is
+green: 874 unit tests, 63 Playwright scenarios, a11y 100, zero whole-page axe
+violations, entry 139.2KB gz of 200. The one red light is A14's CLS ceiling
+(0.133 against 0.1, cause located at the document-load reflow, fix understood,
+not applied). G5 signs when that is fixed, not when the number is moved.
+
+Full §11 suite green on CI; §13 M4 criteria checked;
 README with: what it is, config reference (§1.4), authoring conventions
 (§1.2), v1 limits (§15).
 
