@@ -465,10 +465,12 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
       CI is 2m16s — but it is the lever if the suite keeps growing.
 
 **Gate G5 = release — NOT SIGNED. Blocked on one thing.** Everything in §11 is
-green: 874 unit tests, 63 Playwright scenarios, a11y 100, zero whole-page axe
-violations, entry 139.2KB gz of 200. The one red light is A14's CLS ceiling
-(0.133 against 0.1, cause located at the document-load reflow, fix understood,
-not applied). G5 signs when that is fixed, not when the number is moved.
+green: **875 unit tests, 63 Playwright scenarios, a11y 100**, zero whole-page
+axe violations, entry 139.2KB gz of 200. The one red light is A14's CLS
+ceiling — median **0.148** against 0.1 — cause located at the document-load
+reflow, fix understood, not applied. G5 signs when that is fixed, not when the
+number is moved. Composite performance 93 and a11y 100 are both above the old
+composite floor, which is the point: the composite was never the problem.
 
 Full §11 suite green on CI; §13 M4 criteria checked;
 README with: what it is, config reference (§1.4), authoring conventions
