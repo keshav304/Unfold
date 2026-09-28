@@ -89,6 +89,29 @@ export const TERMINAL_MIN_BOX_LINES = 2
 export const TERMINAL_MIN_ARROW_LINES = 2
 
 /* ------------------------------------------------------------------ *
+ * ASCII diagram parsing (spec §6.9, M4.14b)
+ *
+ * Every number here is a *conservatism knob*, not a tuning knob. The parser's
+ * failure mode is expensive the other way round: a fence that should have stayed
+ * a terminal window but was promoted into a confidently wrong diagram is worse
+ * than a terminal window, so each of these is set as strict as the fixtures
+ * allow.
+ * ------------------------------------------------------------------ */
+
+/** A connector needs at least this many characters to be believed. */
+export const ASCII_CONNECTOR_MIN_CHARS = 3
+
+/** A label must sit within this many cells of a connector to attach to it. */
+export const ASCII_LABEL_RADIUS = 2
+
+/** How far a connector end may reach, across whitespace, for a box border. */
+export const ASCII_ATTACH_MAX_DISTANCE = 3
+
+/** The confidence gate: both must hold, or the fence stays a terminal. */
+export const ASCII_DIAGRAM_MIN_NODES = 2
+export const ASCII_DIAGRAM_MIN_EDGES = 1
+
+/* ------------------------------------------------------------------ *
  * DSL block info strings (spec §6.7 / §6.8 / §1.2)
  * ------------------------------------------------------------------ */
 
