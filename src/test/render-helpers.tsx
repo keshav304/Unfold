@@ -23,7 +23,15 @@ export async function renderFixture(
   name: FixtureName,
   overrides: Record<string, unknown> = {},
 ): Promise<RenderResult & { docTitle: string }> {
-  const result = render(<App config={configFor(name, overrides)} fetcher={fetcherFor(name)} />)
+  /*
+   * `autoLoad` is explicit (M4.12). Every test that reaches for `renderFixture`
+   * wants a *reader*; the component's default now derives that decision from the
+   * URL, and jsdom's hash is always empty, so leaving it off silently turned all
+   * 81 of them into tests of the front door. Stating it here fixes them all at
+   * the seam they share, and keeps the front door's own tests the only place
+   * that has to think about it.
+   */
+  const result = render(<App autoLoad config={configFor(name, overrides)} fetcher={fetcherFor(name)} />)
   // The document is parsed in an effect; wait for the shell to leave "loading".
   await waitForDocument(result)
   return { ...result, docTitle: name }

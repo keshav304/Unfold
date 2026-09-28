@@ -1304,6 +1304,35 @@ is preserved; the value is the nearest that survives the snap. This is the same
 shape as the M4.10 instrument lesson: the number in the brief was measured under
 a different experiment than the one it was written for.
 
+**`#/` is the front door and fetches nothing** / M4.12, amended after the
+welcome view shipped and turned out to be unreachable in practice.
+
+The first cut made `#/welcome` a route and left `#/` auto-loading the configured
+document. That made the welcome view something you had to already know the URL
+of, and — the part that should have caught it — it made the brief's own
+**"Open the bundled document"** button dead code. A button whose document is
+already open has nothing to do; the brief only makes sense if the reader is
+asked for the document rather than served it.
+
+The rule that came out of it, and it is a rule about URLs rather than about the
+welcome view:
+
+- a **deep link** (`#/graph`, `#/stepper/2`, `#<slug>`) is a request for a
+  document, and loads one;
+- a **bare `#/`** is the absence of a request, and loads nothing;
+- a **reload while reading** restores what the reader already had, via a
+  per-tab `sessionStorage` flag.
+
+That third clause exists because the first two, without it, made F5 at the top
+of a document throw you back to the front door. Two reading-mode tests caught it.
+The flag is per-tab and per-session on purpose — "you are already reading
+something" is not a fact worth carrying between sessions or across tabs.
+
+`autoLoad` is an injectable prop on `App` rather than a derivation buried inside
+it, because 81 unit tests render the component in jsdom where the hash is always
+empty: leaving the derivation in place silently turned every one of them into a
+test of the front door. A test that wants a reader now says so.
+
 **Deployment is not a release criterion** / `docs/README.md`, logged as a human
 decision / The deployment section now says plainly that it is documented but not
 yet exercised on a real host. The reasoning: §10 gates measurable properties of

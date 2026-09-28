@@ -14,7 +14,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test'
-import { waitForDocument, watchConsole } from './helpers'
+import { waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument, SET_DOC_PATH } from './server'
 
 /** Requested URLs, recorded from the moment the listener is attached. */
@@ -46,8 +46,7 @@ test.describe('§7.10 the flag, from the browser', () => {
         return original(input as RequestInfo, init)
       }
     })
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // Scroll the whole document, past every milestone, several times.
     for (const fraction of [0.3, 0.6, 0.8, 1, 0.2, 1]) {
@@ -71,8 +70,7 @@ test.describe('§7.10 the flag, from the browser', () => {
   test('delight on, reduced motion: still never requested', async ({ page }) => {
     const console_ = watchConsole(page)
     const urls = recordRequests(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // This context runs `reducedMotion: 'reduce'`, so §8's "confetti/particles
     // never load" is in force. The gate is checked before the import, so the
@@ -101,8 +99,7 @@ test.describe('§7.10 delight on and motion allowed', () => {
   test('the chunk arrives when a milestone is reached, and not before', async ({ page }) => {
     const console_ = watchConsole(page)
     const urls = recordRequests(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // Nothing yet: the reader is at the top and has earned nothing. This is the
     // assertion the "never requested" tests above cannot make — they pass
@@ -174,8 +171,7 @@ test.describe('§7.10 the cadence, from the browser (M4.11c)', () => {
   test('a full scroll fires exactly four celebrations, in order, and TOC navigation adds none', async ({ page }) => {
     const console_ = watchConsole(page)
     await recordCelebrations(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     expect(await celebrations(page), 'nothing may fire before the reader scrolls').toEqual([])
 
@@ -238,8 +234,7 @@ test.describe('§8 reduced motion: the celebration is silent', () => {
     // layer that matters, so the reduced-motion contract has its own test rather
     // than being implied by another one passing.
     await recordCelebrations(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     for (const f of [0.25, 0.5, 0.75, 1]) {
       await page.evaluate((fr) => {
         const doc = document.documentElement

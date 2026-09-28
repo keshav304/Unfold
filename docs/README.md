@@ -7,11 +7,23 @@ data — a graph view, a stepper, a glossary and entity chips.
 
 ## Getting a document in
 
-`#/` is the front door and `#/welcome` is the same view, permanently linkable.
+`#/` **is** the front door, and `#/welcome` is the same view, permanently
+linkable. Arriving at the root does not load anything: the configured document
+is one click away, behind **Open the bundled document**. You are asked, rather
+than served a document you did not ask for.
+
+Two things still open a document directly, because both are requests for one:
+
+- A **deep link** — `#/graph`, `#/stepper/2`, `#some-section`. Someone sent you
+  a link to a place inside a document; you land in it.
+- A **reload** while reading. Unfold remembers, per tab, that you have a
+  document open, so refreshing at the top of a long document does not dump you
+  back on the front door.
+
+The drop handler is app-wide either way: dropping onto a document that is
+already loaded replaces it.
 
 - **Drop** any `.md`/`.mdx` onto the window, or use the file picker.
-- The drop handler is **app-wide**: dropping onto a document that is already
-  loaded replaces it, so you never have to go back to `#/welcome` first.
 - The file picker button is the keyboard path and lives *inside* the drop zone.
   A drag target is unreachable by keyboard, so the button is the contract and
   the dashed card is only the affordance.

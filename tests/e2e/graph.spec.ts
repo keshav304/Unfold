@@ -15,7 +15,7 @@
 
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { snapshot, waitForDocument, watchConsole } from './helpers'
+import { snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 /** The element that currently has focus, described for an assertion message. */
@@ -67,8 +67,7 @@ async function openGraph(page: Page): Promise<void> {
 test.describe('the graph workbench in a real browser', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('kitchen-sink: explicit mode, focusable nodes, Enter opens, Esc closes, Open section navigates', async ({
@@ -256,8 +255,7 @@ test.describe('the graph workbench in a real browser', () => {
 test.describe('the stepper in a real browser', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('← / → move, the deep link renders the right step, and @slug navigates', async ({ page }) => {
@@ -314,8 +312,7 @@ test.describe('the stepper in a real browser', () => {
   test('a document with no steps block has no Stepper nav item', async ({ page }) => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/crosslinked.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     await expect(page.locator('.view-switcher')).toBeVisible()
     await expect(page.locator('.view-switcher')).not.toContainText('Stepper')
     // And the route degrades to the reader rather than blanking (§1.3).

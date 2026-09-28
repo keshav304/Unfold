@@ -302,7 +302,7 @@ describe('the hero follows the title chain (§7.2)', () => {
 describe('capability config overrides (§1.4)', () => {
   it('features.graph = "off" hides the graph view for a capable document', async () => {
     const { container } = render(
-      <App config={configFor('kitchen-sink', { features: { graph: 'off' } })} fetcher={fetcherFor('kitchen-sink')} />,
+      <App autoLoad config={configFor('kitchen-sink', { features: { graph: 'off' } })} fetcher={fetcherFor('kitchen-sink')} />,
     )
     await waitFor(() => {
       expect(container.querySelector('.app')).not.toBeNull()
@@ -325,7 +325,7 @@ describe('capability config overrides (§1.4)', () => {
 describe('the drop screen is the designed path for a 404 (§6.1)', () => {
   it('never shows a blank screen when the document is missing', async () => {
     const notFound = (async () => ({ ok: false, status: 404 }) as Response) as unknown as typeof fetch
-    render(<App config={configFor('kitchen-sink')} fetcher={notFound} />)
+    render(<App autoLoad config={configFor('kitchen-sink')} fetcher={notFound} />)
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Drop a markdown file/i })).toBeInTheDocument()
     })
@@ -336,7 +336,7 @@ describe('the drop screen is the designed path for a 404 (§6.1)', () => {
     const broken = (async () => {
       throw new TypeError('offline')
     }) as unknown as typeof fetch
-    render(<App config={configFor('kitchen-sink')} fetcher={broken} />)
+    render(<App autoLoad config={configFor('kitchen-sink')} fetcher={broken} />)
     await waitFor(() => {
       expect(document.querySelector('.drop-screen, .app')).not.toBeNull()
     })
@@ -409,7 +409,7 @@ describe('A5: an HTML response shows the drop screen, never a rendered document'
       }) as Response) as unknown as typeof fetch
 
   it('a wrong docPath that hits the SPA fallback shows the drop screen', async () => {
-    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    const { container } = render(<App autoLoad config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
     await waitFor(() => {
       expect(container.querySelector('.drop-screen')).not.toBeNull()
     })
@@ -418,7 +418,7 @@ describe('A5: an HTML response shows the drop screen, never a rendered document'
   })
 
   it('the message is actionable, naming the path and the config', async () => {
-    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    const { container } = render(<App autoLoad config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
     await waitFor(() => {
       expect(container.querySelector('.drop-screen')).not.toBeNull()
     })
@@ -429,7 +429,7 @@ describe('A5: an HTML response shows the drop screen, never a rendered document'
   })
 
   it('never renders the shell as document content', async () => {
-    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    const { container } = render(<App autoLoad config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
     await waitFor(() => {
       expect(container.querySelector('.drop-screen')).not.toBeNull()
     })
@@ -440,7 +440,7 @@ describe('A5: an HTML response shows the drop screen, never a rendered document'
   })
 
   it('the drop screen still offers a way forward', async () => {
-    const { container } = render(<App config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
+    const { container } = render(<App autoLoad config={configFor('kitchen-sink')} fetcher={htmlFetcher()} />)
     await waitFor(() => {
       expect(container.querySelector('.drop-screen')).not.toBeNull()
     })

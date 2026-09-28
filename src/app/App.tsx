@@ -16,6 +16,9 @@ import { Toc } from './components/Toc'
 import { Palette, isPaletteShortcut, isTypingTarget } from './palette/Palette'
 import { Reader } from './views/Reader'
 import { Welcome } from './views/Welcome'
+
+/** sessionStorage key: a document has been opened in this tab (M4.12). */
+const UNFOLD_OPENED_KEY = 'unfold:opened'
 import { Stepper, clampStep } from './stepper/Stepper'
 import { hashFor, parseHash, resolveRoute, stepperHash, WELCOME_HASH, type Route, type ViewName } from './routing'
 import { scrollToSlug } from './navigate'
@@ -73,10 +76,51 @@ export type AppProps = {
   config: UnfoldConfig
   /** Injected in tests; defaults to the real `fetch`. */
   fetcher?: typeof fetch
+  /**
+   * Whether to fetch the configured document on mount. Defaults to the URL:
+   * a deep link or an already-open session loads, a bare `#/` does not (M4.12).
+   *
+   * Injectable because the decision is otherwise only reachable through a real
+   * URL, and 81 unit tests render this component in jsdom where the hash is
+   * always empty — so every one of them silently became a test of the *front
+   * door*. Making it a prop lets a test say "I want the reader" instead.
+   */
+  autoLoad?: boolean
 }
 
-export function App({ config, fetcher }: AppProps): JSX.Element {
-  const state = useDocument(config, fetcher ?? fetch)
+export function App({ config, fetcher, autoLoad: autoLoadProp }: AppProps): JSX.Element {
+  /*
+   * The front door does not fetch (M4.12).
+   *
+   * Read once, from the URL, at mount — and deliberately frozen. Deciding this
+   * from the live hash instead would mean the moment a reader opened a document
+   * and the hash moved to `#/`, the app would decide it should have loaded, and
+   * the decision would be re-made on every navigation.
+   *
+   * A deep link is a request for a document: someone sent `#/graph` or
+   * `#some-section` and expects to land in it, not on a front door. A bare `#/`
+   * is the absence of such a request, so nothing is fetched and the reader is
+   * asked rather than served.
+   */
+  const [autoLoad] = useState(() => autoLoadProp ?? (() => {
+    const raw = window.location.hash.replace(/^#+/u, '')
+    if (raw !== '' && raw !== '/welcome') return true
+    /*
+     * A deep link is a request for a document, so it loads. A bare `#/` is the
+     * absence of one — except for a reader who has *already* opened a document
+     * in this session, where a bare `#/` means "back to the top of what I am
+     * reading", not "nothing has been loaded".
+     *
+     * Without this, hitting reload at the top of a document dumped the reader
+     * back onto the front door and lost their place. That surfaced as two
+     * reading-mode failures, and it is the kind of thing the front door is
+     * supposed to prevent rather than cause. The flag is per-tab and per-session
+     * on purpose: the point is "you are already reading something", which is not
+     * a fact worth carrying between sessions or across tabs.
+     */
+    return sessionStorage.getItem(UNFOLD_OPENED_KEY) !== null
+  })())
+  const state = useDocument(config, fetcher ?? fetch, autoLoad)
   const [route, setRoute] = useState<Route>(() =>
     parseHash(typeof window === 'undefined' ? '' : window.location.hash),
   )
@@ -175,6 +219,15 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
   }, [])
 
   const doc = state.status === 'ready' ? state.doc : undefined
+
+  /*
+   * "A document is open in this session" (M4.12). Set from the state, not from
+   * the click that caused it, so every route into a document is recorded
+   * identically — the drop handler, the picker, the bundled button, a deep link.
+   */
+  useEffect(() => {
+    if (doc !== undefined) sessionStorage.setItem(UNFOLD_OPENED_KEY, '1')
+  }, [doc])
 
   /*
    * §9: "title = doc title". The document title is the one thing about a page
@@ -370,6 +423,31 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
     }
   }, [loadFile])
 
+  /*
+   * The front door. It is checked before the `loading` and `drop` branches
+   * because arriving at `#/` is a legitimate resting state, not a pending one:
+   * a reader who has not chosen a document should not be shown a spinner, and
+   * should certainly not be shown "that document could not be loaded" when
+   * nothing has been attempted.
+   */
+  if (active.name === 'welcome' || state.status === 'idle') {
+    return (
+      <div className="app app--welcome" data-view="welcome">
+        <header className="app-header">
+          <a className="app-brand" href={WELCOME_HASH}>
+            UNFOLD
+          </a>
+          <div className="app-header__spacer" />
+        </header>
+        <Welcome
+          reading={doc?.title ?? null}
+          onFile={loadFile}
+          {...(config.docPath.trim() !== '' ? { onOpenBundled: state.reload } : {})}
+        />
+      </div>
+    )
+  }
+
   if (state.status === 'loading') {
     return (
       <div className="boot" role="status" aria-live="polite">
@@ -395,30 +473,6 @@ export function App({ config, fetcher }: AppProps): JSX.Element {
   if (doc.capabilities.graph) views.push('graph')
   if (doc.capabilities.stepper) views.push('stepper')
 
-  /*
-   * The welcome view (M4.12). It renders *instead of* the shell, not inside
-   * it: the header's controls are all document-scoped (the mode toggle, the
-   * view switcher, search), and showing them over a document that is not being
-   * read is exactly the dead UI §1.1 forbids. The document stays in memory, so
-   * the "Reading:" chip can name it and the wordmark is not the only way back.
-   */
-  if (active.name === 'welcome') {
-    return (
-      <div className="app app--welcome" data-view="welcome">
-        <header className="app-header">
-          <a className="app-brand" href={WELCOME_HASH}>
-            UNFOLD
-          </a>
-          <div className="app-header__spacer" />
-        </header>
-        <Welcome
-          reading={doc.title}
-          onFile={loadFile}
-          {...(state.config.docPath.trim() !== '' ? { onOpenBundled: state.reload } : {})}
-        />
-      </div>
-    )
-  }
 
   return (
     <div className="app" data-view={active.name}>

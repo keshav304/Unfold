@@ -11,6 +11,14 @@ import { setWarningEcho, setWarningSink, type Warning } from '../pipeline/warn'
 import type { Doc } from '../pipeline/types'
 
 export type DocState =
+  /**
+   * Nothing has been asked for yet (M4.12). The front door is a real state and
+   * not an absence of one: without it, "no document loaded" and "a document is
+   * loading" are the same value, and the front door would have to either
+   * fetch a document the reader did not ask for or flash a loading screen at
+   * someone who has done nothing yet.
+   */
+  | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'ready'; doc: Doc; config: UnfoldConfig }
   | { status: 'drop'; reason: LoadFailureReason; message: string }
@@ -27,8 +35,15 @@ export type UseDocument = DocState & {
 export function useDocument(
   initialConfig: UnfoldConfig,
   fetcher: typeof fetch = fetch,
+  /**
+   * Whether to fetch on mount (M4.12). `false` on the front door, so arriving
+   * at `#/` does not silently load the configured document — the reader has to
+   * ask for it. A deep link (`#/graph`, `#/stepper/2`, `#some-section`) passes
+   * `true`, because a link to a place in a document is a request to load it.
+   */
+  autoLoad = true,
 ): UseDocument {
-  const [state, setState] = useState<DocState>({ status: 'loading' })
+  const [state, setState] = useState<DocState>(autoLoad ? { status: 'loading' } : { status: 'idle' })
   const [warnings, setWarningList] = useState<Warning[]>([])
 
   const parse = useCallback((text: string, fileName: string, config: UnfoldConfig) => {
@@ -65,7 +80,9 @@ export function useDocument(
     })
   }, [fetcher, initialConfig, parse])
 
-  useEffect(reload, [reload])
+  useEffect(() => {
+    if (autoLoad) reload()
+  }, [autoLoad, reload])
 
   const loadText = useCallback(
     (text: string, fileName: string) => {

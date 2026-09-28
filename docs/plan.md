@@ -544,8 +544,18 @@ not live in `DropScreen` — not mounted when a document is loaded, i.e. never i
 the case the requirement is about. It is on `window` now, asserted with a real
 `DataTransfer`.
 
-**M4.12** ships the wordmark (`#/welcome`), the welcome view, and the app-wide
-drop. Three things changed from the brief, each because the browser or the test
+**M4.12** ships the wordmark, the welcome view, and the app-wide drop.
+
+**`#/` had to become the front door, and shipping `#/welcome` alone was not
+enough.** The human came back with "I still see kitchen sink md only on load" —
+and the tell was in the brief itself: the **"Open the bundled document"** button
+was dead code, because the configured document always auto-loaded. A button
+whose document is already open has nothing to do. `#/` now fetches nothing; a
+deep link still does; a reload while reading restores what you had (per-tab
+`sessionStorage`), because without that clause F5 at the top of a document threw
+the reader back to the front door — caught by two reading-mode tests.
+
+Three things changed from the brief, each because the browser or the test
 said so:
 
 - **The drop zone is 2px dashed, not 1.5px.** Chrome snaps a *dashed* border to
@@ -556,6 +566,16 @@ said so:
 - **M4.2's mobile collapse order is amended.** The wordmark stays on row one at
   375px and the document title drops to row two. Truncating UNFOLD instead would
   reproduce a 1px stub — the exact defect M4.2 was written to kill.
+- **A shared test helper that could hang the suite.** `openReader` used
+  `waitFor()`, which takes Playwright's *action* timeout — left at its default of
+  **0, meaning no limit** — so it waited forever instead of failing, and did so
+  silently. It now uses the bounded `expect` timeout. A helper that hangs is
+  strictly worse than one that fails loudly.
+- **`test.use` again, and 81 unit tests that were quietly testing the wrong
+  thing.** `autoLoad` was derived from `window.location.hash`; jsdom's hash is
+  always empty, so every `renderFixture` call became a test of the *front door*
+  while still asserting reader behaviour. It is an injectable prop now, and
+  `render-helpers` states the intent once instead of 30 call sites doing it.
 - **A hooks-order bug caught by the browser, not by a test.** The drop effect was
   written below the `state.status` early returns, and the app died with React
   #310 — invisible in a single-state unit test, fatal in a browser that starts

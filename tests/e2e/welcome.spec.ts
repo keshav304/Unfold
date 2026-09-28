@@ -9,13 +9,57 @@
  * make that a fact rather than a claim.
  */
 import { expect, test } from '@playwright/test'
-import { waitForDocument, watchConsole } from './helpers'
+import { openReader, waitForDocument, watchConsole } from './helpers'
+
+/** Open the reader and return the document title it rendered. */
+async function openReaderTitle(page: import('@playwright/test').Page): Promise<string> {
+  await openReader(page)
+  const title = ((await page.locator('.app-title').textContent()) ?? '').trim()
+  expect(title).not.toBe('')
+  return title
+}
 
 test.describe('§7 the front door', () => {
+  test('the bare root IS the front door, and it does not silently load a document', async ({ page }) => {
+    const console_ = watchConsole(page)
+
+    /*
+     * The behaviour M4.12 was actually for.
+     *
+     * Before this, `#/` fetched the configured document immediately, so the
+     * welcome view existed only at a URL nobody was sent to and the brief's
+     * "Open the bundled document" button had nothing to open — the document was
+     * already open. Arriving at the root is not a request for a document, so
+     * nothing is fetched, and the reader is asked.
+     */
+    await page.goto('/')
+    await expect(page.locator('.welcome')).toBeVisible()
+    // The claim that matters is behavioural, not about the network: no document
+    // is *shown*, and the reader is the one who decides to load one.
+    await expect(page.locator('.app-title'), 'the front door shows no document').toHaveCount(0)
+    await expect(page.locator('.reader')).toHaveCount(0)
+
+    // And the document is one click away, which is what the button is for.
+    await page.getByRole('button', { name: /open the bundled document/i }).click()
+    await expect(page.locator('.app-title')).toBeVisible()
+    await expect(page.locator('.welcome')).toHaveCount(0)
+    console_.assertQuiet()
+  })
+
+  test('a deep link still opens the document, because a link is a request', async ({ page }) => {
+    const console_ = watchConsole(page)
+    // `#/graph` and `#<slug>` address a place *inside* a document. Sending
+    // someone a link to a section and landing them on a front door instead
+    // would be the more surprising behaviour of the two.
+    await page.goto('/#/graph')
+    await expect(page.locator('.app-title')).toBeVisible()
+    await expect(page.locator('.welcome')).toHaveCount(0)
+    console_.assertQuiet()
+  })
+
   test('the wordmark is the leftmost header element and goes to #/welcome', async ({ page }) => {
     const console_ = watchConsole(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     const brand = page.locator('.app-brand')
     await expect(brand).toBeVisible()
@@ -44,6 +88,14 @@ test.describe('§7 the front door', () => {
 
   test('the welcome view states the product and offers the keyboard path', async ({ page }) => {
     const console_ = watchConsole(page)
+    // Open a document *first*, then come back through the wordmark.
+    //
+    // The "Reading: …" chip says which document is already in memory, so a
+    // front door reached cold has nothing to name and correctly shows no chip.
+    // Asserting it from a cold `#/welcome` would have been asserting a chip
+    // that should not exist; asserting it from a loaded document is the claim
+    // that is actually worth making.
+    const title = (await openReaderTitle(page))
     await page.goto('/#/welcome')
     await expect(page.locator('.welcome__title')).toHaveText('Unfold')
     await expect(page.locator('.welcome__tagline')).toHaveText('Any markdown file in. An interactive document out.')
@@ -66,7 +118,7 @@ test.describe('§7 the front door', () => {
     // A configured docPath offers the secondary route, and the loaded document
     // is named.
     await expect(drop.locator('button', { hasText: 'Open the bundled document' })).toBeVisible()
-    await expect(page.locator('.welcome__reading')).toContainText('Reading:')
+    await expect(page.locator('.welcome__reading')).toContainText(`Reading: ${title}`)
 
     // Dashed, and *heavier than the 1px dividers* it is meant to stand out
     // from. Asserted as 2px, not the brief's 1.5px: Chrome snaps a dashed
@@ -84,8 +136,7 @@ test.describe('§7 the front door', () => {
 
   test('dropping onto a LOADED document swaps documents (M4.11b)', async ({ page }) => {
     const console_ = watchConsole(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     // The *current* title, captured rather than hardcoded. The default fixture
     // is not one this test should name: hardcoding it made the assertion depend
     // on the e2e config's docPath instead of on the behaviour, and it passed

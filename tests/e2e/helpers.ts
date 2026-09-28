@@ -45,6 +45,57 @@ export async function snapshot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: join(ARTIFACT_DIR, `${name}.png`), fullPage: false })
 }
 
+/**
+ * Get from the front door into the reader (M4.12).
+ *
+ * `#/` is the welcome view and does not fetch, so `goto('/')` alone no longer
+ * yields a document — deliberately, because arriving at the root is not a
+ * request for the configured document. 29 tests want a *reader*, so they say so
+ * explicitly, the way a person would: click the button.
+ *
+ * The point of putting this in one helper rather than a `beforeEach` is that a
+ * fixture that auto-opens the document would make the front door untestable
+ * everywhere at once. This is opt-in per test, so the front door keeps its own
+ * tests and its own meaning.
+ */
+export async function openReader(page: Page): Promise<void> {
+  /*
+   * Clear the "a document is already open in this session" flag *before* the
+   * app mounts, then navigate. Two navigations, and the extra one is not waste:
+   *
+   *   - The flag is what makes a bare `#/` restore a document across a reload
+   *     (M4.12), so a test that opens a reader and then calls this again would
+   *     arrive at the *reader* and never see the front door or its button.
+   *   - Clearing after mount is too late: `autoLoad` is read once, in a state
+   *     initialiser, precisely so it cannot flip on a later navigation.
+   *
+   * So the flag is cleared on a throwaway load, and the real load sees a clean
+   * session. Without this the helper deadlocks on the second call in a test.
+   */
+  await page.goto('/')
+  await page.evaluate(() => sessionStorage.removeItem('unfold:opened'))
+  // `reload()`, not a second `goto('/')`. Navigating to the URL you are already
+  // on is a same-document navigation: nothing re-executes, the app never
+  // re-initialises, and `autoLoad` is read exactly once — so the flag is cleared
+  // and then never looked at again, and the front door never appears. A reload
+  // is the only way to make the app read the session again.
+  await page.reload()
+
+  /*
+   * `expect(...).toBeVisible()`, not `waitFor()`.
+   *
+   * This config sets `expect.timeout` to 10s but leaves `actionTimeout` at
+   * Playwright's default of **0 — no limit** — so a `waitFor()` in a helper
+   * waits forever instead of failing. A helper that hangs the whole suite is
+   * strictly worse than one that fails loudly, and it is worse here because it
+   * hangs *silently*: no output, no error, just a run that stops.
+   */
+  const open = page.getByRole('button', { name: /open the bundled document/i })
+  await expect(open, 'the front door must offer the configured document').toBeVisible()
+  await open.click()
+  await waitForDocument(page)
+}
+
 /** Wait for the document to have rendered — the real signal, not a timeout. */
 export async function waitForDocument(page: Page): Promise<void> {
   await expect(page.locator('.app').first()).toBeVisible()

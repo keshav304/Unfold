@@ -26,7 +26,7 @@
  * on these nodes".
  */
 import { expect, test } from '@playwright/test'
-import { watchConsole } from './helpers'
+import { openReader, watchConsole } from './helpers'
 
 /**
  * A shift is only *scored* by CLS if it is not within 500ms of a user input;
@@ -39,9 +39,23 @@ const OBSERVER = () => {
     __shifts: { start: number; value: number; sources: string[] }[]
     __fontSwapAt: number | null
     __firstPaintAt: number
+    __clsSince: number
+    __clsMark: () => void
   }
   w.__shifts = []
   w.__fontSwapAt = null
+  /*
+   * M4.12: a baseline. `#/` is the front door and does not fetch, so reaching
+   * the reader means a click, and the reflow from a short front door to a full
+   * document is a *user-initiated navigation* — not a load shift. Scoring it
+   * would mean the gate no longer measures what A14 is about, which is text
+   * moving under the reader who did not touch anything. Everything before
+   * `__clsMark()` is therefore excluded, and the reason is in the test.
+   */
+  w.__clsSince = 0
+  w.__clsMark = () => {
+    w.__clsSince = performance.now()
+  }
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       const e = entry as unknown as {
@@ -74,8 +88,9 @@ test.describe('§10.1 A14 — CLS stays at zero (M4.10)', () => {
   test('nothing shifts while the document loads, and the fonts land before it', async ({ page }) => {
     const console_ = watchConsole(page)
     await page.addInitScript(OBSERVER)
-    await page.goto('/')
-    await page.locator('.app').first().waitFor()
+    await openReader(page)
+    // From here on, any shift at all is a defect.
+    await page.evaluate(() => (window as unknown as { __clsMark: () => void }).__clsMark())
     // Past the idle-deferred highlight pass, so a late reflow would be caught.
     await page.waitForTimeout(2500)
 

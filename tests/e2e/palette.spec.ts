@@ -13,7 +13,7 @@
 
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { openPaletteWithKeyboard, snapshot, waitForDocument, watchConsole } from './helpers'
+import { openPaletteWithKeyboard, snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 /** The element that currently has focus, described for an assertion message. */
@@ -39,8 +39,7 @@ async function violations(page: Page, include?: string): Promise<string[]> {
 test.describe('the palette in a real browser', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('Cmd+K opens it, arrows move, Enter navigates, Esc restores focus', async ({ page }) => {

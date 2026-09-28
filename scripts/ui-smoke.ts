@@ -133,7 +133,17 @@ async function boot(origin: string, testCase: Case): Promise<{ errors: string[];
   virtualConsole.on('jsdomError', (error: Error) => errors.push(error.message))
   virtualConsole.on('error', (...args: unknown[]) => errors.push(args.map(String).join(' ')))
 
-  const dom = new JSDOM(html, { url: `${origin}/`, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole })
+  /*
+   * Booted at `#/`, not at `/` (M4.12). A bare `/` is now the front door and
+   * fetches nothing, so booting the smoke test there would check that the
+   * welcome view renders — sixteen times — and never check a single document.
+   *
+   * `#/` is the reader with nothing yet read, and it is a real URL the app
+   * handles, so this exercises the ordinary load path rather than reaching into
+   * the component. The missing-doc case is the point of the whole script, and it
+   * is only reachable by asking for a document.
+   */
+  const dom = new JSDOM(html, { url: `${origin}/#/`, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole })
   const { window } = dom
 
   // Real network fetch against the served dist — no stubbing of the app's own

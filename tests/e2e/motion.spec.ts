@@ -16,7 +16,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { snapshot, waitForDocument, watchConsole } from './helpers'
+import { snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 /** Computed motion on one element, as a plain object for an assertion message. */
@@ -93,8 +93,7 @@ async function motionDuring(
 test.describe('§8 reduced motion: the suite default, everything instant', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('the ambient loops run once and not at all', async ({ page }) => {
@@ -159,8 +158,7 @@ test.describe('§8 the signature moments, with motion actually allowed', () => {
 
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('the palette springs in — signature moment #1', async ({ page }) => {

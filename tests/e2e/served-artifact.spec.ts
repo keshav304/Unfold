@@ -12,15 +12,14 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { renderedTitle, snapshot, waitForDocument, watchConsole } from './helpers'
+import { renderedTitle, snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { MISSING_DOC, useDocument } from './server'
 
 test.describe('the served build renders the document', () => {
   test('kitchen-sink: frontmatter title, every block kind, no overflow', async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     const console_ = watchConsole(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // The title comes from frontmatter...
     expect(await renderedTitle(page)).toBe('Kitchen Sink Fixture')
@@ -57,8 +56,7 @@ test.describe('the served build renders the document', () => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     const console_ = watchConsole(page)
     await page.setViewportSize({ width: 375, height: 812 })
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow, 'the page scrolls horizontally at 375px').toBeLessThanOrEqual(0)
@@ -72,7 +70,17 @@ test.describe('the served build renders the document', () => {
   test('a wrong docPath is refused with the actionable drop screen (A5)', async ({ page }) => {
     await useDocument(page, MISSING_DOC)
     const console_ = watchConsole(page)
+    /*
+     * M4.12: `#/` is the front door and does not fetch, so a configured-but-
+     * missing document no longer fails on arrival — it is simply not opened.
+     * The reader has to ask for it, and *then* §6.1's contract applies: a 404
+     * is the designed path to the drop screen, never a blank screen and never
+     * the shell pretending to be a document. That is a real behaviour change
+     * and it is asserted here rather than assumed.
+     */
     await page.goto('/')
+    await expect(page.locator('.welcome')).toBeVisible()
+    await page.getByRole('button', { name: /open the bundled document/i }).click()
     await expect(page.locator('.drop-screen')).toBeVisible()
 
     // A5: the shell must be refused, never rendered as a document. This is
@@ -96,8 +104,7 @@ test.describe('the served build renders the document', () => {
   test('a document with no H2s has no rail and one full-width column', async ({ page }) => {
     await useDocument(page, '/testdocs/no-structure.md')
     const console_ = watchConsole(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // The rail is absent (§7.3) - hidden, not empty.
     await expect(page.locator('.toc')).toHaveCount(0)
@@ -118,8 +125,7 @@ test.describe('the served build renders the document', () => {
   test('a document with no capabilities has no view switcher', async ({ page }) => {
     await useDocument(page, '/testdocs/minimal.md')
     const console_ = watchConsole(page)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     await expect(page.locator('.view-switcher')).toHaveCount(0)
     // Search is Tier 0, so the trigger is always there (§1.1).

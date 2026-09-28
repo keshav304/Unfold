@@ -16,7 +16,7 @@
 
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { snapshot, waitForDocument, watchConsole } from './helpers'
+import { snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 const DESKTOP = { width: 1440, height: 900 }
@@ -49,8 +49,7 @@ test.describe('§9 zero violations, on whole pages, at both widths', () => {
       const console_ = watchConsole(page)
       await useDocument(page, '/testdocs/kitchen-sink.md')
       await page.setViewportSize(size)
-      await page.goto('/')
-      await waitForDocument(page)
+      await openReader(page)
       // M4.3 widened this from the M2 scope. Three findings lived outside what
       // CI had ever scanned — a colour-only inline link, a code scroller that
       // only overflows on a phone, and the missing `dialog` on the palette — and
@@ -64,8 +63,7 @@ test.describe('§9 zero violations, on whole pages, at both widths', () => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(DESKTOP)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     await page.locator('.app-search').click()
     await expect(page.locator('.palette')).toBeVisible()
     // Whole page, palette open. The `region` findings lived on the *overlay*,
@@ -78,8 +76,7 @@ test.describe('§9 zero violations, on whole pages, at both widths', () => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(PHONE)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     await page.locator('.app-menu').click()
     await expect(page.locator('.toc')).toHaveAttribute('data-open', 'true')
     expect(await violations(page)).toEqual([])
@@ -90,8 +87,7 @@ test.describe('§9 zero violations, on whole pages, at both widths', () => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(DESKTOP)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     await page.getByRole('button', { name: 'Executive mode' }).click()
     await expect(page.locator('.reader')).toHaveAttribute('data-reading-mode', 'executive')
     await expect(page.locator('.section-expand').first()).toBeVisible()
@@ -104,8 +100,7 @@ test.describe('§9 the skip link moves focus, and it is outside the landmark', (
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(DESKTOP)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('it is the first focusable thing on the page', async ({ page }) => {
@@ -151,8 +146,7 @@ test.describe('§9 the drawer: focus in, focus out, focus trapped', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(PHONE)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('a closed drawer is not in the tab order at all', async ({ page }) => {
@@ -230,8 +224,7 @@ test.describe('§9 the document title is the document title', () => {
   test('it is the parsed title, not the product name', async ({ page }) => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     // `index.html` ships a hardcoded "Unfold", so the tab strip, the bookmark,
     // the screen-reader window title and the search result all named the product
     // rather than the document being read.

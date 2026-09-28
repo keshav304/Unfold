@@ -13,7 +13,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test'
-import { snapshot, waitForDocument, watchConsole } from './helpers'
+import { snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 /** The width this whole file is about. */
@@ -39,8 +39,7 @@ test.describe('the reader at 375px', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(PHONE)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('the title is a title, not a stub', async ({ page }) => {
@@ -176,8 +175,7 @@ test.describe('the graph workbench at 375px', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
     await page.setViewportSize(PHONE)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
     await page.getByRole('group', { name: 'Workbench pane' }).getByRole('button', { name: 'Visual Graph' }).click()
     await expect(page.locator('.graph-canvas')).toBeVisible()
     await expect(page.locator('.react-flow__node').first()).toBeVisible()
@@ -232,8 +230,7 @@ test.describe('a document with no capabilities at 375px', () => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/minimal.md')
     await page.setViewportSize(PHONE)
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // `minimal` is Tier 0: no switcher above 768px and no pane switch below it.
     // That half of the original M4.2 assertion still holds, and it is asserted

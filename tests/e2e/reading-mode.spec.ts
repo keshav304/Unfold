@@ -17,7 +17,7 @@
 
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { openPaletteWithKeyboard, snapshot, waitForDocument, watchConsole } from './helpers'
+import { openPaletteWithKeyboard, snapshot, waitForDocument, watchConsole , openReader } from './helpers'
 import { useDocument } from './server'
 
 /** The axe violations as readable strings, so a failure says what and where. */
@@ -43,8 +43,7 @@ function sectionBlocks(page: Page, slug: string): Promise<number> {
 test.describe('the reading modes in a real browser', () => {
   test.beforeEach(async ({ page }) => {
     await useDocument(page, '/testdocs/kitchen-sink.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
   })
 
   test('the header toggle reduces the document, and a reload comes back reduced', async ({ page }) => {
@@ -133,8 +132,7 @@ test.describe('the reading modes in a real browser', () => {
   test('a document with no sections renders identically in both modes', async ({ page }) => {
     const console_ = watchConsole(page)
     await useDocument(page, '/testdocs/no-structure.md')
-    await page.goto('/')
-    await waitForDocument(page)
+    await openReader(page)
 
     // §7.8's rule is stated per H2. With no H2s there is nothing to reduce, and
     // the honest assertion is that: no sections, no override controls, and the
