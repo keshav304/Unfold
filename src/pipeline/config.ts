@@ -10,6 +10,19 @@ import { warn } from './warn'
 /** `auto` = capability-detected, `off` = force hidden, `on` = force shown. */
 export type FeatureSwitch = 'auto' | 'off' | 'on'
 
+/**
+ * How an untagged ASCII fence is presented (M4.14, spec §6.9).
+ *
+ * `auto` — attempt the ASCII diagram parse; a fence that parses renders as an
+ * SVG diagram and one that does not renders as the existing terminal window.
+ *
+ * `terminal` — never attempt the parse. Every terminal candidate renders as the
+ * terminal window it rendered as before this milestone. The escape hatch: it is
+ * how a deployer can turn the feature off, and how a defect can be bisected
+ * without a code change.
+ */
+export type DiagramsMode = 'auto' | 'terminal'
+
 export type UnfoldConfig = {
   /** Path or URL of the markdown document to load. */
   docPath: string
@@ -21,6 +34,8 @@ export type UnfoldConfig = {
     graph: FeatureSwitch
     stepper: FeatureSwitch
     delight: boolean
+    /** M4.14. Defaults to `auto`, which is the whole feature. */
+    diagrams: DiagramsMode
   }
   /** File extensions treated as file paths by entity extraction. */
   fileExtensions: string[]
@@ -32,7 +47,7 @@ export type UnfoldConfig = {
 
 export const DEFAULT_CONFIG: UnfoldConfig = {
   docPath: './document.md',
-  features: { graph: 'auto', stepper: 'auto', delight: true },
+  features: { graph: 'auto', stepper: 'auto', delight: true, diagrams: 'auto' },
   fileExtensions: [...DEFAULT_FILE_EXTENSIONS],
   entityPatterns: [],
   descriptions: {},
@@ -40,6 +55,10 @@ export const DEFAULT_CONFIG: UnfoldConfig = {
 
 function asFeatureSwitch(value: unknown, fallback: FeatureSwitch): FeatureSwitch {
   return value === 'auto' || value === 'off' || value === 'on' ? value : fallback
+}
+
+function asDiagramsMode(value: unknown, fallback: DiagramsMode): DiagramsMode {
+  return value === 'auto' || value === 'terminal' ? value : fallback
 }
 
 function asStringArray(value: unknown): string[] | undefined {
@@ -100,6 +119,7 @@ export function normalizeConfig(raw: unknown): UnfoldConfig {
       stepper: asFeatureSwitch(features['stepper'], DEFAULT_CONFIG.features.stepper),
       delight:
         typeof features['delight'] === 'boolean' ? features['delight'] : DEFAULT_CONFIG.features.delight,
+      diagrams: asDiagramsMode(features['diagrams'], DEFAULT_CONFIG.features.diagrams),
     },
     fileExtensions: extensions ?? [...DEFAULT_CONFIG.fileExtensions],
     entityPatterns: patterns ?? [],

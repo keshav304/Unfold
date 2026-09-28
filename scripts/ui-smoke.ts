@@ -11,7 +11,7 @@
  *   npm run ui-smoke                 # the five fixtures
  *   npm run ui-smoke -- --stranger   # five node_modules READMEs
  */
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { createServer, type Server } from 'node:http'
 import { extname, join, normalize, resolve, sep } from 'node:path'
@@ -106,11 +106,18 @@ function cases(): Case[] {
       .slice(0, 5)
       .map((file) => ({ label: file, docPath: `/${file}`, expect: 'doc' as const }))
   }
-  return (['kitchen-sink', 'minimal', 'crosslinked', 'no-structure', 'edge-cases'] as const).map((name) => ({
-    label: `${name}.md`,
-    docPath: `/testdocs/${name}.md`,
-    expect: 'doc' as const,
-  }))
+  /*
+   * Every document in `testdocs/`, read rather than listed.
+   *
+   * The list used to be hardcoded, which meant a fixture added by a later
+   * milestone (M4.14's `ascii-diagrams.md`) shipped in `dist/` and was never
+   * rendered by the smoke pass that exists to prove every shipped document
+   * renders. A list that has to be updated by hand is a list that will not be.
+   */
+  return readdirSync(join(repoRoot, 'testdocs'))
+    .filter((name) => name.endsWith('.md'))
+    .sort()
+    .map((name) => ({ label: name, docPath: `/testdocs/${name}`, expect: 'doc' as const }))
 }
 
 /** A docPath that does not exist, to prove A5 refuses the SPA fallback. */

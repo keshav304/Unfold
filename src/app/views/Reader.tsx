@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Block, Doc } from '../../pipeline/types'
 import { INTRO_SLUG } from '../../pipeline/constants'
+import type { DiagramsMode } from '../../pipeline/config'
 import { flattenSections } from '../../pipeline/indexes'
 import { BlockView } from '../blocks/BlockView'
 import { navigate, prefersReducedMotion } from '../navigate'
@@ -14,10 +15,11 @@ import { filterBlocksForMode, sectionIsReduced, type ReadingMode } from '../mode
 import type { InlineContext } from '../blocks/Inline'
 
 /**
- * The one block-view option that is the *view's* rather than the block's:
- * whether the shell can open the graph view.
+ * The two block-view options that are the *view's*, not the block's: how a
+ * terminal candidate is presented, and whether the shell can open the graph.
  */
 type ViewOptions = {
+  diagrams: DiagramsMode
   onOpenGraph: (() => void) | undefined
 }
 
@@ -44,6 +46,12 @@ export type ReaderProps = {
   isExpanded?: (slug: string) => boolean
   onToggleSection?: (slug: string) => void
   /**
+   * `features.diagrams` (M4.14). `auto` parses terminal candidates; `terminal`
+   * never does. Defaults to `auto`, so a caller that knows nothing keeps the
+   * feature.
+   */
+  diagrams?: DiagramsMode
+  /**
    * Opens the graph view from an inline `graph` block (M4.13.1). Absent when the
    * document is not graph-capable, and then no link is offered (§1.1).
    */
@@ -66,6 +74,7 @@ function renderBlocks(
       key={`${keyPrefix}-${index}`}
       block={block}
       context={context}
+      diagrams={view.diagrams}
       onOpenGraph={view.onOpenGraph}
     />
   ))
@@ -153,6 +162,7 @@ export function Reader({
   mode = 'reference',
   isExpanded = () => false,
   onToggleSection,
+  diagrams = 'auto',
   onOpenGraph,
 }: ReaderProps): JSX.Element {
   /*
@@ -162,7 +172,10 @@ export function Reader({
    * that re-renders because a *new* callback appeared is a block that re-renders
    * for no reason at all.
    */
-  const view = useMemo<ViewOptions>(() => ({ onOpenGraph }), [onOpenGraph])
+  const view = useMemo<ViewOptions>(
+    () => ({ diagrams, onOpenGraph }),
+    [diagrams, onOpenGraph],
+  )
 
   const context: InlineContext = useMemo(() => {
     const titles = new Map<string, string>()

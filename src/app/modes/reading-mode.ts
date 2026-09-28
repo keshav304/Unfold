@@ -11,10 +11,11 @@
  * as a denylist ("code/terminal/mermaid/lists hidden"). The positive statement
  * is the implementable one, so it is what `filterBlocksForMode` applies, and the
  * denylist falls out of it. That matters for the block kinds §7.8 does not name
- * — `loop`, `graph`, `steps`, `hr`, `html` — which an allowlist therefore hides
- * and a denylist would have left visible. `html` is raw markup shown as source
- * and `graph`/`steps` render as code in the reader, so hiding them is right
- * anyway; see `docs/DECISIONS.md`.
+ * — `loop`, `graph`, `steps`, `hr`, `html`, and (M4.14) the parsed form of
+ * `terminal` — which an allowlist therefore hides and a denylist would have left
+ * visible. `html` is raw markup shown as source, and `graph`/`steps` render as
+ * the diagram and the stepper, so hiding all of them is right anyway; see
+ * `docs/DECISIONS.md`.
  *
  * ## The introduction is not a section
  *

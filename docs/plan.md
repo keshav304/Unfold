@@ -455,6 +455,78 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
             measured against a smaller page.
       - [ ] **M4.12 NOT STARTED.** Brand wordmark and the welcome view. No code
             written; the session ended on the M4.10 gate and M4.11's finding.
+      - [x] **M4.13: explicit `graph` and `steps` blocks render in the reader.**
+            The G5-era claim "graph/steps shown as source" is now false and has
+            been retired. A `graph` block is a read-only React Flow mini-canvas
+            in the reader column — the graph view's own `layoutGraph`,
+            `MetroNodeMemo`, `FIT` and `.graph-canvas` styling, exported from
+            `GraphView.tsx` and lazy-imported, so `xyflow` is still in no entry
+            chunk — with no drag, no pan, no zoom controls and no inspector, and
+            an "Open in graph view" link when `capabilities.graph` is on. A
+            `steps` block is `StepperView` with `variant="embedded"`: the same
+            tablist, dots, panel and `@slug` link, no document-level arrows and
+            no focus-on-mount, its ids namespaced and its title a paragraph. Two
+            screenshots in `artifacts/e2e/50-*` and `51-*`; the workbench and the
+            walkthrough view are both asserted unchanged.
+      - [x] **M4.14a: six ASCII fixtures** in `testdocs/ascii-diagrams.md` — a
+            vertical flow, the same flow in Unicode box-drawing, interior `+`
+            junctions with a wall-divided box, a vertical `v` arrow with a
+            mid-line label, hostile prose, and dangling arrows. Four parse, two
+            must not. The demo document was not edited to suit the parser; it is
+            the genericity test.
+      - [x] **M4.14b: the parser** — `src/pipeline/ascii-diagram.ts`, pure and
+            dependency-free. Character grid with Unicode roles normalised
+            without moving a cell; `[+][-+]*[+]` / `[+][|+]*[+]` border runs
+            combined into rectangles, interior junctions handled by containment
+            rejection; 4-connected connector components (≥3 cells, with a bounded
+            exception for the two-row `|`/`v` drop the demo document uses, and gap
+            bridging that makes `dashed` mean "the source drew gaps"); labels by
+            nearest-and-alone attachment; edges only when both ends resolve to a
+            box; the confidence gate. 38 unit tests.
+      - [x] **M4.14c: the renderer** — `AsciiDiagram.tsx`. 1 cell = 0.6em of
+            `--text-code-md-size`, so the `viewBox` is the author's grid and no
+            layout is applied. Tokens only, the graph view's edge treatment and
+            shared `edge-trace` keyframes, `role="img"` with a generated
+            `aria-label`, never scaled up and never sideways.
+      - [x] **M4.14d: wired in** with `features.diagrams: "auto" | "terminal"`
+            (default `auto`), where `"terminal"` short-circuits before the parse.
+            The terminal window is unchanged as the fallback, and now names its
+            region after the section it is in — found by the new axe scenario,
+            not by inspection.
+
+      - [x] **M4.14 real-document coverage** — `npm run diagrams:coverage`, which
+            reads every document in `testdocs/`, finds every §6.9 terminal
+            candidate and runs it through the parser, read-only:
+
+            ```
+            Parsed successfully: 5 / 7
+            Fallback:            2 / 7
+            ```
+
+            The configured demo document (`kitchen-sink.md`) is **1 / 1**: its
+            four-box flow parses with all four boxes, all four arrows and the
+            author's columns. The remaining six candidates are the M4.14a
+            fixtures: four parse (flow, Unicode, junctions, vertical arrow) and
+            the two hostile ones do not. Every fallback, with its reason:
+
+            | Fence | Why it fell back | Intentional? |
+            |---|---|---|
+            | `ascii-diagrams` Fixture E — hostile prose | No box. `+`, `\|`, `<`, `>` all appear, and the prose is not a diagram. The parser has no boxes to work from, so the gate rejects it | **Intentional** — the fixture exists to prove prose is never promoted |
+            | `ascii-diagrams` Fixture F — dangling arrows | Two boxes, and two arrows that reach neither of them. Both connectors are dropped for failing to resolve an end, which leaves no box-to-box edge, which the gate rejects | **Intentional** — a dangling connector must not have a destination invented for it |
+
+            **No fallback is an implementation gap.** Both are the designed
+            behaviour and both are asserted: the unit tests check
+            `kind === 'unparseable'`, and the Playwright suite checks that the
+            terminal window is what the reader renders for them.
+
+            The one thing this measurement *did* find was a real gap in the
+            other direction: at first the demo document parsed as **4 nodes, 2
+            edges** — the two vertical drops are two characters (`|` then `v`) and
+            the ≥3 rule discarded them. The bounded exception for a two-cell run
+            that ends in an arrowhead is the fix, and the demo document is its
+            test. That is the argument for keeping the coverage script: without a
+            number per document, the loss would have shipped as a diagram with
+            half its arrows missing.
       - [x] **M4.6b profiled the two long tasks** (`npm run profile:perf`, median
             of 3, 4x CPU throttle, no product changes). Mount breaks down as
             React render/reconcile 225ms (29%), markdown parse 191ms (24%),

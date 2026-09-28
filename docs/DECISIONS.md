@@ -1573,3 +1573,143 @@ disproves that. The fix is to sample on every animation frame *while the
 animation runs* and assert the `mode-flip` was observed — a stronger claim than
 reading a value at an arbitrary later moment, because a transition that never
 started produces no reading and the test fails.
+
+---
+
+## M4.13 — explicit `graph` and `steps` blocks render in the reader
+
+**A `graph` block renders as a read-only React Flow mini-canvas, not as its DSL
+source** / `GraphInline`, exported from the graph module and lazy-imported by
+`GraphBlock` / Two requirements pointed the same way. "Do not create a second
+graph implementation" rules out a reader-specific renderer, and "reuse the
+already-paid lazy React Flow chunk" rules out a second import of the library.
+Exporting the mini-canvas from `GraphView.tsx` means the reader's block and the
+workbench are one module, one chunk, and one `budget.test.ts` invariant: `xyflow`
+still appears in no entry chunk. It is the graph view's `layoutGraph`, its
+`MetroNodeMemo`, its `FIT` and its `.graph-canvas` styling, configured
+read-only — `nodesDraggable`, `nodesConnectable`, `elementsSelectable` and every
+pan/zoom affordance off, no `Controls`, no inspector. Hover still lights a node,
+because that is CSS and it is the same CSS the workbench uses.
+
+**The canvas is sized to the graph, not fixed at 360px** / Height is computed
+from `layoutBounds` and the zoom `fitView` will choose, clamped to 168–360px /
+The first implementation used a fixed 360px, and the screenshot showed exactly
+what a fixed box does to a one-row graph: a 634×38 layout centred in a 360px
+field, with 300px of nothing. A four-column chain laid out left-to-right is
+*inherently* wide and short, so the box has to follow it. The height is a pure
+function of the spec rather than a `ResizeObserver` measurement on purpose: a
+height that arrives after paint moves everything below it, and M4.10 drove
+document CLS to 0.000. The column width inside the calculation is an estimate,
+and being wrong costs a little padding — the class of error that cannot be
+noticed rather than the class that reflows the page.
+
+**A `steps` block renders as the stepper, with `variant="embedded"`** / One
+`StepperView`, two mounts / The alternative was a second stepper, which is what
+"no duplicate stepper implementation" is written to prevent. What the embedded
+mount gives up is stated in one place and nowhere else: the document-level
+← / → binding (the reader's arrows belong to the reader) and focus-on-mount (a
+block appearing mid-read must not take focus from the page). The title is a
+paragraph rather than a second `h1`, and the ids are namespaced
+(`reader-step-panel`), because a page can carry the workbench and the block at
+once and two elements cannot share an id.
+
+**The inline graph's "Open in graph view" link is rendered only when the shell
+can open it** / `onOpenGraph` is `undefined` unless `capabilities.graph` is on /
+A link to a view the document is not capable of is a dead control, and §1.1 is
+about the document, not about the block that happens to exist. The link is a real
+anchor with a real `href`, so it is copyable and middle-clickable, and the click
+hands the route to the one place that owns it.
+
+---
+
+## M4.14 — ASCII fences become SVG diagrams
+
+**The ASCII *is* the layout; there is no graph auto-layout** / The parser
+extracts boxes, connectors, arrowheads, labels and their grid coordinates, and
+the renderer draws that grid / Everything else in this milestone follows from
+it. An author who draws boxes has already arranged them, so deriving a graph and
+re-laying it out (dagre, force, even distribution) would *discard* the one piece
+of information the source has. The Playwright assertion is the coordinates
+themselves — a two-column fixture whose right-hand column starts at cell 28
+renders at 28 cells, not at "one column plus a uniform gap".
+
+**The parser is deliberately, visibly conservative** / ≥2 boxes, ≥1 edge whose
+both ends resolve, arrowheads for direction, ≥3 characters (with one bounded
+exception) for a connector, and a dangling connector dropped rather than
+completed / The product promise is that a diagram-looking fence renders as a
+diagram, and the way to break it is to promote prose into one. Every rule here
+exists to make a *false* diagram impossible in preference to a *missing* one,
+because a wrong diagram is worse than an honest terminal window.
+
+**The two-character connector exception, and why it is safe** / A two-cell run
+that ends in an arrowhead is a connector / `|` above `v` is how the bundled demo
+document draws half of its arrows, and the ≥3 rule discarded it — which the
+coverage script caught as "4 nodes, 2 edges" where the picture has four. The
+exception costs nothing because a two-cell run must still resolve *both* ends to
+real box borders, and a `->` in a sentence resolves neither. The genericity test
+for it is the demo document itself: all four of its arrows, with no edit to the
+document.
+
+**A box with an interior wall is one box, not two or three** / Containment
+rejects the interior rectangles / A border with an interior `+` is a connector
+attachment point, and a wall running between two borders is a divider. Splitting
+on either invents nodes the source does not have. The rule's cost — two boxes
+that share a wall read as one — is the conservative direction, and it is stated
+in the parser's own documentation rather than left to be discovered.
+
+**Inside a box, structure is decided by geometry, not by character** / Only a
+column with junctions on both borders *and* a drawn `|` between them is a wall;
+only an interior row drawn entirely of `-`/`+` is a rule / Deciding by character
+blanks every `v` inside a label (it is an arrowhead outside a box) and every `-`
+in a hyphenated word, and "Dev server" parsed as "De  ser er". A diagram that is
+confidently wrong about the words in its boxes has failed at the one thing it
+must get right.
+
+**Unattached text becomes an annotation, and never a label** / A label attaches
+to the nearest connector within two cells, and only when it is strictly nearest
+/ A label equidistant between two connectors is attached to neither, and is
+carried out as an annotation at its own coordinates. Inventing an association is
+the "label drifted onto the wrong edge" defect; an annotation claims nothing and
+still shows the reader every word the fence contained.
+
+**`--gradient` cannot be an SVG `stroke`, so the hover uses the tokens behind
+it** / `--primary` plus the shared `edge-trace` keyframes and the
+`--motion-ambient` tier / The graph canvas already declares
+`stroke: var(--gradient)`; browsers drop it, because a CSS gradient is not a
+valid `stroke` value. Applying it literally to the diagram would be applying
+nothing. The existing hover treatment's actual ingredients — `--primary`, the
+crawl, the glow — are reused, so the effect matches the graph's rather than
+differing from it. The pre-existing dropped declaration in the graph view is
+recorded here rather than fixed, because M3's styling is not this milestone's.
+
+**The diagram never scales up, and never sideways** / `max-width` is the fence's
+own natural width, set from its grid / `width: 100%` with that cap means a
+two-box sketch is not blown up to a 700px poster, and a 120-column diagram
+shrinks rather than pushing the page sideways. It is also why no horizontal
+overflow gate had to be relaxed.
+
+**The parser runs in the reader, not in the pipeline** / `terminal` stays a
+`terminal` block; `TerminalCandidate` parses at render / The `Doc` model,
+capabilities and the §11.3 contract are unchanged, the escape hatch is a
+*rendering* decision, and a fence's classification stays a fact about the
+document rather than a rendering outcome. The parse is memoised per block.
+
+**A terminal window is now named after the section it is in** /
+`Terminal output — <section title>` / Found by the new axe scenario, not by
+inspection: a document with two fallback windows had two regions named
+"Terminal output", which is `landmark-unique` and tells a screen-reader user
+nothing about which one they are in. The name comes from the document's own
+heading, the way the table scroller's comes from its own header row.
+
+**`features.diagrams: "terminal"` short-circuits before the parse** / Not a
+rendering filter / An escape hatch that still parsed would leave the suspect code
+on the hot path, which is the opposite of what a bisect needs. The component
+test asserts that a *parseable* fence renders as a terminal window under it, so
+the switch is proven to be a switch and not a preference.
+
+**The motion inventory grew by two, and the distinct animation count did not** /
+Eight `animation` shorthands, six names / M4.4's inventory is a budget, and the
+honest reading of two new declarations that are both the graph's existing
+`edge-trace` on two more selectors is "no new motion". The test now asserts the
+distinct-name set as well as the count, so a genuinely new animation still fails
+it.

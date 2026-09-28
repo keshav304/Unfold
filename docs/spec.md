@@ -58,14 +58,22 @@ knowledge required:
 
 - ```` ```mermaid ```` — standard Mermaid, rendered inline.
 - ```` ```loop ```` — comma/newline-separated labels → animated cycle diagram.
-- ```` ```graph ```` — node/edge DSL → graph view (§6.7).
-- ```` ```steps ```` — ordered steps DSL → stepper view (§6.8).
+- ```` ```graph ```` — node/edge DSL → graph view (§6.7), and an inline
+  read-only mini-canvas in the reader.
+- ```` ```steps ```` — ordered steps DSL → stepper view (§6.8), and the same
+  stepper inline in the reader.
+- An untagged ASCII fence that is a real diagram — boxes, connectors,
+  arrowheads — → an SVG diagram in the reader (§6.9). No convention to learn:
+  the fence was already classified as a diagram candidate.
 - A `## Glossary`-family section — term → definition mapping (§6.6).
 - YAML frontmatter — optional `title`, `description`, `accent` (§6.2).
 
 ### 1.3 Graceful degradation
 - A `graph`/`steps`/`loop` block that fails to parse renders as a plain code
   block with a subtle "unparsed block" tooltip. Never a crash, never blank.
+- An ASCII fence the diagram parser cannot read renders as the terminal window,
+  unchanged (§6.9). A wrong diagram is worse than an honest terminal, so the
+  parser refuses rather than guesses.
 - Missing H1 → title falls back to filename. No H2s → TOC shows the H1 only,
   metro rail hides. Low cross-link density → no graph capability.
 - Documents of any size must work: 50 words and 50,000 words (§10 budgets).
@@ -78,12 +86,22 @@ knowledge required:
   "docPath": "./document.md",
   "title": "override title",
   "accent": "#06b6d4",
-  "features": { "graph": "auto", "stepper": "auto", "delight": true }
+  "features": {
+    "graph": "auto",
+    "stepper": "auto",
+    "delight": true,
+    "diagrams": "auto"
+  }
 }
 ```
 
 `"auto"` (default) = capability-detected; `"off"` forces hidden; `"on"` shows
 the nav item with an empty state if data is missing.
+
+`features.diagrams` is the one feature switch with two values: `"auto"` (default)
+attempts the ASCII diagram parse for terminal candidates (§6.9.1); `"terminal"`
+never does, and every candidate renders as the terminal window. It is the escape
+hatch for compatibility and for bisecting a diagram defect without a code change.
 
 ## 2. Goals
 
@@ -363,6 +381,13 @@ type GraphSpec = {
 
 Parse failure → plain code block (§1.3).
 
+**In the reader** (M4.13.1): an explicit ` ```graph ` block also renders inline, as
+a read-only React Flow mini-canvas — the graph view's own layout, nodes, edges and
+styling in a ~360px-tall frame, with no dragging, no pan, no zoom controls and no
+inspector, plus an "Open in graph view" link to the full view whenever the
+`graph` capability is on. The canvas is sized to the graph it holds rather than
+fixed, so a one-row chain is not a row adrift in 300px of nothing.
+
 **Derivation rule** (no explicit block): derive a "Document map" ONLY when
 BOTH thresholds hold — ≥3 valid internal cross-links AND ≥3 distinct H2
 sections appear as link source or target. Constants
@@ -386,6 +411,12 @@ hidden. `features.graph` config (`auto` | `on` | `off`) overrides.
 (validated; missing slug renders without the link, logs a dev-mode warning).
 Parse failure → plain code block.
 
+**In the reader** (M4.13.2): a ` ```steps ` block also renders inline, as the
+stepper itself — the same component, the same tablist semantics, the same dots,
+panel and `@slug` link, mounted as a block in a prose column. The embedded mount
+does not bind ← / → at the document level and does not take focus on mount; both
+belong to the view, and the block owns only which step it is showing.
+
 ### 6.9 ASCII diagram detection (generic)
 Untagged fences classify as `terminal` when ≥2 lines contain box-drawing
 chars, or ≥1 line matches `^\s*\+[-=+]+\+$`, or ≥2 arrow lines plus
@@ -393,6 +424,37 @@ pipe/box lines. Render as a terminal window per DESIGN.md: surface `#0a0f1d`,
 1px `--border-muted`, 4px radius, 32px header strip with file-path styling,
 line numbers in `--text-subtle`, traffic-light dots, scanline overlay,
 animated gradient on arrows.
+
+#### 6.9.1 ASCII → diagram (M4.14)
+A `terminal` fence is a *candidate*, not a verdict. When `features.diagrams` is
+`auto` (the default) each candidate is parsed, and a fence that parses renders
+as an SVG diagram instead of the terminal window. `features.diagrams: "terminal"`
+never attempts the parse — the escape hatch, and the behaviour the terminal
+window had before this section existed.
+
+**The author's layout is the layout.** The parser extracts the fence's own grid —
+boxes, connectors, arrowheads, labels, and their row/column coordinates — and the
+renderer draws that grid. No automatic graph layout is applied to an ASCII fence:
+a diagram's node positions are read, never computed. Unicode box-drawing
+characters (`┌ ┐ └ ┘ ─ │`, `┼ ├ ┤ ┬ ┴`, `▶ ▼ ◀`) normalise to the same roles as
+their ASCII equivalents without moving a cell.
+
+**The confidence gate.** A fence is a diagram only if it yields at least two
+boxes *and* at least one edge whose both ends resolve to a real box. A connector
+with no arrowhead, with two arrowheads, or that dangles into empty space is
+dropped; two boxes that are merely near each other are not an edge. A dropped
+connector's label becomes an annotation at its own coordinates rather than
+disappearing. Everything else falls through to the terminal window above, which
+is unchanged.
+
+**Rendering.** Nodes are `--surface-1` with a 1.5px `--border-strong` stroke, a
+4px radius, a `--border-muted` inset hairline and mono text; edges are 2px
+`--border-muted` 2px-tracks drawn along the connector's own cells, with
+arrowheads, and the graph view's hover and dashed treatments (§7.6) on the
+shared `edge-trace` keyframes. The SVG is `role="img"` with an `aria-label`
+generated from the parsed graph — a chain where the graph is a chain, its edges
+where it is not. The diagram scales down on narrow viewports and never up, and
+never introduces horizontal overflow.
 
 ## 7. Views & features
 

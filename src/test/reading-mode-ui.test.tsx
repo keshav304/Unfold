@@ -62,7 +62,10 @@ describe('§7.8 the header toggle switches the whole reader', () => {
     const { container } = await renderFixture('kitchen-sink')
     expect(toggle()).toHaveAttribute('aria-pressed', 'false')
     expect(container.querySelector('.reader')).toHaveAttribute('data-reading-mode', 'reference')
-    // The H2 that holds a terminal, a loop, a mermaid and two code blocks.
+    // The H2 that holds a diagram, a loop, a mermaid and two code blocks. (M4.14:
+    // the untagged fence in here is a diagram, not a terminal window — §7.8 hides
+    // both, and the executive-mode assertion below checks the *kind* is gone,
+    // which is the part the mode actually decides.)
     expect(sectionBlocks(container, 'runtime-shape').length).toBeGreaterThan(4)
   })
 
@@ -74,9 +77,12 @@ describe('§7.8 the header toggle switches the whole reader', () => {
     )
     expect(toggle()).toHaveAttribute('aria-pressed', 'true')
     const blocks = sectionBlocks(container, 'runtime-shape')
-    // §7.8 keeps the lead paragraph, tables and blockquotes; the terminal, loop,
-    // mermaid and code blocks are gone.
-    for (const gone of ['terminal', 'loop', 'mermaid', 'code-block']) {
+    // §7.8 keeps the lead paragraph, tables and blockquotes; the diagram, loop,
+    // mermaid and code blocks are gone. (M4.14 added `ascii-diagram` to the list
+    // because the untagged fence in this section stopped rendering as `.terminal`
+    // — the *kind* is still hidden either way, and the class is what the reader
+    // sees.)
+    for (const gone of ['terminal', 'ascii-diagram', 'loop', 'mermaid', 'code-block']) {
       expect(blocks, `${gone} survived executive mode`).not.toContain(gone)
     }
     expect(blocks.length).toBeLessThan(4)
@@ -201,12 +207,27 @@ describe('§9 every horizontal scroller is reachable by keyboard', () => {
   })
 
   it('the terminal scroller is a named, focusable region', async () => {
-    const { container } = await renderFixture('kitchen-sink')
+    /*
+     * M4.14: this is the terminal *fallback*, and the fixture is one that
+     * exercises the fallback. kitchen-sink no longer does — its untagged fence
+     * parses as a real diagram and renders as SVG — so the test moved to the
+     * ASCII fixture, whose hostile-prose and dangling-arrow fences are refused
+     * by the parser and land in the terminal window. The assertions are
+     * unchanged, which is the point: the fallback kept its keyboard contract.
+     */
+    const { container } = await renderFixture('ascii-diagrams')
     const scroller = container.querySelector('.terminal-content') as HTMLElement
     expect(scroller).not.toBeNull()
     expect(scroller.getAttribute('tabindex')).toBe('0')
     expect(scroller.getAttribute('role')).toBe('region')
-    expect(scroller.getAttribute('aria-label')).toBe('Terminal output')
+    // Named, and — since M4.14 — named *uniquely*, because this fixture has two
+    // terminal windows and two regions called "Terminal output" is
+    // `landmark-unique`. The second half is the document's own section heading.
+    expect(scroller.getAttribute('aria-label')).toBe('Terminal output — Fixture E — hostile prose')
+    const names = Array.from(container.querySelectorAll('.terminal-content')).map(
+      (node) => node.getAttribute('aria-label'),
+    )
+    expect(new Set(names).size).toBe(names.length)
   })
 
   it('and the table scroller M2 built is still one', async () => {

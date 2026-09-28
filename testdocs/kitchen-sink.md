@@ -37,7 +37,8 @@ $ unfold search --query "glossary"
 
 ## Runtime shape
 
-An untagged fence that draws boxes is classified as a terminal window:
+An untagged fence that draws boxes is read as a diagram, in the layout the ASCII
+gave it — four boxes, four arrows, the columns it was drawn in:
 
 ```
 +------------------+        +-----------------+

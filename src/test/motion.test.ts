@@ -115,11 +115,29 @@ describe('§8 the inventory — every animation in the app, printed', () => {
     }
     process.stdout.write(`\n§8 motion inventory (${all.length})\n${rows.join('\n')}\n\n`)
 
-    // Six `animation` shorthands: the three signature moments with their
-    // per-breakpoint variants, the one-shot reveal, and the two ambient loops.
-    // A seventh shorthand means something new is moving, and the next three
-    // describes are where it has to justify itself.
-    expect(all.length).toBe(6)
+    // Eight `animation` shorthands: the three signature moments, the one-shot
+    // reveal, and the two ambient loops. A seventh shorthand means something new
+    // is moving, and the next three describes are where it has to justify itself.
+    //
+    // M4.14 added two of them, and the distinction this assertion exists to force
+    // is the one it turns on: both are `edge-trace`, the ambient loop the graph
+    // canvas has used since M3, on two more selectors (an ASCII connector's
+    // hover, and a connector the source drew with gaps). *Nothing new moves.* So
+    // the shorthand count went up and the **distinct-name** count did not, and the
+    // next assertion is the one that would catch an eighth kind of motion rather
+    // than a seventh place the sixth already runs.
+    expect(all.length).toBe(8)
+  })
+
+  it('which is the same eight, not eight different things: the names are still the six', () => {
+    const names = new Set(animations().map((motion) => motion.name))
+    // The three signature moments, the one-shot reveal, and the two ambient loops.
+    expect([...names].sort()).toEqual([...[...SIGNATURE, ...REVEALS, ...AMBIENT]].sort())
+    // A name here that is not one of those six is a new kind of motion, whatever
+    // the shorthand count says, and it has to be classified above first.
+    for (const name of names) {
+      expect([...SIGNATURE, ...REVEALS, ...AMBIENT], `unclassified animation: ${name}`).toContain(name)
+    }
   })
 
   it('every duration resolves through a --motion-* token, never a literal', () => {

@@ -230,10 +230,23 @@ describe('block renderers', () => {
     expect(table?.querySelector('td code')?.textContent).toBe('npm ci')
   })
 
-  it('renders the untagged ASCII diagram as a terminal window', async () => {
+  it('renders the untagged ASCII diagram as a diagram, and no longer as a terminal (M4.14)', async () => {
     const { container } = await renderFixture('kitchen-sink')
-    expect(container.querySelector('.terminal')).not.toBeNull()
-    expect(container.querySelectorAll('.terminal-light').length).toBe(3)
+    // M4.14 gave the parser first refusal, and kitchen-sink's fence is a real
+    // box-to-box diagram: four boxes, four connectors, so it is parsed and drawn
+    // as one. The terminal window is no longer what this fence renders as — the
+    // assertions that need one now use a fence the parser *refuses*
+    // (`reading-mode-ui.test.tsx`) rather than pretending this one is refused.
+    expect(container.querySelector('.ascii-diagram')).not.toBeNull()
+    expect(container.querySelector('.terminal')).toBeNull()
+  })
+
+  it('still renders a terminal window for a fence that is not a diagram', async () => {
+    const { container } = await renderFixture('ascii-diagrams')
+    // Fixture E: hostile prose. The window is the §1.3 answer, unchanged.
+    const terminals = container.querySelectorAll('.terminal')
+    expect(terminals.length).toBe(2)
+    expect(container.querySelectorAll('.terminal-light').length).toBe(6)
   })
 
   it('renders a loop block as an SVG cycle with the right labels', async () => {

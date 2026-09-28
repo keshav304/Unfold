@@ -9,17 +9,19 @@
  * classification time* is already a plain `code` block by the time it reaches
  * this file, so nothing here can degrade.
  *
- * The terminal window is the one block kind still waiting on its own
- * milestone; it is unchanged by this one.
+ * `terminal` is the other kind with two presentations: M4.14 gives the ASCII
+ * parser first refusal (see `TerminalCandidate`), and the existing terminal
+ * window is what a fence the parser declines still gets.
  */
 
 import type { ReactNode } from 'react'
 import type { Paragraph } from 'mdast'
 import { tableCellText } from '../../pipeline/blocks'
+import type { DiagramsMode } from '../../pipeline/config'
 import type { Block, InlineNode } from '../../pipeline/types'
 import { renderInline, type InlineContext } from './Inline'
 import { CodeBlock } from './CodeBlock'
-import { Terminal } from './Terminal'
+import { TerminalCandidate } from './Terminal'
 import { Loop } from './Loop'
 import { Mermaid } from './Mermaid'
 import { GraphBlock } from './GraphBlock'
@@ -28,6 +30,8 @@ import { StepsBlock } from './StepsBlock'
 export type BlockProps = {
   block: Block
   context: InlineContext
+  /** `features.diagrams`. Defaults to `auto`. */
+  diagrams?: DiagramsMode
   /** Passed only when the shell can show the graph view (§1.1). */
   onOpenGraph?: (() => void) | undefined
 }
@@ -87,7 +91,12 @@ function listItems(items: readonly unknown[], context: InlineContext, ordered: b
   )
 }
 
-export function BlockView({ block, context, onOpenGraph }: BlockProps): ReactNode {
+export function BlockView({
+  block,
+  context,
+  diagrams = 'auto',
+  onOpenGraph,
+}: BlockProps): ReactNode {
   switch (block.kind) {
     case 'prose':
       return <p className="reader-prose">{inline(block.node, context, block.kind)}</p>
@@ -102,7 +111,17 @@ export function BlockView({ block, context, onOpenGraph }: BlockProps): ReactNod
       return <CodeBlock code={block.code} lang={block.lang} />
 
     case 'terminal':
-      return <Terminal code={block.code} />
+      // M4.14: the parser gets first refusal; `Terminal` is the fallback and is
+      // unchanged. `diagrams === 'terminal'` short-circuits inside. The section's
+      // title names the window's region, so two windows in one document are two
+      // distinguishable landmarks rather than two identical ones.
+      return (
+        <TerminalCandidate
+          code={block.code}
+          diagrams={diagrams}
+          sectionTitle={context.titles?.get(context.sectionSlug ?? '')}
+        />
+      )
 
     case 'mermaid':
       return <Mermaid code={block.code} />

@@ -25,7 +25,7 @@ describe('zero config', () => {
     expect(config.docPath).toBe('./document.md')
     expect(config.title).toBe('override title')
     expect(config.accent).toBe('#06b6d4')
-    expect(config.features).toEqual({ graph: 'auto', stepper: 'auto', delight: true })
+    expect(config.features).toEqual({ graph: 'auto', stepper: 'auto', delight: true, diagrams: 'auto' })
   })
 })
 
@@ -47,6 +47,10 @@ describe('invalid config degrades, never throws', () => {
     expect(normalizeConfig({ features: { graph: 'maybe' } }).features.graph).toBe('auto')
   })
 
+  it('an unknown diagrams mode falls back to auto — the feature stays on', () => {
+    expect(normalizeConfig({ features: { diagrams: 'never' } }).features.diagrams).toBe('auto')
+  })
+
   it('an invalid entity regex is dropped, not fatal', () => {
     const config = normalizeConfig({ entityPatterns: [{ name: 'bad', pattern: '([' }] })
     expect(config.entityPatterns).toEqual([])
@@ -54,6 +58,22 @@ describe('invalid config degrades, never throws', () => {
 
   it('non-string entries in fileExtensions are ignored', () => {
     expect(normalizeConfig({ fileExtensions: ['zig', 42, null] }).fileExtensions).toEqual(['zig'])
+  })
+})
+
+describe('M4.14 features.diagrams is the escape hatch for the ASCII parser', () => {
+  it('defaults to auto, which is the whole feature', () => {
+    expect(DEFAULT_CONFIG.features.diagrams).toBe('auto')
+    expect(normalizeConfig({}).features.diagrams).toBe('auto')
+  })
+
+  it('"terminal" is a real mode, not a synonym for anything else', () => {
+    expect(normalizeConfig({ features: { diagrams: 'terminal' } }).features.diagrams).toBe('terminal')
+  })
+
+  it('and it survives a round trip through the JSON parser', () => {
+    const config = parseConfig(JSON.stringify({ features: { diagrams: 'terminal' } }))
+    expect(config.features.diagrams).toBe('terminal')
   })
 })
 

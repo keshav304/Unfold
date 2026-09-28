@@ -118,6 +118,7 @@ a screen where you can pick a file.
 | `features.graph` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | `"auto"` = capability-detected; `"off"` hides the graph view; `"on"` shows the nav item with an empty state if the document has no graph. |
 | `features.stepper` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | Same, for the stepper. |
 | `features.delight` | boolean | `true` | Confetti at reading milestones. `false` means the confetti chunk is **never requested**, not merely never drawn. |
+| `features.diagrams` | `"auto"` \| `"terminal"` | `"auto"` | How an untagged ASCII fence is presented. `"auto"` parses it and renders a real diagram as SVG, keeping the terminal window for a fence the parser will not vouch for; `"terminal"` never parses, so every candidate renders as the terminal window it always did. The escape hatch. |
 | `fileExtensions` | string[] | a built-in list | Which extensions count as file paths for entity chips. |
 | `entityPatterns` | `{name, pattern}[]` | `[]` | Extra regexes, each with a global flag. An invalid pattern is warned about and skipped, never fatal. |
 | `descriptions` | `{path: string}` | `{}` | Text for an entity popover. Empty by default, so a popover shows backlinks only. |
@@ -147,9 +148,9 @@ paste the file somewhere else.
 |---|---|
 | ` ```mermaid ` | A rendered diagram. Standard Mermaid, dark theme. |
 | ` ```loop ` | An animated cycle diagram. Comma- or newline-separated labels. |
-| ` ```graph ` | The **graph view** — an interactive architecture map. A small DSL, below. |
-| ` ```steps ` | The **stepper view** — a deep-linkable lifecycle. Also a small DSL, below. |
-| An untagged fence that draws boxes | An ASCII diagram, rendered in a terminal window. |
+| ` ```graph ` | The **graph view** — an interactive architecture map. A small DSL, below. In the reader, a read-only mini-canvas with a link out to the full view. |
+| ` ```steps ` | The **stepper view** — a deep-linkable lifecycle. Also a small DSL, below. In the reader, the same stepper, inline. |
+| An untagged fence that draws boxes | A **diagram**: parsed and rendered as SVG, in the author's own layout. If it turns out not to be a diagram, a terminal window. |
 | A `## Glossary` section (or anything matching a glossary heading) | Glossary chips in the prose, and a Glossary group in the palette. |
 | A table | A horizontally scrollable, keyboard-reachable region. |
 | A `src/…`, `*.ts`, `test.ts::name` mention in prose or in backticks | An entity chip with backlinks. |

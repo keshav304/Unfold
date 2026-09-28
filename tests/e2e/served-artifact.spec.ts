@@ -32,8 +32,13 @@ test.describe('the served build renders the document', () => {
     expect(firstBlock).not.toContain('title:')
 
     // The block kinds this milestone's predecessor shipped, verified against
-    // the *served* artifact rather than a jsdom boot.
-    await expect(page.locator('.terminal').first()).toBeVisible()
+    // the *served* artifact rather than a jsdom boot. The untagged ASCII fence
+    // has two presentations since M4.14 and this one is the diagram: a
+    // four-box flow parses as boxes and connectors, so `.terminal` is not what
+    // it renders as. The terminal fallback has its own scenarios against a fence
+    // the parser *refuses*, in `diagrams.spec.ts`.
+    await expect(page.locator('.ascii-diagram').first()).toBeVisible()
+    await expect(page.locator('.terminal')).toHaveCount(0)
     await expect(page.locator('.loop-svg').first()).toBeVisible()
     await expect(page.locator('.code-block').first()).toBeVisible()
     await expect(page.locator('.reader-table').first()).toBeVisible()

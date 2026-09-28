@@ -718,6 +718,7 @@ export function App({ config, fetcher, autoLoad: autoLoadProp }: AppProps): JSX.
                 mode={reading.mode}
                 isExpanded={reading.isExpanded}
                 onToggleSection={reading.toggleSection}
+                diagrams={config.features.diagrams}
                 onOpenGraph={doc.capabilities.graph ? openGraph : undefined}
               />
             </>

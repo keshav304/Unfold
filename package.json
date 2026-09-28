@@ -13,6 +13,7 @@
     "ci": "npm run typecheck && npm run test && npm run build && npm run ui-smoke && npm run test:e2e && npm run lighthouse",
     "print-doc": "vite-node scripts/print-doc.ts",
     "stranger-test": "vite-node scripts/stranger-test.ts",
+    "diagrams:coverage": "vite-node scripts/diagram-coverage.ts",
     "ui-smoke": "vite-node scripts/ui-smoke.ts",
     "ui-smoke:stranger": "vite-node scripts/ui-smoke.ts --stranger",
     "test:e2e": "playwright test",
