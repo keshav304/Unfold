@@ -101,10 +101,15 @@
   --space-2xl: 2rem;
   --space-3xl: 3rem;
 
-  /* ---------- Type families (self-hosted, P0.3) ---------- */
-  --font-display: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  /* ---------- Type families (self-hosted, P0.3, fallback-matched M4.6) ----------
+     The `* Fallback` entries are the metric-matched local faces declared in
+     `fonts.css`. They sit immediately after the real face, so the browser uses
+     them only while the webfont is still loading, and their advance widths
+     match, so the paragraph the LCP metric measures does not re-wrap when the
+     real font lands. */
+  --font-display: 'Geist Variable', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ---------- Type scale (DESIGN.md typography) ---------- */
   --text-display-lg-size: 48px;

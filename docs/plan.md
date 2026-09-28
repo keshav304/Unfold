@@ -384,18 +384,51 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
     guard refused three hexes in the delight module (the palette is now read
     from the cascade at burst time) and a fourth in a comment; and the
     best-of-3 change to the pipeline perf test is recorded in `DECISIONS.md`.
-- [ ] M4.6 Perf pass (§10): lazy chunks verified in build output; ≤200KB
-      initial gz; Lighthouse re-run.
-      - [ ] **TBT 520ms** (G3 CI baseline) and LCP 4.3s. Likely initial render
+- [~] M4.6 Perf pass (§10): lazy chunks verified in build output; ≤200KB
+      initial gz; Lighthouse re-run. **Gate flipped and failing at 88/90 — see
+      below; G5 cannot sign until the gap closes.**
+      - [x] **TBT 520ms** (G3 CI baseline) and LCP 4.3s. Likely initial render
             plus lazy-chunk resolution on `kitchen-sink`, which is the
             fixture the audit loads. Work the LCP waterfall fix A6 deferred here.
-      - [ ] **Compare CI-to-CI.** Headless Lighthouse is not DevTools and the
+        - [x] Measured rather than assumed: the G3 baseline was 520ms TBT, the
+          actual G3 audit produced **215ms**, and the real problem was elsewhere.
+      - [x] **Compare CI-to-CI.** Headless Lighthouse is not DevTools and the
             numbers are not comparable across harnesses. The G3 CI run —
             perf 62, a11y 96, bp 100, seo 82; FCP 3.4s, LCP 4.3s, TBT 520ms,
             CLS 0.022, SI 4.8s — is the baseline, and `artifacts/lighthouse.json`
             is regenerated every CI run, so the comparison is mechanical.
-      - [ ] Perf assertions still do not exist and are not added before the
-            waterfall work; until then the audit records, per A6.
+        - [x] **The audit host was not compressing.** §12's target (Netlify,
+          GitHub Pages) gzips every text response; `tests/e2e/server.ts` did
+          not, so it sent a 439KB entry where a real host sends 136KB, and the
+          score was measuring the host's silence rather than the app's weight.
+          ~3.6MB → ~1.0MB transferred. The single largest factor, and invisible
+          in the report, which listed "Total size was 3.6MB" as a *passing*
+          audit.
+      - [x] Perf assertions now exist: `PERF_FLOOR = 90`, **median of three
+            runs**, alongside a11y ≥ 95 as the **worst** of three (an a11y score
+            does not vary with machine load; a perf score does). Per-run timeout
+            added, and the gate names the weighted audits that cost the most.
+      - [x] **Waterfall fix (M1.9e).** Build-time
+            `<link rel="preload" as="fetch" crossorigin>` for the config *and*
+            the configured `docPath`, emitted by the Vite plugin because that
+            is the only place that knows the path; config and document fetched
+            in parallel. **FCP 3.5s→1.6s, LCP 4.4s→2.0s.**
+      - [x] **Font fallback metrics, measured.** The LCP element is the reader's
+            first paragraph, so the font swap re-wrapped it. `size-adjust`
+            fallbacks measured by `scripts/font-fallbacks.ts` — Inter was 6.6%
+            off, the one that mattered. **Font *preloads* were implemented and
+            then removed: they cost 2 points** (86 with, 88 without), because
+            once the fallback is metric-matched the swap is already cheap and
+            three more requests on a throttled connection are contention.
+      - [x] **TBT 1134ms → ~390ms** by deferring mermaid and Shiki to
+            `requestIdleCallback` (2s timeout). Deferring the *bytes* was
+            already done; this defers the *main thread*.
+      - [ ] **⚠ THE GATE FAILS. Median 88, floor 90. The gap is 2 points and it
+            is in the 136KB entry chunk** — TBT 0.65 (weight 30) and LCP 0.89
+            (weight 25). Not widened: §10's number is unchanged and the gate
+            prints the weighted audits that cost the most. The remaining levers
+            all trade product behaviour for the metric; see `DECISIONS.md` for
+            the one worth taking deliberately.
 - [ ] M4.7 Deploy: static `dist/` to Netlify/GH Pages; `base` config if
       subpath; final stranger test against the deployed URL.
 - [ ] **Optional:** a lighter render-test fixture. The unit suite is 51s, mostly

@@ -687,12 +687,29 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .code-content,
+  .code-content {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  /*
+   * M4.3 fixup. The inner element used to scroll as well, which made **two**
+   * nested horizontal scrollers — and when M4.3 gave `.code-content` the
+   * `role="region"` and the tab stop that a scrollable box needs (§9), the tab
+   * stop went on the *outer* one while the *inner* one was the thing that
+   * actually moved. Playwright caught it as
+   * `scrollable-region-focusable` on `.code-plain`: a scrollable box with no
+   * focusable child and no tab stop, which is exactly the defect M4.3 set out to
+   * fix, one element down.
+   *
+   * The fix is to have one scroller, not two. `.code-plain` and
+   * `.code-highlighted` now size to their content and let `.code-content` do the
+   * scrolling, so the named, focusable region is the region that scrolls.
+   */
   .code-plain,
   .code-highlighted {
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
   }
 
   .code-plain,

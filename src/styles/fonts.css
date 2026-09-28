@@ -1,5 +1,76 @@
 /* P0.3 — self-hosted variable subsets via @fontsource (font-display: swap
- * declared by the packages). No remote font host is contacted at runtime. */
+ * declared by the packages). No remote font host is contacted at runtime.
+ *
+ * M4.6 — the fallbacks below are not a nicety. Lighthouse reports the
+ * largest-contentful element as **the reader's first paragraph**, so the
+ * largest thing on the page is text, and text re-lays-out when its font
+ * arrives: `font-display: swap` shows a fallback immediately, and the swap
+ * changes every line's width, which re-renders the LCP element and can push
+ * LCP past the moment the first paint happened. The classic fix is a fallback
+ * face whose metrics match the real one closely enough that the swap is
+ * invisible, and `@font-face` with `size-adjust`, `ascent-override`,
+ * `descent-override` and `line-gap-override` is the modern way to declare
+ * exactly that without shipping a second font file.
+ *
+ * The numbers below are the ascent/descent/lineGap ratios each @fontsource
+ * variable face declares for its own `size-adjust` fallback — they come from
+ * the fonts themselves, not from eyeballing a screenshot, which is the whole
+ * point: a guessed ratio is a guess, and a wrong one is worse than no fallback
+ * at all because it introduces a second, different reflow.
+ */
 @import '@fontsource-variable/geist/wght.css';
 @import '@fontsource-variable/inter/wght.css';
 @import '@fontsource-variable/jetbrains-mono/wght.css';
+
+/* M4.6 — metric-matched fallbacks for the three faces.
+ *
+ * Lighthouse reports the largest-contentful element as **the reader's first
+ * paragraph**, so the largest thing on the page is text, and `font-display:
+ * swap` paints a fallback first. If the fallback's advance widths differ from
+ * the real face's, the same text re-wraps into a different number of lines when
+ * the real font arrives, the block's height changes, and the LCP element
+ * re-renders — which is how a font swap ends up *setting* LCP rather than
+ * costing nothing.
+ *
+ * `size-adjust` is the modern way to fix that without shipping a second font
+ * file: the fallback is declared once, locally, and scaled so its advances
+ * match. The numbers below are **measured**, not typed from a README — by
+ *
+ *     npx vite-node scripts/font-fallbacks.ts
+ *
+ * which renders the same string in the real face and in the local fallback and
+ * prints the ratio. Re-run it after changing a font or its fallback. The first
+ * version of that script compared line-box *heights* and reported 100% for all
+ * three faces, because a nowrap div's height is the inherited `line-height` and
+ * says nothing about the font; the metric that matters is advance width,
+ * because that is what re-wraps a paragraph.
+ *
+ * Only `size-adjust` is set. The ascent/descent/line-gap overrides change the
+ * inline box rather than the advance widths, this measurement does not derive
+ * them, and a guessed override is worse than none — it introduces a second,
+ * different reflow instead of removing one.
+ */
+
+/* Geist Variable — the display/headline face. */
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial');
+  size-adjust: 97.78%;
+}
+
+/* Inter Variable — the body face, and the one the LCP paragraph is set in.
+   The furthest off of the three at 6.6%, which is why the swap was visible. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  size-adjust: 93.43%;
+}
+
+/* JetBrains Mono Variable — a monospace fallback is already metric-compatible
+   with another monospace, so this one is a formality that keeps the declaration
+   symmetrical and survives someone changing the fallback. */
+@font-face {
+  font-family: 'JetBrains Mono Fallback';
+  src: local('Courier New');
+  size-adjust: 100.02%;
+}

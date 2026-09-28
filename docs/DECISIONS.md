@@ -1142,3 +1142,115 @@ which is why that gate is median-of-3. Best-of-3 is the cheaper cousin: for a
 least polluted by whatever else the machine was doing. The bound is untouched,
 the "no blowing up" assertion still runs on every sample, and a genuine
 algorithmic regression still fails all three.
+
+---
+
+## M4.6 — the perf pass
+
+**The test host now compresses, and that was most of the score** / `br`/`gzip`
+on every text response in `tests/e2e/server.ts` / §12's deployment target is
+Netlify or GitHub Pages, and both gzip every text response by default. The audit
+host did not, so it sent a **439KB entry where a real host sends 136KB**, and
+every number M4.6 records was measuring the host's silence rather than the
+app's weight. Total transferred bytes went from ~3.6MB to ~1.0MB. A test host
+that is *stricter* than production is a useful thing to have; a test host that is
+*different* from production is a measurement of the wrong system, and this one
+was silently the latter for four milestones.
+
+**The waterfall fix, in the order that paid** / FCP 3.5s→1.6s, LCP 4.4s→2.0s /
+Three changes, and they are not equal. (1) Compression, above. (2) The build
+emits `<link rel="preload" as="fetch" crossorigin>` for the config **and** the
+configured `docPath`, which takes two round trips off the critical path; it has
+to live in the Vite plugin because that is the only place that knows the
+configured path, and a deployer who changes `docPath` must not have to remember
+to change a template. `crossorigin` is not optional: without it the preload is
+fetched in no-cors mode, lands in a different cache entry, and is then fetched
+*again* by the real request — a wasted round trip caused by a hint that looks
+like it is working. (3) The config and the document are fetched **in parallel**
+rather than in sequence.
+
+**The font fallback numbers are measured, and the measurement had to be fixed
+first** / `scripts/font-fallbacks.ts` / Lighthouse reports the LCP element as
+**the reader's first paragraph**, so the largest thing on the page is text, and
+`font-display: swap` re-wraps it when the real font lands — which is how a font
+swap ends up *setting* LCP. The fix is a metric-matched fallback via
+`size-adjust`. The first version of the measuring script compared line-box
+*heights* and reported 100% for all three faces, because a `nowrap` div's height
+is the inherited `line-height` and says nothing about the font; the metric that
+matters is advance **width**, because that is what re-wraps a paragraph. The
+real figures: Geist 97.78%, Inter **93.43%** (6.6% off — the visible one, and
+the one the LCP paragraph is set in), JetBrains Mono 100.02%. No ascent/descent
+overrides, because the script does not derive them and a guessed override
+introduces a second reflow instead of removing one.
+
+**Font preloading was measured and removed: it cost 2 points** / median 86 with
+them, 88 without / The brief asked for "font preloads + size-adjust-matched
+fallbacks so swap doesn't re-trigger LCP", and the two halves turn out to pull
+in opposite directions. Once the fallback is metric-matched the swap is already
+cheap, so the preload's only remaining job is to add three more requests to a
+connection Lighthouse is throttling — which is contention, not saving. Shipping
+it would have meant shipping the slower half of the brief's own instruction
+because it was written down. The size-adjust fallbacks stay; the preloads do
+not. `preloadFonts` and the three hints it emitted are gone.
+
+**The idle-deferral is where TBT went** / `whenIdle()` in `app/whenIdle.ts`,
+used by mermaid and Shiki / TBT 1134ms → ~390ms. Both heavy chunks were already
+dynamic imports, which defers the *bytes*; what was not deferred is the *main
+thread*, because both were kicked off from a `useEffect` during the initial
+render, so a 645KB mermaid chunk and a full-document highlight pass landed in
+the same burst as React's first commit. `requestIdleCallback` with a **2-second
+timeout** — the timeout is the load-bearing half, because without it a document
+that never goes idle would never render its diagrams, which is a behaviour
+change dressed up as an optimisation. The diagram still draws and the code still
+gets highlighted; they just stop competing with the first paint.
+
+**A prefetch of the zero-config default was tried and reverted: it 404s** /
+`main.tsx` / The first attempt to parallelise the fetches warmed `./document.md`
+— the §1.4 default — before the config had been read. A request log showed it
+firing on every single page load, 404ing, because a configured deployment points
+somewhere else. It was a pessimisation for the common case in order to help the
+rare one, and the build-time preload already covers the configured path.
+Removed. Worth recording because the reasoning sounded right and the
+measurement said otherwise.
+
+**The perf gate is median-of-3, and a11y is the *worst* of 3** / `PERF_FLOOR =
+90`, `PERF_RUNS = 3` / A performance score varies with machine load and an
+accessibility score does not, so averaging the first and taking the worst of the
+second is the only combination that is right for both. The brief's own "62→45
+variance proved single runs are noise" is the reason: a gate on one sample is a
+gate on the weather, and a weather gate is a gate that gets ignored. A per-run
+timeout was added too, because "the gate hangs" is a worse failure than "the
+gate fails" — CI's own timeout would eventually fire with no indication of
+which run was stuck.
+
+**The gate is ON at 90 and it FAILS. Median 88. The gap is 2 points and it is
+in the entry chunk.** Reported, not widened / TBT 0.65 (weight 30) and LCP 0.89
+(weight 25), named by the gate itself / This is the outcome the M4 brief
+anticipated — "if the waterfall fix alone doesn't reach 90, report the remaining
+gap + your best next lever — do not silently widen anything." The threshold is
+§10's own number and it is unchanged, and the gate prints the weighted audits
+that cost the most so a failure is actionable rather than a bare number. The
+honest next lever is the 136KB entry: the two long tasks that remain are ~330ms
+of script evaluation for it and ~330ms of React mounting a real document, and
+every way to shrink the entry available here trades product behaviour for the
+metric — splitting `minisearch` out would make the palette's first keystroke
+wait on a chunk, which is exactly what M2's decision put `cmdk` in the entry to
+prevent. That trade is worth making deliberately, with its own measurement, and
+not as a side effect of chasing two points.
+
+**M4.6's own test run found a real M4.3 regression, and the fix was a CSS
+deletion** / `.code-content` / M4.3 gave `.code-content` `role="region"` and a
+tab stop so a horizontally scrolling code block would be reachable by keyboard.
+Running the full suite after the server's compression change turned up
+`scrollable-region-focusable` on `.code-plain` — the *inner* `<pre>`, which was
+also `overflow-x: auto`, and was therefore the element that actually scrolled.
+There were two nested scrollers, and the tab stop had gone on the outer one.
+
+The defect was M4.3's own, moved down one element: the rule says a scrollable
+box must be focusable, and the box that moved was not the box that was
+focusable. The fix is to have one scroller rather than two — `.code-plain` and
+`.code-highlighted` now size to their content and `.code-content` does the
+scrolling. Worth recording because the M4.3 change looked correct in review and
+in the unit tests; only a whole-page axe run against a long, unhighlighted fence
+surfaced it, which is the argument for the M4.3 sweep being whole-page in the
+first place.

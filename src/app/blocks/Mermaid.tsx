@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { whenIdle } from '../whenIdle'
 
 export type MermaidProps = { code: string }
 
@@ -43,22 +44,28 @@ export function Mermaid({ code }: MermaidProps): JSX.Element {
 
   useEffect(() => {
     let cancelled = false
-    void loadMermaid().then(async (mermaid) => {
-      if (cancelled) return
-      if (mermaid === null) {
-        setFailed(true)
-        return
-      }
-      try {
-        const result = await mermaid.render(id.current, code)
-        if (!cancelled) setSvg(result.svg)
-      } catch {
-        // A diagram the library cannot draw is shown as source, never dropped.
-        if (!cancelled) setFailed(true)
-      }
+    // M4.6: deferred to an idle window. The diagram still draws — `whenIdle`
+    // gives up after 2s — but a 645KB chunk and a layout pass no longer land in
+    // the same burst as React's first commit. See `app/whenIdle.ts`.
+    const cancel = whenIdle(() => {
+      void loadMermaid().then(async (mermaid) => {
+        if (cancelled) return
+        if (mermaid === null) {
+          setFailed(true)
+          return
+        }
+        try {
+          const result = await mermaid.render(id.current, code)
+          if (!cancelled) setSvg(result.svg)
+        } catch {
+          // A diagram the library cannot draw is shown as source, never dropped.
+          if (!cancelled) setFailed(true)
+        }
+      })
     })
     return () => {
       cancelled = true
+      cancel()
     }
   }, [code])
 

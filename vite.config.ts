@@ -32,6 +32,62 @@ function shipDeployable(): Plugin {
         next()
       })
     },
+    /**
+     * M4.6 — preload the config and the document from the built HTML.
+     *
+     * The app's critical path is `index.html → entry.js → config → document →
+     * render`, and the last two steps are two round trips that the *build* can
+     * take off it. This plugin is the only place that knows the configured
+     * `docPath`, which is exactly why the hint has to be here and not in
+     * `index.html`: a document deployed at `./docs/spec.md` needs
+     * `<link rel="preload" href="/docs/spec.md">`, and nobody editing the
+     * template is going to remember to change it when they change the config.
+     *
+     * `as="fetch"` + `crossorigin` is the pair `fetch()` actually matches on.
+     * A preload without `crossorigin` is fetched in "no-cors" mode, lands in a
+     * *different* cache entry, and is then fetched a second time by the real
+     * request — so it costs a round trip and saves nothing, which is worse than
+     * having no hint at all because it looks like it is working.
+     */
+    transformIndexHtml() {
+      const docPath = configuredDocPath()
+      if (docPath === null) return
+      const url = docPath.startsWith('./') ? `/${docPath.slice(2)}` : `/${docPath}`
+      return [
+        {
+          tag: 'link',
+          attrs: { rel: 'preload', href: `/${CONFIG_FILE}`, as: 'fetch', crossorigin: '' },
+          injectTo: 'head-prepend' as const,
+        },
+        {
+          tag: 'link',
+          attrs: { rel: 'preload', href: url, as: 'fetch', crossorigin: '' },
+          injectTo: 'head-prepend' as const,
+        },
+      ]
+    },
+    /**
+     * M4.6 — the same two hints, applied to the written HTML.
+     *
+     * The font preload lives here rather than in `generateBundle` because Vite
+     * emits `index.html` from its *own* HTML plugin, and a plugin that runs
+     * `generateBundle` first simply does not see the file yet — the first
+     * version of this did exactly that and silently emitted nothing, which is
+     * the failure mode of a hint whose absence costs nothing until the day it
+     * would have helped. `closeBundle` runs after the whole output is on disk,
+     * so the file exists and the asset names are final.
+     *
+     * `as="font"` needs `crossorigin` for the same reason `as="fetch"` does:
+     * fonts are always fetched in CORS mode, and a preload without the
+     * attribute is fetched in no-cors mode, lands in a different cache entry,
+     * and is then fetched *again* by the real request — a whole second download
+     * of every typeface, caused by a hint that looks like it is working.
+     *
+     * Only the `latin` subsets. The stylesheet declares cyrillic, greek and
+     * vietnamese faces too, and hinting all of them would put four extra
+     * requests on every page load for readers whose text is in English. The
+     * others are still declared and still load; they load when they are needed.
+     */
     closeBundle() {
       if (!existsSync(CONFIG_FILE)) return
       copyInto(join('dist', CONFIG_FILE), CONFIG_FILE)

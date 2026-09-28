@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useCopy } from './useCopy'
+import { whenIdle } from '../whenIdle'
 
 export type CodeBlockProps = {
   code: string
@@ -63,13 +64,20 @@ export function CodeBlock({ code, lang, filePath }: CodeBlockProps): JSX.Element
   useEffect(() => {
     let cancelled = false
     const mine = ++token.current
-    void loadHighlighter().then((highlighter) => {
-      if (cancelled || highlighter === null) return
-      const rendered = highlighter.codeToHtml(code, { lang: normaliseLang(lang), theme: 'github-dark' })
-      if (mine === token.current) setHtml(rendered)
+    // M4.6: deferred to an idle window, for the same reason as mermaid. The
+    // plain code is already on screen by this point — that is the whole point of
+    // the progressive highlight — so the highlighter is genuinely non-critical
+    // work competing with React's first commit.
+    const cancel = whenIdle(() => {
+      void loadHighlighter().then((highlighter) => {
+        if (cancelled || highlighter === null) return
+        const rendered = highlighter.codeToHtml(code, { lang: normaliseLang(lang), theme: 'github-dark' })
+        if (mine === token.current) setHtml(rendered)
+      })
     })
     return () => {
       cancelled = true
+      cancel()
     }
   }, [code, lang])
 

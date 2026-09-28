@@ -15,7 +15,8 @@
  */
 
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
-import { createServer, type Server } from 'node:http'
+import { createBrotliCompress, createGzip } from 'node:zlib'
+import { createServer, type Server, type ServerResponse } from 'node:http'
 import type { Page } from '@playwright/test'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -58,6 +59,56 @@ export async function useDocument(page: Page, docPath: string): Promise<void> {
 
 // `import.meta.dirname` needs Node 20; this project is on Node 18.
 const here = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * The static host for the Lighthouse audit compresses.
+ *
+ * §12's deployment target is Netlify or GitHub Pages, and **both gzip every
+ * text response by default**. A test host that does not is not a stricter
+ * measurement, it is a different product: it sent a 439KB entry where a real
+ * host sends 136KB, and Lighthouse's performance score is dominated by bytes on
+ * the wire. Every number M4.6 records — FCP, LCP, the score itself — was
+ * measuring this host's silence rather than the app's weight.
+ *
+ * `br` when the client offers it, `gzip` otherwise, and only for types a real
+ * host would compress. `no-store` is kept on the control-plane responses so
+ * scenarios cannot see each other's documents, which is the one caching concern
+ * this host has.
+ */
+const COMPRESSIBLE: Record<string, true> = {
+  '.html': true,
+  '.js': true,
+  '.css': true,
+  '.json': true,
+  '.md': true,
+  '.svg': true,
+  '.woff2': true,
+}
+
+function send(res: ServerResponse, file: string, ext: string): void {
+  const headers: Record<string, string> = {
+    'content-type': MIME[ext] ?? 'application/octet-stream',
+    'cache-control': 'no-store',
+  }
+  if (COMPRESSIBLE[ext] !== true) {
+    res.writeHead(200, headers)
+    createReadStream(file).pipe(res)
+    return
+  }
+  const accept = String(res.req.headers['accept-encoding'] ?? '')
+  if (/\bbr\b/u.test(accept)) {
+    res.writeHead(200, { ...headers, 'content-encoding': 'br', vary: 'accept-encoding' })
+    createReadStream(file).pipe(createBrotliCompress()).pipe(res)
+    return
+  }
+  if (/\bgzip\b/u.test(accept)) {
+    res.writeHead(200, { ...headers, 'content-encoding': 'gzip', vary: 'accept-encoding' })
+    createReadStream(file).pipe(createGzip()).pipe(res)
+    return
+  }
+  res.writeHead(200, headers)
+  createReadStream(file).pipe(res)
+}
 
 export function repoRoot(): string {
   return resolve(here, '../..')
@@ -118,11 +169,7 @@ export async function startServer(port = PREVIEW_PORT): Promise<Server> {
         existsSync(outside) &&
         !statSync(outside).isDirectory()
       ) {
-        res.writeHead(200, {
-          'content-type': MIME[extname(outside)] ?? 'application/octet-stream',
-          'cache-control': 'no-store',
-        })
-        createReadStream(outside).pipe(res)
+        send(res, outside, extname(outside))
         return
       }
       // SPA fallback, like every static host: a miss is answered with the shell.
@@ -130,11 +177,7 @@ export async function startServer(port = PREVIEW_PORT): Promise<Server> {
       return
     }
 
-    res.writeHead(200, {
-      'content-type': MIME[extname(file)] ?? 'application/octet-stream',
-      'cache-control': 'no-store',
-    })
-    createReadStream(file).pipe(res)
+    send(res, file, extname(file))
   })
 
   await new Promise<void>((done) => server.listen(port, '127.0.0.1', done))

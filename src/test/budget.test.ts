@@ -205,12 +205,89 @@ describe('§10 bundle budgets', () => {
       MARKER,
     )
   })
+  it('the built HTML preloads the config and the document (M4.6, §10)', () => {
+    if (!available) return
+    // The M1.9e waterfall fix, asserted in the artifact it produces. A preload
+    // hint that is silently absent costs nothing to notice and everything to
+    // miss, which is why the first version of this — a `generateBundle` hook
+    // that ran before Vite emitted the HTML — passed for two builds before
+    // anyone looked at `dist/index.html`.
+    //
+    // The *configured* path comes from the repo root rather than from the build
+    // output: the deployable copy is written to `dist/` by `closeBundle`, and this
+    // test measures a build made in `dist-budget/`, which has no config of its
+    // own. Reading the source of truth is also the stronger assertion — it checks
+    // the hint against what the deployer actually wrote.
+    const html = readFileSync(join(distDir, 'index.html'), 'utf8')
+    const config = JSON.parse(readFileSync(join(repoRoot, 'unfold.config.json'), 'utf8')) as {
+      docPath?: string
+    }
+    const docPath = (config.docPath as string).replace(/^\.\//u, '')
+
+    // `as="fetch"` + `crossorigin` together, or not at all: a preload without
+    // `crossorigin` is fetched in no-cors mode, lands in a different cache entry,
+    // and is then fetched *again* by the real request — a wasted round trip that
+    // looks like it is working.
+    for (const href of ['/unfold.config.json', `/${docPath}`]) {
+      expect(html, `no preload hint for ${href}`).toContain(
+        `<link rel="preload" href="${href}" as="fetch" crossorigin`,
+      )
+    }
+  })
+
+  it('and the document it preloads is one the build ships (M4.6)', () => {
+    if (!available) return
+    // A hint for a document that is not deployed is not a hint, it is a 404 on
+    // the critical path — strictly worse than no hint, because the browser
+    // starts the real fetch only after the hint has failed.
+    const config = JSON.parse(readFileSync(join(repoRoot, 'unfold.config.json'), 'utf8')) as {
+      docPath?: string
+    }
+    const docPath = (config.docPath as string).replace(/^\.\//u, '')
+    expect(existsSync(join(repoRoot, docPath)), `${docPath} is preloaded but does not exist`).toBe(true)
+  })
+})
+
+describe('the build ships what it is configured to read', () => {
+  it('dist/ contains the config the app fetches', () => {
+    expect(existsSync(join(repoRoot, 'dist', 'unfold.config.json'))).toBe(true)
+  })
+
+  it('the configured docPath exists inside dist/', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    expect(typeof config.docPath).toBe('string')
+    const shipped = join(repoRoot, 'dist', (config.docPath as string).replace(/^\.\//u, ''))
+    expect(existsSync(shipped), `${config.docPath} is missing from dist/`).toBe(true)
+  })
+
+  it('every fixture named by the config is actually in dist/', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    const dir = (config.docPath as string).replace(/^\.\//u, '').split('/')[0] as string
+    const shipped = readdirSync(join(repoRoot, 'dist', dir)).filter((name) => name.endsWith('.md'))
+    const source = readdirSync(join(repoRoot, dir)).filter((name) => name.endsWith('.md'))
+    expect(shipped.sort()).toEqual(source.sort())
+  })
+
+  it('the shipped document is byte-identical to the source of truth', () => {
+    const config = JSON.parse(
+      readFileSync(join(repoRoot, 'dist', 'unfold.config.json'), 'utf8'),
+    ) as { docPath?: string }
+    const relative = (config.docPath as string).replace(/^\.\//u, '')
+    expect(readFileSync(join(repoRoot, 'dist', relative), 'utf8')).toBe(
+      readFileSync(join(repoRoot, relative), 'utf8'),
+    )
+  })
 })
 
 /* ------------------------------------------------------------------ *
  * The deployable unit is dist/ PLUS the documents it is configured to
  * read. A correct `docPath` that 404s (or, worse, hits the SPA fallback)
- * is a deployment bug, not a runtime one.
+ * is a deployment bug, not a runtime one — and with M4.6's preload hint, a
+ * docPath that 404s is now a 404 on the critical path as well.
  * ------------------------------------------------------------------ */
 
 describe('the build ships what it is configured to read', () => {
