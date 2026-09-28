@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -100,8 +100,75 @@ function shipDeployable(): Plugin {
         rmSync(target, { recursive: true, force: true })
         cpSync(DOCS_DIR, target, { recursive: true })
       }
+
+      preloadLatinFonts()
     },
   }
+}
+
+/**
+ * The three latin font subsets, preloaded (M4.10).
+ *
+ * ## Why this exists
+ *
+ * M4.6 measured a **CLS of 0.148** and the cause is here. A
+ * `PerformanceObserver` on `layout-shift` put the single shift at **t=1352ms**,
+ * and the `resource` timeline put Geist and Inter's woff2 responses completing at
+ * **t=1352ms** — the same millisecond. `font-display: swap` paints the fallback
+ * first and re-flows the whole document when the real face lands, and the
+ * reading column is content-sized up to `--reading-column`, so a change in where
+ * text wraps changes the column's width and moves everything below it.
+ *
+ * The `size-adjust` fallbacks from M4.6 reduce this; they do not remove it.
+ * `Inter Fallback` is matched to **93.43%** of Inter's advance width, and a 6.6%
+ * difference is more than enough to move wrap points. Metric matching is the
+ * right fix for LCP, which is about a *single* element re-rendering. CLS is
+ * about every element below the re-wrap, and that needs the swap to not happen.
+ *
+ * ## Why M4.6 removed this and M4.10 puts it back
+ *
+ * M4.6 tried font preloads, measured them at a composite of **86 with, 88
+ * without**, and removed them: three more requests on a connection Lighthouse was
+ * throttling is contention, not saving. **That measurement was taken under
+ * Lighthouse's default preset — a throttled mobile emulation, 4x CPU and
+ * simulated slow 4G.** §10.1 / A14 ratified the gate on the **desktop** preset,
+ * where there is no CPU throttling and no simulated slow link. The reason M4.6
+ * gave for removing the preloads does not apply to the experiment being run now,
+ * so the change was re-measured rather than assumed either way.
+ *
+ * ## The details that are not optional
+ *
+ * - **`crossorigin`**: fonts are always fetched in CORS mode. A preload without
+ *   the attribute is fetched no-cors, lands in a different cache entry, and is
+ *   then downloaded *again* by the real request — a second copy of every
+ *   typeface, caused by a hint that looks like it is working.
+ * - **`latin` only.** The stylesheet declares cyrillic, greek and vietnamese
+ *   faces too. Hinting all of them puts twelve extra requests on every load for
+ *   readers writing in English. The others are still declared and still load,
+ *   when they are actually needed.
+ */
+function preloadLatinFonts(): void {
+  const index = join('dist', 'index.html')
+  if (!existsSync(index)) return
+
+  const faces = readdirSync(join('dist', 'assets'))
+    .filter((name) => /^(geist|inter|jetbrains-mono)-latin-wght-normal-.*\.woff2$/u.test(name))
+    .sort()
+  if (faces.length === 0) return
+
+  const tags = faces
+    .map((name) => `    <link rel="preload" href="/assets/${name}" as="font" type="font/woff2" crossorigin>`)
+    .join('\n')
+
+  const html = readFileSync(index, 'utf8')
+  if (html.includes('rel="preload" href="/assets/') && html.includes('as="font"')) return
+
+  // `head-prepend` semantics, done by hand: these belong above the stylesheet,
+  // because a preload that is discovered after the CSS has already asked for the
+  // same file is a preload that started too late to help.
+  const patched = html.replace('</head>', `  ${tags}\n  </head>`)
+  writeFileSync(index, patched)
+  process.stdout.write(`shipDeployable: preloaded ${faces.length} latin font subset(s)\n`)
 }
 
 /** Copy one file, creating its parent directory. */
