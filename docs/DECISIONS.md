@@ -650,7 +650,7 @@ heading announces its structure from the wrong starting point.
 
 ---
 
-## M4 — modes, mobile, a11y, motion, delight, perf, release
+## M4 — modes, mobile, a11y, motion, perf, release
 
 **§7.8's rule is an allowlist, not the denylist it also states** / Positive
 statement implemented; `loop`, `graph`, `steps`, `hr` and `html` follow /
@@ -1044,7 +1044,15 @@ from the outside.
 
 ---
 
-## M4.5 — delight
+## M4.5 — delight — **SUPERSEDED: the feature was removed**
+
+> Every entry in this section is the record of a decision that was made and
+> implemented, and then reversed: the delight feature is gone from the app. The
+> entries are kept because the reasoning still explains the class of problem
+> ("never loaded" is not "never drawn") and because deleting a decision log's
+> history is worse than annotating it. What shipped is: no confetti, no
+> celebration, no Konami code, no `features.delight`, no `src/app/delight/`, and
+> no `canvas-confetti` in `package.json`.
 
 **One flag, one file, and the flag is checked before the import** /
 `src/app/delight/delight.ts` is the whole feature / §7.10's "behind one
@@ -1266,9 +1274,9 @@ test* in `src/test/motion.test.ts`, six declarations: three signature moments,
 one reveal, two ambient loops, with `--motion-ambient: 6400ms`; the
 non-reduced-motion half is `tests/e2e/motion.spec.ts:95`, a
 `test.use({ contextOptions: { reducedMotion: 'no-preference' } })` block with
-five tests including the 250ms mode-flip ceiling. M4.5's off-switch is asserted
-twice from the browser: `delight.spec.ts:31` (flag off → chunk never
-requested) and `:71` (flag on, reduced motion → still never requested). The R5
+five tests including the 250ms mode-flip ceiling. M4.5's off-switch was
+asserted twice from the browser in `delight.spec.ts`, and both assertions went
+with the feature rather than being re-pointed at something else. The R5
 contrast-allowlist entry was deleted at **G4/R11b, commit `4193cef`** — not in
 M4, which is why M4.3's own entry says so rather than claiming the credit.
 
@@ -1713,3 +1721,33 @@ honest reading of two new declarations that are both the graph's existing
 `edge-trace` on two more selectors is "no new motion". The test now asserts the
 distinct-name set as well as the count, so a genuinely new animation still fails
 it.
+
+---
+
+## Delight removed (post-M4.14)
+
+**The delight feature is deleted rather than switched off** / `src/app/delight/`,
+`features.delight`, the `unfold:celebrate` event, `src/test/delight.test.ts`,
+`tests/e2e/delight.spec.ts` and the dependency are all gone / A flag that
+defaults to `false` would leave the code, the config key, the event name and the
+dependency in the tree, with a reader-visible feature that can only be turned
+*off* and a maintainer-visible one that can only be deleted. Removing the
+feature removes its flag too, so there is nothing left to configure and nothing
+left to mis-set.
+
+**The dependency went with it, and the genericity allowlist says why** /
+`canvas-confetti` and `@types/canvas-confetti` are uninstalled, and the two
+lazy-chunk budget tests that asserted confetti was a separate, never-preloaded
+chunk are deleted rather than re-pointed / A library that is still installed is
+still a supply-chain surface, a bundle-size line item, and a line in the
+allowlist that has to be justified forever. The remaining framer-motion test now
+asserts confetti's platform marker is absent from the **whole** build, which is a
+stronger claim than "it is somewhere lazy" — for a removed library, absent is
+the only correct answer.
+
+**The M4.5 and M4.11c entries are kept, annotated, not deleted** / One
+`> SUPERSEDED` note on the section / `DECISIONS.md` is a log, and the reasoning
+inside those entries — that "never loaded" is a different claim from "never
+drawn", that a reused canvas cannot be counted, that a dynamic import still has
+to name its chunk — is the part worth keeping. A log that silently drops its own
+entries is a log nobody can trust about the current state.

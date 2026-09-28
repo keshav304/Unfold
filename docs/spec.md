@@ -89,7 +89,6 @@ knowledge required:
   "features": {
     "graph": "auto",
     "stepper": "auto",
-    "delight": true,
     "diagrams": "auto"
   }
 }
@@ -135,7 +134,6 @@ hatch for compatibility and for bisecting a diagram defect without a code change
 | Palette/search | **cmdk** + **minisearch** | Command palette; in-memory fuzzy search. |
 | Code highlight | **Shiki**, `github-dark` theme | Accurate; single theme in v1. |
 | Diagrams | **mermaid** (lazy, `dark` theme) for mermaid blocks; custom SVG for `loop` | No re-theming needed in v1 (dark only). |
-| Delight | **canvas-confetti** (lazy) | Milestones. |
 | Styling | Tailwind + CSS custom properties for tokens | Tokens from §5.2 / DESIGN.md. |
 | Testing | Vitest + Testing Library; Playwright smoke optional | Parser is pure → highly testable. |
 
@@ -521,10 +519,14 @@ v1 ships the DESIGN.md dark theme exclusively. Token architecture keeps a
 `[data-theme]` hook; **no theme toggle in v1**. Light theme is a v2 design
 task. AA verified and Lighthouse run on the dark theme.
 
-### 7.10 Chrome & delight
+### 7.10 Chrome
 Gradient progress bar (`--gradient`); back-to-top after 600px; now-reading
-chip. Delight (confetti at milestones, end celebration, Konami) behind one
-`features.delight` flag; suppressed under reduced motion.
+chip. The delight feature this section once specified — confetti at reading
+milestones, an end-of-document celebration, a Konami code, behind
+`features.delight` — has been **removed**: no confetti, no celebration, no
+code, and no flag. Motion explains structure (§8); a decoration that fires over
+a reader's own text did not. The progress bar and the back-to-top are the whole
+of the chrome, and they are enough.
 
 ## 8. Motion rules
 Motion explains structure, never decorates. Three signature moments total:
@@ -532,7 +534,7 @@ palette spring-in, graph panel transition, stepper transition. Everything
 else ≤250ms ease-out; scroll reveals 500–600ms, fire once. Ambient loops
 (metro glow, scanline, particles) slow and low-opacity.
 `prefers-reduced-motion: reduce` → animation/transition: none, content
-instant, confetti/particles never load.
+instant, ambient loops stopped.
 
 ## 9. Accessibility
 Skip-to-content; landmarks; title = doc title. Palette/drawer: focus trap,
@@ -542,7 +544,7 @@ muted text are the usual failures). Visible `:focus-visible` rings
 (`--border-focus` + 2px outer ring per DESIGN.md input focus spec).
 
 ## 10. Performance budgets
-Initial JS ≤ 200KB gz; React Flow, mermaid, confetti lazy chunks. Parse +
+Initial JS ≤ 200KB gz; React Flow, mermaid, Shiki lazy chunks. Parse +
 indexes in-memory; docs up to ~100k words parse <300ms on a mid laptop —
 beyond that, stay functional (no worker in v1, but no regression). Fonts:
 self-hosted subsets of Geist, Inter, JetBrains Mono, `font-display: swap`.
@@ -631,7 +633,7 @@ only: fetch(docPath) or file drop → parse → document model → interactive m
 | **M1 Reader** | Terminal/loop/mermaid blocks, Shiki+copy, tables, hero, metro TOC, scrollspy, chip, progress, loader/drop | §7.1–7.3, 7.10 acceptance; breakpoints (1280/768) behave per §5.3; budgets hit on `kitchen-sink` |
 | **M2 Search + entities** | Palette, minisearch, popovers, backlinks, glossary + alias chips | §7.4–7.5 criteria; palette keyboard-complete; alias test (§11.6) green; `minimal.md` shows no entity UI |
 | **M3 Graph + stepper** | Lazy React Flow, DSL parsers (§6.7–6.8), derived doc-map with thresholds, stepper view, workbench layout | §7.6–7.7 criteria; explicit-vs-derived boundary tests green; all referenced slugs validate |
-| **M4 Modes + polish** | Executive/Reference, mobile pass, a11y audit, motion pass, delight flag, perf pass | §7.8 heuristics verified on fixtures; reduced-motion audit clean; budgets hold |
+| **M4 Modes + polish** | Executive/Reference, mobile pass, a11y audit, motion pass, perf pass | §7.8 heuristics verified on fixtures; reduced-motion audit clean; budgets hold |
 
 ## 14. Risks
 

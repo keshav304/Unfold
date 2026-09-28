@@ -117,7 +117,6 @@ a screen where you can pick a file.
 | `accent` | any CSS colour | `--primary` | Overrides the accent at runtime. |
 | `features.graph` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | `"auto"` = capability-detected; `"off"` hides the graph view; `"on"` shows the nav item with an empty state if the document has no graph. |
 | `features.stepper` | `"auto"` \| `"off"` \| `"on"` | `"auto"` | Same, for the stepper. |
-| `features.delight` | boolean | `true` | Confetti at reading milestones. `false` means the confetti chunk is **never requested**, not merely never drawn. |
 | `features.diagrams` | `"auto"` \| `"terminal"` | `"auto"` | How an untagged ASCII fence is presented. `"auto"` parses it and renders a real diagram as SVG, keeping the terminal window for a fence the parser will not vouch for; `"terminal"` never parses, so every candidate renders as the terminal window it always did. The escape hatch. |
 | `fileExtensions` | string[] | a built-in list | Which extensions count as file paths for entity chips. |
 | `entityPatterns` | `{name, pattern}[]` | `[]` | Extra regexes, each with a global flag. An invalid pattern is warned about and skipped, never fatal. |
@@ -128,7 +127,7 @@ Invalid JSON is **never** fatal: the app logs one warning and runs on defaults.
 ```json
 {
   "docPath": "./docs/architecture.md",
-  "features": { "graph": "auto", "stepper": "off", "delight": true },
+  "features": { "graph": "auto", "stepper": "off" },
   "descriptions": { "src/app/App.tsx": "The shell. Owns the header, routing and chrome." }
 }
 ```
@@ -272,7 +271,6 @@ first deploy.* Deployment is not a release criterion.
 | `←` `→` | Previous / next step, anywhere in the stepper. |
 | `Enter` on a graph node | Opens the inspector; `Esc` returns focus to the node. |
 | `Esc` | Closes the palette, the drawer, a popover or the graph panel — whichever is open. |
-| `↑ ↑ ↓ ↓ ← → ← → b a` | There is confetti. It is off under `prefers-reduced-motion`, and `features.delight: false` stops the code being downloaded at all. |
 
 **Two reading modes**, in the header and in the palette. *Reference* is the
 whole document. *Executive* gives each section its title, its lead paragraph, its
@@ -283,7 +281,7 @@ lost: turning it back off restores the document exactly.
 The layout adapts at 1280px and 768px. On a phone the nav rail becomes a
 drawer, the pane switch moves to its own row, and every control is at least
 44px. **Reduced motion is honoured throughout** — the three signature animations
-become instant, and the ambient loops and confetti do not run at all.
+become instant, and the ambient loops do not run at all.
 
 ---
 
@@ -300,8 +298,6 @@ become instant, and the ambient loops and confetti do not run at all.
   slides in and an "Open section" that returns you to the reader. Below 1280px
   it overlays rather than reflowing, so the canvas never jumps.
 - **Stepper** — a deep-linkable lifecycle, vertical on a phone.
-- **Delight** — confetti at 25/50/75% of the document, an end-of-document
-  celebration, and a code.
 
 ## v1 limits
 
@@ -316,7 +312,7 @@ These are decisions, not gaps in anyone's attention:
 - **No MDX, no CMS, no auth, no analytics, no server.** The document stays a
   plain `.md` that reads correctly on GitHub, which is the point.
 - **Initial JS budget 200KB gzipped** (§10, enforced in CI), with the heavy
-  renderers — React Flow, mermaid, Shiki, confetti — in separate lazy chunks.
+  renderers — React Flow, mermaid, Shiki — in separate lazy chunks.
 - **A11y gate: Lighthouse ≥ 95 and zero axe violations on whole pages** at both
   desktop and phone widths.
 - **Perf gate: four named metrics, not a score** — FCP ≤ 2.0s, LCP ≤ 2.5s,

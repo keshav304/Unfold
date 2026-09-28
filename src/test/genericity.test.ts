@@ -166,7 +166,6 @@ const ALLOWED_DEPS: Record<string, string> = {
   mermaid: '§4 Diagrams — lazy chunk, dark theme',
   cmdk: '§7.4 palette — headless combobox with the aria wiring §9 requires; hand-rolling it is how focus traps get subtly wrong',
   '@xyflow/react': '§4 Graph — React Flow, the library the spec names, as a lazy chunk. It owns pan/zoom, viewport transforms and node focusability, which are the three things M3.7 needs a real browser to verify; a hand-rolled canvas would be re-implementing them and would fail the keyboard walk',
-  'canvas-confetti': '§4 Delight — the library the spec names, as a dynamic import inside the `features.delight` branch. The M4 brief authorised exactly this one dependency and no other; §7.10 wants confetti at reading milestones and a Konami code, and the alternative is a hand-rolled particle system, which is a second animation engine to keep inside the §8 budget for a decoration. `budget.test.ts` asserts it is a lazy chunk and that the entry does not preload it.',
 }
 
 /** Tooling; never shipped to the browser. */
@@ -192,7 +191,6 @@ const ALLOWED_DEV_DEPS: Record<string, string> = {
   '@fontsource-variable/geist': '§10 self-hosted subsets — display/headline face',
   '@fontsource-variable/inter': '§10 self-hosted subsets — body face',
   '@fontsource-variable/jetbrains-mono': '§10 self-hosted subsets — code face',
-  '@types/canvas-confetti': '§4 types for the confetti delight library; dev-only, never shipped',
 }
 
 /**
@@ -200,9 +198,11 @@ const ALLOWED_DEV_DEPS: Record<string, string> = {
  * "just for X" smell plan §9 says to reject.
  *
  * `cmdk` left this list in M2 and `@xyflow/react` in M3; `canvas-confetti` left
- * it in M4.5 — that is the guard doing its job: a deferred library may only be
+ * it in M4.5 and was uninstalled outright when the delight feature was removed
+ * — that is the guard doing its job twice over: a deferred library may only be
  * promoted in the milestone that actually ships it, and only with a written
- * reason in the allowlist above.
+ * reason in the allowlist above; and a feature that is deleted takes its
+ * dependency with it rather than leaving it installed and unused.
  *
  * **Framer Motion is still here**, and M4.4 is why. Spec §4 names it for
  * "layout/gesture animation, reduced-motion API", and the M4.4 audit found the

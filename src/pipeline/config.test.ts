@@ -19,13 +19,13 @@ describe('zero config', () => {
         docPath: './document.md',
         title: 'override title',
         accent: '#06b6d4',
-        features: { graph: 'auto', stepper: 'auto', delight: true },
+        features: { graph: 'auto', stepper: 'auto' },
       }),
     )
     expect(config.docPath).toBe('./document.md')
     expect(config.title).toBe('override title')
     expect(config.accent).toBe('#06b6d4')
-    expect(config.features).toEqual({ graph: 'auto', stepper: 'auto', delight: true, diagrams: 'auto' })
+    expect(config.features).toEqual({ graph: 'auto', stepper: 'auto', diagrams: 'auto' })
   })
 })
 

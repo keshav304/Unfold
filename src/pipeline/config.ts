@@ -33,7 +33,6 @@ export type UnfoldConfig = {
   features: {
     graph: FeatureSwitch
     stepper: FeatureSwitch
-    delight: boolean
     /** M4.14. Defaults to `auto`, which is the whole feature. */
     diagrams: DiagramsMode
   }
@@ -47,7 +46,7 @@ export type UnfoldConfig = {
 
 export const DEFAULT_CONFIG: UnfoldConfig = {
   docPath: './document.md',
-  features: { graph: 'auto', stepper: 'auto', delight: true, diagrams: 'auto' },
+  features: { graph: 'auto', stepper: 'auto', diagrams: 'auto' },
   fileExtensions: [...DEFAULT_FILE_EXTENSIONS],
   entityPatterns: [],
   descriptions: {},
@@ -117,8 +116,6 @@ export function normalizeConfig(raw: unknown): UnfoldConfig {
     features: {
       graph: asFeatureSwitch(features['graph'], DEFAULT_CONFIG.features.graph),
       stepper: asFeatureSwitch(features['stepper'], DEFAULT_CONFIG.features.stepper),
-      delight:
-        typeof features['delight'] === 'boolean' ? features['delight'] : DEFAULT_CONFIG.features.delight,
       diagrams: asDiagramsMode(features['diagrams'], DEFAULT_CONFIG.features.diagrams),
     },
     fileExtensions: extensions ?? [...DEFAULT_CONFIG.fileExtensions],

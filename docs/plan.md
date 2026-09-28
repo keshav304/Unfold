@@ -36,7 +36,7 @@ relevant fixture/demo doc. Then:
 | M1 | Reader experience | 2–3 | M0 | G2 |
 | M2 | Search + palette + entities | 2 | M0 (indexes), M1 (UI shell) | G3 |
 | M3 | Graph + stepper + workbench | 2–3 | M0 (DSL, thresholds), M1 | G4 |
-| M4 | Modes, mobile, a11y, motion, delight | 2 | all | G5 = release |
+| M4 | Modes, mobile, a11y, motion (delight later removed) | 2 | all | G5 = release |
 
 Total: ~11–14 sessions. Cut lines per milestone in §8.
 
@@ -360,7 +360,9 @@ of graph + stepper clean; every `sectionSlug` in graph/stepper data validates.
     shortage. Framer Motion stays uninstalled — `budget.test.ts` still asserts
     it is absent from the whole build.
 - [x] M4.5 Delight behind `features.delight` (§7.10); off under
-      reduced-motion.
+      reduced-motion. **Since removed** — see "Delight removed" at the end of
+      this section; the history below is kept as the record of what was built
+      and why, and nothing in it ships.
   - [x] `canvas-confetti` installed — **the only new dependency of the
     milestone**, authorised by the M4 brief, with its reason in
     `genericity.test.ts`'s allowlist. Framer Motion stays uninstalled and stays
@@ -570,10 +572,12 @@ README with: what it is, config reference (§1.4), authoring conventions
 ## 8. Cut lines (if time compresses)
 
 Drop in this order — each cut leaves a coherent product:
-1. Delight (M4.5) — one flag.
-2. Stepper (M3.6–3.7) — capability-gated anyway.
-3. Derived document map (keep explicit-graph only).
-4. Popover descriptions (keep backlinks-only cards).
+1. Stepper (M3.6–3.7) — capability-gated anyway.
+2. Derived document map (keep explicit-graph only).
+3. Popover descriptions (keep backlinks-only cards).
+
+*(Delight used to be cut #1. It was cut for real instead: the feature, its flag,
+its module, its tests and `canvas-confetti` are all gone — see below.)*
 **Never cut:** slugs (M0.4), capability tests (§11.3), stranger test ritual,
 budgets, reduced-motion.
 
@@ -599,6 +603,9 @@ before coding, per the brief's own instruction to check the mechanism first:
 | `scrollHeight` grows while reading (4173 → 4323 → 4601 → 4827 over ~2.8s, as M4.6's idle-deferred mermaid and Shiki land) | **True** |
 | That growth makes milestones miss | **False.** `progress()` recomputes from live geometry on every scroll; `fired` is a set, so a late threshold is reached late, not missed |
 | Only one burst happens | **False — the counter could not see the second firing.** `canvas-confetti` *reuses* one canvas across bursts; only the first inserts one |
+
+*(The investigation below is the record of a real measurement. The event it
+describes, `unfold:celebrate`, went with the feature.)*
 
 On `unfold:celebrate` the truth is `[0.25, 0.5, 0.75, 1]` — four, once each, in
 order, and nothing further on re-reading. **No ResizeObserver was added**, because
@@ -664,3 +671,31 @@ silently running with motion *allowed*; and the `<canvas>` counter above.
 - Multi-document browsing / doc switcher
 - Light Shiki/mermaid theme pairing
 - Config-extensible entity regexes surfaced as API
+
+---
+
+## Delight removed (post-M4.14)
+
+The delight feature is gone from the app: no confetti, no end-of-document
+celebration, no Konami code, no `features.delight` flag, no `unfold:celebrate`
+event, no `src/app/delight/`, no `canvas-confetti` in `package.json`, and no test
+or documentation claiming otherwise. The M4.5 entries above stay as the record
+of what was built and why.
+
+What it cost to keep, in the end:
+
+- **A dependency.** `canvas-confetti` was the only dependency the M4 brief
+  authorised, and removing the feature removed it from `package.json` and the
+  lockfile rather than leaving it installed and unused.
+- **Motion-budget surface.** M4.4's inventory test, the reduced-motion gate and
+  the Playwright motion scenarios all carried a clause for it. Those are gone with
+  it rather than relaxed.
+- **Tests that had to go with the feature**: `src/test/delight.test.ts` and
+  `tests/e2e/delight.spec.ts`. The two lazy-chunk budget tests that asserted
+  confetti was a separate chunk and never preloaded are gone too, and the
+  framer-motion test now asserts the confetti marker is absent from the *whole*
+  build, which is the stronger claim for a removed library.
+- **Nothing was replaced.** The progress bar, the back-to-top and the
+  now-reading chip are the chrome now, and the reader's motion budget is three
+  signature moments and two ambient loops, which is what the spec's §8 asks for
+  when it says motion explains structure rather than decorating.
